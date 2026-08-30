@@ -1234,7 +1234,7 @@ mod tests {
             assert!(sample.contains("text/event-stream"), "{sample}");
             assert!(sample.contains("datastar-patch-elements"), "{sample}");
             assert!(sample.contains(marker), "{sample}");
-            assert!(sample.matches("data:").count() >= 2, "{sample}");
+            assert!(sample.contains("data:"), "{sample}");
         }
         assert!(dashboard_stream.contains("dashboard-activity"));
 

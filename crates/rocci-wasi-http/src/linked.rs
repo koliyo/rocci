@@ -17,8 +17,10 @@ static EMIT: Mutex<EmitState> = Mutex::new(EmitState {
 
 const HELLO_WEB_HTML: &[u8] = b"<!doctype html><html><body>hello-web</body></html>";
 
+/// # Safety
+/// `ptr` must be null or valid for `len` bytes.
 #[unsafe(no_mangle)]
-pub extern "C" fn hosted_emit_ordinary(status: i32, ptr: *const u8, len: i32) {
+pub unsafe extern "C" fn hosted_emit_ordinary(status: i32, ptr: *const u8, len: i32) {
     let bytes = if ptr.is_null() || len <= 0 {
         Vec::new()
     } else {
@@ -36,7 +38,7 @@ pub extern "C" fn roc_init_for_host() -> i32 {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn roc_respond_for_host() -> i32 {
-    hosted_emit_ordinary(200, HELLO_WEB_HTML.as_ptr(), HELLO_WEB_HTML.len() as i32);
+    unsafe { hosted_emit_ordinary(200, HELLO_WEB_HTML.as_ptr(), HELLO_WEB_HTML.len() as i32) };
     0
 }
 
