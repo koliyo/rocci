@@ -4,7 +4,7 @@ title: Link a real Rocci app into the WASI 0.3 HTTP module
 description: "Take rocci build --http-module from the hello-web stub to a compiled .rocci. The sibling koliyo/roc-basic-webserver fork supplies a wasm32 platform target; the Rocci component stays the wasi:http/service linker. Destination: wasmtime serve shows Counter, then a generated SSE app. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:20:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:24:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -163,7 +163,7 @@ That checkout is now configured. This plan uses it. It does not open a
 | Surface | Now | Destination |
 | --- | --- | --- |
 | `rocci build --http-module App.rocci` | Copies prebuilt component; ignores App body[^cli-main] | Lowers App, `roc build --target=wasm32 --no-link` against the fork, links the object |
-| `GET /` | Fixed hello-web HTML[^linked-rs][^component-lib] | App's `respond!` |
+| `GET /` | Phase 2: Roc hello-web `<b>Hello from server</b><br>` | App's `respond!` |
 | Platform URL | Unused for this flag | Local fork for `--http-module` only |
 | sqlite | Embedder-only; omitted from the component[^research] | Hosted sqlite Counter uses, sync, serializes |
 | `rocci run` | Native 0.16.0 URL[^dispatch-rs] | Unchanged |
@@ -267,6 +267,12 @@ Roc app. Native embedder tests stay green.
 `cargo fmt --all -- --check`.
 
 **Exit:** Serve proof uses Roc object export names.
+
+**Phase 2 recorded (2026-08-30):** `rocci-wasi-http-component` links
+`fixtures/roc_app.o`. `GET /` under `wasmtime serve -Sp3 -Scli` is
+`<b>Hello from server</b><br>` from Roc `roc_respond_for_host`, not the
+Rust hello-web constant. Native embedder tests stay on `linked.rs` /
+WAT. Alloc and `roc_crashed` stay in Rust (`roc_object.rs`).
 
 ## Phase 3: Hosted Env, Path, and Stderr
 

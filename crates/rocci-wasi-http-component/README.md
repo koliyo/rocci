@@ -1,8 +1,9 @@
 # rocci-wasi-http-component
 
-Portable WASI 0.3 `wasi:http/service` component. `GET /` calls linked
-`roc_*_for_host` symbols (same names as `hello_web.wat`). Other routes
-echo mapped request fields. No Wasmtime in this crate.
+Portable WASI 0.3 `wasi:http/service` component. `GET /` calls the linked
+Roc `roc_*_for_host` object (`fixtures/roc_app.o`, hello-web
+`<b>Hello from server</b><br>`). Other routes echo mapped request fields.
+No Wasmtime in this crate.
 
 ## Pins (Phase 0)
 
@@ -26,8 +27,8 @@ wasmtime serve -Sp3 -Scli --addr 127.0.0.1:8080 \
 curl -i http://127.0.0.1:8080/
 ```
 
-`GET /` is 200 `text/html` with
-`<!doctype html><html><body>hello-web</body></html>`.
+`GET /` is 200 `text/html` with the Roc hello-web body
+`<b>Hello from server</b><br>`.
 
 Mapped fields (same names as `maps_get_path_query_and_headers` /
 `buffers_post_body`) echo as `text/plain` on other routes:

@@ -217,4 +217,9 @@ mod tests {
             "<!doctype html><html><body>hello-web</body></html>"
         );
     }
+
+    #[test]
+    fn roc_hello_web_body_is_not_the_rust_constant() {
+        assert_ne!(super::HELLO_WEB_HTML, "<b>Hello from server</b><br>");
+    }
 }
