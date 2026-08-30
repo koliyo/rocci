@@ -4,7 +4,7 @@ title: Gaps for running basic-webserver as a WASI HTTP module
 description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! is the stall. Missing work is a new adapter, not a Rocci flag."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:16:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:26:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -574,6 +574,11 @@ Roc's wasm backend is C-ABI hosted functions (`roc_respond_for_host`,
 
 `roc glue` can generate the Roc↔Rust ABI. It does not generate WASI HTTP
 WIT or Canonical ABI async lifts. That layer is new code.
+
+Related: the planned Component Model [lazy ABI](roc-hosting-lazy-abi.md)
+(`cabi_realloc` → opaque `validx` + `value.lower`) is a separate question
+from this C-ABI stall. Native Roc already shares bytes with seamless
+slices and host handles. Option 1 does not need that builtin.
 
 ### 7. Rocci product wiring (after a platform exists)
 
