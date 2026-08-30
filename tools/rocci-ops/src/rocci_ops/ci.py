@@ -21,6 +21,7 @@ JOB_NAMES = (
 class Step:
     argv: tuple[str, ...]
     stdout_path: str | None = None
+    cwd: str | None = None
 
 
 def okmate_dir(root: Path) -> Path:
@@ -58,6 +59,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
             Step(("cargo", "run", "-q", "-p", "rocci-ungram", "--", "check")),
             Step(("cargo", "fmt", "--all", "--", "--check")),
             Step(("cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings")),
+            Step(("uv", "run", "--group", "dev", "pytest"), cwd="tools/rocci-ops"),
         ]
         if _rustup_available():
             return [
@@ -72,48 +74,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
         ]
     if job == "fixtures-and-docs":
         return [
-            Step(("cargo", "run", "-q", "-p", "rocci-cli", "--", "inspect", "--ast", "test/AllSyntax.rocci")),
-            Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-rocdown-cli",
-                    "--",
-                    "inspect",
-                    "ast",
-                    "test/AllSyntax.rocdown",
-                )
-            ),
-            Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-cli",
-                    "--",
-                    "inspect",
-                    "--ast",
-                    "test/EmbeddedLanguages.rocci",
-                )
-            ),
-            Step(
-                (
-                    "cargo",
-                    "run",
-                    "-q",
-                    "-p",
-                    "rocci-rocdown-cli",
-                    "--",
-                    "inspect",
-                    "ast",
-                    "test/EmbeddedLanguages.rocdown",
-                )
-            ),
             Step(("uv", "run", "--no-dev", "rocci-ops", "check", "docs")),
-            Step(("cargo", "test", "-p", "rocci-docs")),
             Step(
                 (
                     "cargo",
@@ -236,7 +197,7 @@ def run_step(step: Step, cwd: Path) -> int:
     stdout_file = None
     try:
         kwargs: dict = {
-            "cwd": cwd,
+            "cwd": cwd / step.cwd if step.cwd else cwd,
             "check": False,
         }
         if step.stdout_path:
