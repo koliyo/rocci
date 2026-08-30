@@ -22,6 +22,8 @@ BASE_ROCCI = {
     "rocci-highlight",
     "rocci-ui",
     "rocci-roc-host",
+    "rocci-wasi-http",
+    "rocci-wasi-http-component",
     "rocci-datastar",
 }
 

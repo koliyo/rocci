@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Gaps for running basic-webserver as a WASI HTTP module
-description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! is the stall. Missing work is a new adapter, not a Rocci flag."
+description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! still serializes. Option 1 plus app-link Phases 0–7 shipped experimental. Still omitted: Cmd, in-guest TLS, desktop URL."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T11:50:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:26:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -135,6 +135,50 @@ sources:
     resource: ../../plans/rocci/basic-webserver-wasi.md
     title: WASI HTTP adapter implementation plan; yield around Roc
     author: process:cursor
+    last_modified: 2026-08-29
+  - id: probe-crate
+    resource: ../../../crates/rocci-wasi-http/src/probe.rs
+    title: Phase 0 overlap probe (native current-thread plus Wasmtime guest imports)
+    author: process:git
+    last_modified: 2026-08-29
+  - id: sse-research
+    resource: basic-webserver-sse-http.md
+    title: Native 0.16 SSE idle timeout and Wait-is-silent
+    author: process:cursor
+    last_modified: 2026-08-21
+  - id: adapter-handle
+    resource: ../../../crates/rocci-wasi-http/src/handle.rs
+    title: SSE Wait as adapter clocks; overlapping-stream test
+    author: process:git
+    last_modified: 2026-08-29
+  - id: adapter-sqlite
+    resource: ../../../crates/rocci-wasi-http/src/sqlite.rs
+    title: Sync rusqlite guest; nested respond serializes
+    author: process:git
+    last_modified: 2026-08-29
+  - id: http-module-flag
+    resource: ../../../crates/rocci-cli/src/main.rs
+    title: rocci build --http-module writes the 0.3 component; not --host wasm
+    author: process:git
+    last_modified: 2026-08-29
+  - id: component-plan
+    resource: ../../plans/rocci/wasi-http-03-component.md
+    title: Option 1 shipped; remaining work is the app-link follow-on
+    author: process:cursor
+    last_modified: 2026-08-30
+  - id: app-plan
+    resource: ../../plans/rocci/wasi-http-03-app.md
+    title: Link a real Rocci app; sibling fork wasm32 target; Counter destination
+    author: process:cursor
+    last_modified: 2026-08-30
+  - id: wasip3-crate
+    resource: https://docs.rs/wasip3/0.8.0+wasi-0.3.0/wasip3/
+    title: wasip3 0.8.0+wasi-0.3.0 exports wasi:http/service on wasm32-wasip2
+    author: organization:bytecode-alliance
+  - id: component-crate
+    resource: ../../../crates/rocci-wasi-http-component/README.md
+    title: Serve proofs for hello-web, SSE, preopen; sqlite omitted
+    author: process:git
     last_modified: 2026-08-29
 ---
 
@@ -308,24 +352,102 @@ that worker.[^bws-time][^bws-http-send][^bws-exec]
 Wasmtime **can** park a guest fiber when a sync-lifted export calls an
 async-lowered host import (`async→sync` fusion). That yields the
 *instance* without blocking the *host thread*. It does not make Roc
-`async`. Roc hosted names today are linker symbols, not WIT; whether
-an `extern "C"` sleep that internally hits a WASI `async func` actually
-overlaps other `handle`s is a **measurement**, not a guarantee. Do not
-`block_on` WASI async from C if that measurement fails: it freezes the
-instance the same way `thread::sleep` does.[^cm-async-rfc][^wasmtime-async][^wasi-plan]
+`async`. Roc hosted names today are linker symbols, not WIT. Phase 0
+measured that a **sync** `thread::sleep` import (hosted-sleep C) does
+**not** park: other `handle`s serialize. An async host import (adapter
+await) does park. Do not `block_on` WASI async from C: it freezes the
+instance the same way `thread::sleep` does.[^cm-async-rfc][^wasmtime-async][^wasi-plan][^probe-crate]
 
-Adapter policy (the plan implements this):
+Adapter policy (the plan implements this; Phase 0 confirmed it):
 
 1. **Yield around Roc** (preferred). Buffer the WASI body, then call
    `roc_respond_for_host`. For SSE, `advance` then `await` clocks then
    write `stream<u8>`. Generated `@get:live` is this shape.
 2. Treat nested sqlite/file inside `respond!` as short critical
-   sections unless Phase 0 proves fibers yield them.
+   sections. Fibers do **not** apply to sync C hosted sleep.
 3. Extra instances are for isolation and CPU, not because "Wasm has
    one thread."
 
+### Phase 0 measured overlap (200ms wait)
+
+Two concurrent probe `handle`s on a current-thread Tokio runtime (one OS
+thread). Native analog plus a core-wasm guest whose exports call host
+imports (`func_wrap_async` vs sync busy / `thread::sleep`). Command:
+`cargo test -p rocci-wasi-http measure_200ms_table -- --ignored --nocapture`.[^probe-crate]
+
+| Mode | Native wall | Native | Wasmtime wall | Wasmtime | Fibers on (3)? |
+| --- | --- | --- | --- | --- | --- |
+| Adapter await (clocks) | 202ms | overlaps | 203ms | overlaps | Yes (async host import parks) |
+| CPU-only C (`roc_respond` stub) | 400ms | serializes | 400ms | serializes | N/A (no await point) |
+| Hosted-sleep C (`hosted_sleep_millis`) | 409ms | serializes | 410ms | serializes | **No** |
+
 Making Roc itself async is out of scope. The 0.16 SSE ABI already
 pulled the long wait out of `respond!`.[^wasi-plan]
+
+### Adapter SSE Wait (crate embedder)
+
+Two concurrent `WaitEmitGuest` `handle`s on current-thread Tokio, 40ms
+`WaitToHost` then one Emit: wall time stays under one-and-a-half waits
+(`overlapping_sse_waits_do_not_serialize`). Live `Wait` overlap does
+**not** require async Roc. Idle timeout stays the WASI host's, not Hyper's
+30s `response_idle_timeout_ms`.[^adapter-handle][^sse-research]
+
+### SQLite nested in `respond!`
+
+Sync rusqlite (bundled `libsqlite3-sys`, no native Hyper/`ring` host crate)
+inside `respond!` **serializes** other `handle`s for that duration
+(`sqlite_in_respond_serializes`, 40ms stall plus a query). Same class as
+hosted-sleep-C. Fibers do not park this path. Do not document it as
+yielding.[^adapter-sqlite]
+
+### Capability ladder (experimental crate)
+
+| Capability | In `rocci-wasi-http` | Product |
+| --- | --- | --- |
+| Hello-web `handle` (ordinary HTML) | Yes (embedder + WAT guest with 0.16 export names) | Experimental |
+| SSE `stream` + Wait as adapter clocks | Yes | Experimental |
+| One `file_root` preopen | Yes (reject `..`; native OS paths not granted) | Experimental |
+| sqlite in `respond!` | Yes, **sync**, serializes | Experimental |
+| Portable 0.3 `wasmtime serve` component | Yes: compiled `.rocci` via sibling fork object; hosted Env/Path/Stderr/sqlite; Counter + live-counter `/sse` | Experimental (`rocci build --http-module`)[^http-module-flag][^component-plan][^component-crate][^app-plan] |
+| `rocci run` / musl publish / `--host wasm` | Unchanged | Native 0.16 / apply |
+
+A 2026-08-30 re-measure against sibling `../roc-basic-webserver` overturns
+the earlier "header does not emit `roc_respond_for_host`" finding. Both
+`nightly-2026-08-23-fb208ba` (Rocci PATH pin) and
+`nightly-2026-08-26-b29bef3` (fork pin) put
+`roc_init_for_host` / `roc_respond_for_host` / `roc_shutdown_for_host`
+in the intermediate `roc_app_llvm_wasm32_speed.o`. `--no-link` is
+absent. Roc's linked `.wasm` still exports only `memory` because
+`wasm-ld` is not passed `--export=` for those names. Product tests still
+link `src/hello_web.wat` for embedder tests. The [app
+link](/plans/rocci/wasi-http-03-app.md) uses the captured object.
+`http-module` does not need a different `roc` than the Rocci
+pin.[^probe-crate][^app-plan]
+
+### Phase 0 toolchain (`wasmtime serve` empty service)
+
+Recorded 2026-08-29 on the maintainer machine. `async func` lifts
+compile. The empty `handle` returns 200 `text/html` hello-web HTML.
+No Roc. Not a 0.2 `proxy` retarget.[^wasip3-crate][^component-crate][^wasi-http-03]
+
+| Item | Pin |
+| --- | --- |
+| Wasmtime CLI | 48.0.1 (`wasmtime serve -Sp3 -Scli`) |
+| Native embedder crate | still `wasmtime` 47 |
+| WIT | `wasi:http@0.3.0` world `service` (`export wasi:http/handler@0.3.0`, `handle: async func`) |
+| Bindings | `wasip3` 0.8.0+wasi-0.3.0 (`wit-bindgen` 0.61.1, `async-spawn`) |
+| Rust | rustc 1.97.1, target `wasm32-wasip2` (`wasm32-wasip3` is Tier 3, no prebuilt std) |
+| Body write | `spawn_local` after returning `Response`; write-first deadlocks |
+
+Rust `std` on `wasm32-wasip2` still imports `wasi:cli@0.2.9`. That is
+why serve needs `-Scli`. `wasm-tools component wit` still shows the 0.3
+handler export. `wstd` / `#[wstd::http_server]` exports 0.2
+`incoming-handler` and was not used.
+
+The component hosts sqlite via zig-compiled `sqlite3.c`
+(`wasm32-wasi-musl`; `WASI_SYSROOT` unset). Bundled `libsqlite3-sys`
+build.rs is still not a crate build-dep. Sync hosted sqlite serializes
+other `handle`s; that measurement is unchanged.[^adapter-sqlite][^component-crate][^app-plan]
 
 ## What exists
 
@@ -453,21 +575,29 @@ Roc's wasm backend is C-ABI hosted functions (`roc_respond_for_host`,
 `roc glue` can generate the Roc↔Rust ABI. It does not generate WASI HTTP
 WIT or Canonical ABI async lifts. That layer is new code.
 
+Related: the planned Component Model [lazy ABI](roc-hosting-lazy-abi.md)
+(`cabi_realloc` → opaque `validx` + `value.lower`) is a separate question
+from this C-ABI stall. Native Roc already shares bytes with seamless
+slices and host handles. Option 1 does not need that builtin.
+
 ### 7. Rocci product wiring (after a platform exists)
 
-Even with a wasm server artifact:
+`rocci build --http-module` is an experimental flag that writes a
+`wasi:http/service` WASI 0.3 component **compiled from the input
+`.rocci`**. It is **not** `--host wasm` (apply) and does not change
+`rocci run`. The sibling checkout `../roc-basic-webserver`
+(`koliyo/roc-basic-webserver`) is the wasm32 platform source
+(`--no-link` is absent; the fork relinks `--export=roc_*_for_host`).
+Hosted Env, Path, Stderr, and sqlite (DELETE journal, URI `nolock=1`)
+are in the component. Counter and live-counter serve under
+`wasmtime serve -Sp3 -Scli` with `--dir` + `DB_PATH`.
 
-- `--host wasm` must stay apply; a different flag or `roc build --target`
-  must select the HTTP module.
-- `rocci run` / preview assume a child process on `localhost:port`.
-  WASI HTTP needs `wasmtime serve` (or an embedder using
-  `wasmtime-wasi-http`) and a URL the desktop host can load.
-- `rocci-roc-host` would need `wasmtime-wasi-http` and component
-  instantiation, not only preview1 `_start`. Wasmtime 47 is already in
-  the 0.3-capable line.[^roc-host-cargo][^host-rs][^efficient-plan][^wasi-http-03]
-
-Publishing already chose musl process binaries for islands. This WASI path
-is a separate product, not a substitute for that default.[^efficient-plan]
+**Still omitted:** Cmd, raw TCP, in-guest TLS / `ring`, a desktop URL
+over `wasmtime-wasi-http`. Nested sqlite inside `respond!` still
+serializes other `handle`s. No `roc-lang/basic-webserver` PR unless
+asked. Disposition: [0.3 component
+plan](/plans/rocci/wasi-http-03-component.md), [app
+link](/plans/rocci/wasi-http-03-app.md).[^http-module-flag][^component-plan][^app-plan]
 
 ## Solution paths (extra Rust)
 
@@ -521,10 +651,15 @@ curiosity if someone only wants one Wasmtime CLI with `--inherit-network`.
 
 ### C. Fork basic-webserver and add an official `wasm32` target
 
-Same adapter as A, but living in `roc-lang/basic-webserver` so Rocci keeps
-the 0.16 Roc API (`Server`, `Sse`, `Sqlite`). Better long-term if upstream
-wants it. Rocci should not silently vendor a full copy; a thin adapter
-that **calls** the same Roc ABI is enough to learn.
+Same adapter as A, with the wasm32 platform target in a basic-webserver
+checkout so Rocci keeps the 0.16 Roc API (`Server`, `Sse`, `Sqlite`).
+The configured sibling is `../roc-basic-webserver`
+(`koliyo/roc-basic-webserver`); it now has a thin `wasm32` target and
+`scripts/build_wasm32_object.py` on branch `wasi-http-03-app`. A
+`roc-lang/basic-webserver` PR is not opened unless asked. Rocci does
+not vendor a full copy; a thin adapter that **calls** the same Roc ABI
+is enough to learn. Follow-on recorded: [app
+link](/plans/rocci/wasi-http-03-app.md).[^app-plan]
 
 ### D. Do not pretend apply wasm is a server
 
@@ -533,16 +668,16 @@ platform HTTP. A new platform crate/target is required.[^efficient-research][^ef
 
 ## Minimal first slice
 
-The [adapter plan](/plans/rocci/basic-webserver-wasi.md) owns Bound/Exit.
-The ladder this record still recommends:
-
-1. Hello `respond!` → 200 HTML through `wasmtime serve` (or a native
-   Wasmtime HTTP embedder) via 0.3 `handle: async func`.
-2. Streaming SSE unfold with `Wait` mapped to WASI clocks / body
-   `stream<u8>`, enough for generated `patch_html!` / `empty_sse!`.
-3. Preopened directory for one `file_root` static mount.
-4. Optional: sqlite wasm or host-backed db for one example app, with
-   queries that yield rather than `spawn_blocking`.
+The [adapter plan](/plans/rocci/basic-webserver-wasi.md) owns the native
+embedder Bound/Exit. Steps 1–4 of that ladder exist as crate embedder
+tests (hello-web, SSE Wait clocks, one preopen, sync sqlite). A
+yield-on-sqlite path did not appear; document serialization instead.
+Research **option 1** (Rust is the component; Roc stays the 0.16 C-ABI
+object) shipped as `rocci-wasi-http-component` plus
+`rocci build --http-module`. The [app
+link](/plans/rocci/wasi-http-03-app.md) recorded object capture,
+sqlite-in-component, Counter, and live-counter `/sse`. Still omitted:
+Cmd, TLS, desktop URL.[^component-plan][^app-plan][^http-module-flag]
 
 Out of a first slice: Cmd, outbound HTTPS, HTTP/2 inside the guest,
 Hyper compression parity, `rocci run` UX, changing `--host wasm`, Wasm
@@ -553,15 +688,20 @@ shared-memory threads.
 Treat **A** as the only path that matches "WASI interface." Target WASI
 0.3 `wasi:http/service` so overlapping I/O uses Canonical ABI async, not
 a retarget of `http_server.rs` thread pools. Keep native 0.16 for
-`rocci run`. Do not overload apply `--host wasm`. Upstream a `wasm32`
-target only after the adapter ABI is proven against hello-web and one SSE
-route. Sequence: [WASI HTTP adapter plan](/plans/rocci/basic-webserver-wasi.md).
+`rocci run`. Do not overload apply `--host wasm`. Option 1 shipped for
+the experimental `--http-module` artifact (compiled `.rocci`, mapping,
+SSE Wait overlap, one preopen, hosted sqlite under
+`wasmtime serve -Sp3 -Scli`). Sqlite nested in `respond!` still
+serializes. The wasm32 host artifact is the sibling fork
+(`../roc-basic-webserver`); a `roc-lang/basic-webserver` PR is still
+not opened unless asked. App-link Phases 0–7 recorded: [app
+link](/plans/rocci/wasi-http-03-app.md). Still omitted: Cmd, TLS,
+desktop URL.[^wasi-plan][^app-plan]
 
 Publishing Phase 6 already recorded a product no-go for replacing musl
 islands with Wasm. That no-go is ops (musl containers suffice), not a
 finding that WASI HTTP cannot multiplex typical web-server waits. This
-research does not reopen that default; it explains what a later
-WASI-HTTP platform would have to build.[^efficient-plan]
+research does not reopen that default.[^efficient-plan]
 
 [^bws-main]: No `wasm32` in `targets:`; hosted table includes sqlite, tcp, http_send, cmd, files.
 [^bws-cargo]: `staticlib`; Tokio multi-thread; Hyper server+client; rustls/ring; bundled sqlite.
@@ -592,3 +732,12 @@ WASI-HTTP platform would have to build.[^efficient-plan]
 [^cm-async-rfc]: Fibers for async→sync; guest C ABI remains sync.
 [^wasmtime-async]: Host async parks guest fiber.
 [^wasi-plan]: Yield-around-Roc; Phase 0 measures nested hosted I/O.
+[^probe-crate]: `rocci-wasi-http` probe: adapter-await overlaps; CPU-C and hosted-sleep-C serialize; Wasmtime fibers do not apply to sync sleep.
+[^sse-research]: Native Wait vs 30s idle; adapter must not copy Hyper's timer.
+[^adapter-handle]: SSE Wait as `tokio::sleep` after `advance`; overlapping streams do not serialize.
+[^adapter-sqlite]: Sync rusqlite in `respond!` serializes other `handle`s.
+[^http-module-flag]: `rocci build --http-module` writes the 0.3 component; `--host wasm` stays apply.
+[^component-plan]: Option 1 shipped (Phases 0–8); remaining work is the app-link follow-on.
+[^app-plan]: Real Roc object, sqlite-in-component, Counter; sibling fork is the wasm32 source.
+[^wasip3-crate]: `wasip3` 0.8.0+wasi-0.3.0; `http::service::export!`; target `wasm32-wasip2`.
+[^component-crate]: Hello-web, mapping, SSE, preopen under `wasmtime serve -Sp3 -Scli`; sqlite omitted.

@@ -52,6 +52,7 @@ impl IslandServicePlan {
                     routes: module.routes,
                     mapped: module.mapped,
                     local_assets: module.local_assets,
+                    styles: Vec::new(),
                 })
                 .collect(),
             redirect_trailing_slash: self.redirect_trailing_slash,

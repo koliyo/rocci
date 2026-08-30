@@ -4,7 +4,7 @@ title: WASI HTTP adapter host for basic-webserver apps
 description: "Ship a Rocci-owned WASI 0.3 wasi:http/service adapter that links the 0.16 Roc ABI (init/respond/shutdown/sse_advance) and yields around Roc, not by making Roc async. Hello HTML, then SSE Wait as adapter clocks, then preopens, then sqlite. Do not change --host wasm or replace musl publish."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T11:50:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:10:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -116,6 +116,18 @@ I/O-bound requests, without changing lowering or `--host wasm`.[^research][^disp
 
 Native `rocci run` stays a basic-webserver process. Musl island publish
 stays the default (publishing Phase 6 no-go is unchanged).[^efficient-plan][^serve-rs]
+
+**Implementation (this revision):** Phases 0–6 are on branch
+`basic-webserver-wasi` (native embedder). Portable `wasmtime serve` and
+`rocci build --http-module` **component** bytes shipped on
+`wasi-http-03-component` (research option 1). The
+[app link](wasi-http-03-app.md) recorded a real Roc object,
+sqlite-in-component, Counter, and live-counter `/sse`. Still omitted:
+Cmd, in-guest TLS, desktop URL. Not logged complete until CI and
+Knowledge workflow run IDs succeed.
+
+`wasmtime serve` proof and `--http-module` emit: [WASI 0.3 HTTP
+component](wasi-http-03-component.md). Real app: [app link](wasi-http-03-app.md).
 
 ## Out of bound
 

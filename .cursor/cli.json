@@ -38,39 +38,5 @@
       "WebFetch(www.typescriptlang.org)"
     ],
     "deny": []
-  },
-  "webFetchDomainAllowlist": [
-    "github.com",
-    "*.github.com",
-    "api.github.com",
-    "raw.githubusercontent.com",
-    "*.githubusercontent.com",
-    "*.github.io",
-    "roc-lang.org",
-    "*.roc-lang.org",
-    "data-star.dev",
-    "*.data-star.dev",
-    "docs.rs",
-    "crates.io",
-    "rust-lang.org",
-    "*.rust-lang.org",
-    "tokio.rs",
-    "*.tokio.rs",
-    "tauri.app",
-    "*.tauri.app",
-    "htmx.org",
-    "*.htmx.org",
-    "templ.guide",
-    "*.templ.guide",
-    "developer.mozilla.org",
-    "docs.python.org",
-    "code.visualstudio.com",
-    "vuejs.org",
-    "*.vuejs.org",
-    "docs.astro.build",
-    "svelte.dev",
-    "*.svelte.dev",
-    "react.dev",
-    "www.typescriptlang.org"
-  ]
+  }
 }

@@ -1,0 +1,222 @@
+//! WASI 0.3-shaped `handle`: buffer the body, call Roc, map ordinary or SSE.
+
+use std::path::PathBuf;
+
+use anyhow::{Context, Result, bail};
+
+#[cfg(feature = "embedder")]
+use crate::abi::SseStepToHost;
+use crate::abi::{IncomingRequest, OutcomeToHost, OutgoingResponse, map_ordinary, map_request};
+use crate::guest::RocGuest;
+
+pub struct Adapter<G> {
+    guest: G,
+    initialized: bool,
+    file_root: Option<PathBuf>,
+}
+
+impl<G: RocGuest> Adapter<G> {
+    pub fn new(guest: G) -> Self {
+        Self {
+            guest,
+            initialized: false,
+            file_root: None,
+        }
+    }
+
+    pub fn with_file_root(mut self, root: PathBuf) -> Self {
+        self.file_root = Some(root);
+        self
+    }
+
+    pub fn guest(&self) -> &G {
+        &self.guest
+    }
+
+    pub fn guest_mut(&mut self) -> &mut G {
+        &mut self.guest
+    }
+
+    /// First request runs `init` (listen host/port ignored). `_initialize` is the same path.
+    pub fn initialize(&mut self) {
+        if !self.initialized {
+            self.guest.init();
+            self.initialized = true;
+        }
+    }
+
+    pub fn begin(&mut self, incoming: IncomingRequest) -> OutcomeToHost {
+        self.initialize();
+        self.guest.respond(&map_request(incoming))
+    }
+
+    pub fn serve_file(&self, rel_path: &str) -> OutgoingResponse {
+        self.read_preopen(rel_path)
+            .unwrap_or_else(|_| OutgoingResponse {
+                status: 404,
+                headers: vec![("content-type".into(), "text/plain; charset=utf-8".into())],
+                body: b"not found".to_vec(),
+                streamed: false,
+            })
+    }
+
+    pub async fn handle(&mut self, incoming: IncomingRequest) -> Result<OutgoingResponse> {
+        match self.begin(incoming) {
+            OutcomeToHost::Ordinary(ordinary) => Ok(map_ordinary(ordinary)),
+            OutcomeToHost::Stream { source } => self.stream_sse(source).await,
+            OutcomeToHost::File { rel_path } => self.read_preopen(&rel_path),
+        }
+    }
+
+    #[cfg(not(feature = "embedder"))]
+    async fn stream_sse(&mut self, _source: u64) -> Result<OutgoingResponse> {
+        bail!("SSE stream requires embedder clocks")
+    }
+
+    #[cfg(feature = "embedder")]
+    async fn stream_sse(&mut self, mut source: u64) -> Result<OutgoingResponse> {
+        use std::time::Duration;
+
+        let mut body = Vec::new();
+        let mut wake = 0u64;
+        loop {
+            let step = self.guest.sse_advance(source, wake);
+            match step {
+                SseStepToHost::EmitToHost {
+                    item,
+                    wait_millis,
+                    source: next,
+                } => {
+                    body.extend_from_slice(&item);
+                    if next != 0 {
+                        source = next;
+                    }
+                    if wait_millis == 0 {
+                        continue;
+                    }
+                    tokio::time::sleep(Duration::from_millis(wait_millis)).await;
+                    wake = wake.wrapping_add(1);
+                }
+                SseStepToHost::WaitToHost {
+                    wait_millis,
+                    source: next,
+                } => {
+                    if next != 0 {
+                        source = next;
+                    }
+                    if wait_millis > 0 {
+                        tokio::time::sleep(Duration::from_millis(wait_millis)).await;
+                    }
+                    wake = wake.wrapping_add(1);
+                }
+                SseStepToHost::EndToHost => {
+                    self.guest.sse_drop_source(source);
+                    break;
+                }
+            }
+        }
+        Ok(OutgoingResponse {
+            status: 200,
+            headers: vec![("content-type".into(), "text/event-stream".into())],
+            body,
+            streamed: true,
+        })
+    }
+
+    fn read_preopen(&self, rel_path: &str) -> Result<OutgoingResponse> {
+        let Some(root) = &self.file_root else {
+            bail!("no file_root preopen granted");
+        };
+        let joined = crate::files::resolve_preopen(root, rel_path)?;
+        let body = std::fs::read(&joined).with_context(|| format!("read {}", joined.display()))?;
+        Ok(OutgoingResponse {
+            status: 200,
+            headers: vec![(
+                "content-type".into(),
+                crate::files::content_type_for(&joined).into(),
+            )],
+            body,
+            streamed: false,
+        })
+    }
+
+    pub fn shutdown(&mut self) {
+        if self.initialized {
+            self.guest.shutdown();
+            self.initialized = false;
+        }
+    }
+}
+
+#[cfg(all(test, feature = "embedder"))]
+mod tests {
+    use super::*;
+    use crate::abi::IncomingRequest;
+    use crate::guest::{EmptySseGuest, StubGuest, WaitEmitGuest};
+    use std::time::{Duration, Instant};
+
+    fn get_root() -> IncomingRequest {
+        IncomingRequest {
+            method: "GET".into(),
+            path: "/".into(),
+            headers: vec![],
+            body: Vec::new(),
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn stub_get_root_returns_html() {
+        let mut adapter = Adapter::new(StubGuest::new());
+        let response = adapter.handle(get_root()).await.unwrap();
+        assert_eq!(response.status, 200);
+        assert!(!response.streamed);
+        assert_eq!(
+            response.headers,
+            vec![("content-type".into(), "text/html; charset=utf-8".into())]
+        );
+        assert_eq!(response.body, StubGuest::HTML.as_bytes());
+        assert_eq!(adapter.guest().init_count, 1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn init_runs_once_per_instance() {
+        let mut adapter = Adapter::new(StubGuest::new());
+        for _ in 0..2 {
+            adapter.handle(get_root()).await.unwrap();
+        }
+        assert_eq!(adapter.guest().init_count, 1);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn empty_sse_ends_immediately() {
+        let mut adapter = Adapter::new(EmptySseGuest);
+        let response = adapter.handle(get_root()).await.unwrap();
+        assert!(response.streamed);
+        assert!(response.body.is_empty());
+        assert_eq!(response.status, 200);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn wait_then_emit_keepalive() {
+        let mut adapter = Adapter::new(WaitEmitGuest::new(Duration::from_millis(20)));
+        let response = adapter.handle(get_root()).await.unwrap();
+        assert!(response.streamed);
+        assert_eq!(response.body, b"data: keepalive\n\n");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn overlapping_sse_waits_do_not_serialize() {
+        let wait = Duration::from_millis(40);
+        let start = Instant::now();
+        let mut a = Adapter::new(WaitEmitGuest::new(wait));
+        let mut b = Adapter::new(WaitEmitGuest::new(wait));
+        let (ra, rb) = tokio::join!(a.handle(get_root()), b.handle(get_root()));
+        ra.unwrap();
+        rb.unwrap();
+        let wall = start.elapsed();
+        assert!(
+            wall < wait + wait / 2,
+            "SSE Wait should overlap like adapter-await: {wall:?}"
+        );
+    }
+}
