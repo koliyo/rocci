@@ -1,6 +1,7 @@
 import tomllib
 from pathlib import Path
 
+from rocci_ops.lanes import LANES
 from rocci_ops.paths import repo_root
 
 
@@ -125,6 +126,28 @@ def test_examples_nav_matches_site_true_catalog_ids() -> None:
         nav_ids.append(item.removeprefix("examples/").removesuffix("/index"))
     assert set(nav_ids) == site_ids
     assert excluded.isdisjoint(nav_ids)
+
+
+def test_prod_readme_documents_lane_roots() -> None:
+    readme = (repo_root() / "docker/prod/README.md").read_text(encoding="utf-8")
+    ingress = (repo_root() / "docker/prod/cloudflared-ingress.yml.example").read_text(
+        encoding="utf-8"
+    )
+    assert "/srv/rocci` is a **parent**" in readme
+    assert "Do not run `origin publish` from `/srv/rocci` itself." in readme
+    assert "/srv/rocci-staging" in readme
+    assert "## Migrate the shared origin" in readme
+    for name, preset in LANES.items():
+        assert f"| {name} |" in readme
+        assert f"`{preset.origin_root}`" in readme or preset.origin_root in readme
+        assert f"`:{preset.http_port}`" in readme or preset.http_port in readme
+        assert preset.compose_project in readme
+        assert f"`{preset.image_tag}`" in readme or f":{preset.image_tag}" in readme
+    assert "service: http://127.0.0.1:8080" in ingress
+    assert "service: http://127.0.0.1:8081" in ingress
+    assert "hostname: staging.rocci.dev" in ingress
+    assert "hostname: rocci.dev" in ingress
+    assert "live-counter-example.rocci.dev" not in ingress
 
 
 def test_package_and_build_site_do_not_pass_all() -> None:

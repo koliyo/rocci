@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-30
 
+- Rewrote [origin README](../docker/prod/README.md) as the operator map for nested lanes: `/srv/rocci` is only the parent; leftovers under `/srv/rocci` and `/srv/rocci-staging` are not origins; migrate into `prod/`, retarget Tunnel, then promote production. Pair: [origin lane separation](plans/ops/origin-lane-separation.md). Exploratory; cutover still operator work. Do not log complete until CI and Knowledge succeed.
 - Origin `deploy bootstrap` / `push` now stream one gzip tar over a single SSH connection (kit plus `incoming/<sha>/`) so Cloudflare Access is not opened per scp. Exploratory; do not log complete until CI and Knowledge succeed.
 - Origin lanes live under `/srv/rocci/prod` and `/srv/rocci/staging` so `deploy` can mkdir `tools/` without a second root-owned tree. Pair: [origin lane separation](plans/ops/origin-lane-separation.md). Exploratory; do not log complete until CI and Knowledge succeed.
 - Filed draft [separate staging and production origins on one VPS](plans/ops/origin-lane-separation.md): `ROCCI_LANE` selects `/srv/rocci` `:8080` (no live examples) vs `/srv/rocci-staging` `:8081`. Revised shared-origin claims on the rocci.dev publish, play-path, example-TLS, and public-launch plans. Exploratory; cutover not started. Do not log complete until CI and Knowledge succeed.
