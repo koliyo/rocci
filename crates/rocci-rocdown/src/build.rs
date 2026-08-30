@@ -933,50 +933,17 @@ pub(crate) mod tests {
     pub(crate) static ROC_LOCK: Mutex<()> = Mutex::new(());
 
     pub(crate) fn skip_without_roc() -> bool {
+        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
         let help_ok = Command::new("roc")
             .arg("help")
             .output()
             .map(|output| output.status.success())
             .unwrap_or(false);
         if !help_ok {
-            if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-                panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
-            }
-            eprintln!("skipping: roc not on PATH");
-            return true;
-        }
-        let test_dir = unique_temp("roc-probe").unwrap();
-        let probe_file = test_dir.join("main.roc");
-        let _ = fs::write(
-            &probe_file,
-            "app [main!] { pf: platform \"https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst\" }\nmain! = |_| Ok({})\n",
-        );
-        let probe = Command::new("roc")
-            .arg("build")
-            .arg("main.roc")
-            .arg("--opt=dev")
-            .current_dir(&test_dir)
-            .env_remove("CARGO_MANIFEST_DIR")
-            .env_remove("CARGO")
-            .output();
-        let (build_ok, probe_out) = match probe {
-            Ok(output) => {
-                let combined = format!(
-                    "{}{}",
-                    String::from_utf8_lossy(&output.stdout),
-                    String::from_utf8_lossy(&output.stderr)
-                );
-                (output.status.success(), combined)
-            }
-            Err(err) => (false, err.to_string()),
-        };
-        let _ = fs::remove_dir_all(&test_dir);
-        if !build_ok {
-            if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-                panic!("roc compilation failed during environment probe:\n{probe_out}");
-            }
-            eprintln!("skipping: roc compilation not functional in this environment");
-            return true;
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
         }
         false
     }

@@ -9,6 +9,7 @@ def test_list_jobs_are_stable() -> None:
         "fixtures-and-docs",
         "editors",
         "knowledge",
+        "roc",
     )
 
 
@@ -47,11 +48,29 @@ def test_fixtures_and_docs_stages_example_docs() -> None:
     assert any("rocci-docs" in argv for argv in argv_lists)
     assert any(argv[-2:] == ("check", "site") for argv in argv_lists)
     assert any(argv[-2:] == ("check", "docs") for argv in argv_lists)
-    assert any(argv[-2:] == ("-p", "rocci-docs") or argv[-3:] == ("test", "-p", "rocci-docs") for argv in argv_lists)
+    assert all(argv[-3:] != ("test", "-p", "rocci-docs") for argv in argv_lists)
+    assert all("inspect" not in argv for argv in argv_lists)
 
 
 def test_editors_job_uses_check_zed() -> None:
     argv_lists = [s.argv for s in steps_for("editors", repo_root())]
     assert any(argv[-2:] == ("check", "zed") for argv in argv_lists)
-    argv_lists = [s.argv for s in steps_for("lint", repo_root())]
+    lint = steps_for("lint", repo_root())
+    argv_lists = [s.argv for s in lint]
     assert any(argv[-3:] == ("rocci-ops", "check", "deps") for argv in argv_lists)
+    pytest_steps = [s for s in lint if s.argv[-1:] == ("pytest",)]
+    assert pytest_steps
+    assert pytest_steps[0].argv[:3] == ("uv", "run", "--group")
+    assert pytest_steps[0].cwd == "tools/rocci-ops"
+
+
+def test_roc_job_installs_nightly_and_requires_roc() -> None:
+    steps = steps_for("roc", repo_root())
+    argv_lists = [s.argv for s in steps]
+    assert any("install-roc.sh" in argv[-1] for argv in argv_lists)
+    assert any(s.extra_env == (("ROCCI_REQUIRE_ROC", "1"),) for s in steps)
+    assert any(
+        argv[:3] == ("cargo", "test", "-p") and "rocci-cli" in argv and "rocci-rocdown" in argv
+        for argv in argv_lists
+    )
+    assert all("--workspace" not in argv for argv in argv_lists)

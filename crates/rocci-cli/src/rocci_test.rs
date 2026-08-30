@@ -227,6 +227,22 @@ mod tests {
     use super::*;
     use rocci_template::Span;
 
+    fn skip_without_roc() -> bool {
+        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+            eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+            return true;
+        }
+        let help_ok = Command::new("roc")
+            .arg("help")
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if !help_ok {
+            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
+        }
+        false
+    }
+
     #[test]
     fn empty_directory_is_success() {
         let dir = unique_temp("test-empty").unwrap();
@@ -297,7 +313,7 @@ mod tests {
 
     #[test]
     fn rocci_test_tiny_fixture_when_roc_required() {
-        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+        if skip_without_roc() {
             return;
         }
         let dir = unique_temp("test-roc").unwrap();
@@ -305,6 +321,8 @@ mod tests {
         fs::write(
             &path,
             r#"
+import Html
+
 @fixture{target: Hello}
 helloSample = { name: "Roc" }
 

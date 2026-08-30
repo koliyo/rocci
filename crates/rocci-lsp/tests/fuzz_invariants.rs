@@ -244,6 +244,7 @@ module [UnicodeApp]
 }
 
 #[test]
+#[ignore = "byte slicing stress; run with: cargo test -p rocci-lsp --test fuzz_invariants -- --ignored"]
 fn test_multibyte_and_non_bmp_byte_slicing_stress() {
     run_byte_slicing_stress(8);
 }
@@ -255,6 +256,7 @@ fn test_multibyte_and_non_bmp_byte_slicing_exhaustive() {
 }
 
 #[test]
+#[ignore = "malformed-construct stress; run with: cargo test -p rocci-lsp --test fuzz_invariants -- --ignored"]
 fn test_truncated_and_malformed_constructs_stress() {
     let malformed_cases = [
         // Unclosed strings & comments
@@ -345,6 +347,7 @@ fn test_truncated_and_malformed_constructs_stress() {
 }
 
 #[test]
+#[ignore = "deep nesting stress; run with: cargo test -p rocci-lsp --test fuzz_invariants -- --ignored"]
 fn test_deeply_nested_structures() {
     // 100 levels of nested tags
     let mut deep_tags = String::from("@component Deep = |{}| {\n");
@@ -499,6 +502,7 @@ fn run_mutation_fuzzing(iterations: usize) {
 }
 
 #[test]
+#[ignore = "50-iteration mutation fuzz; run with: cargo test -p rocci-lsp --test fuzz_invariants -- --ignored"]
 fn test_deterministic_mutation_fuzzing() {
     let iterations = std::env::var("ROCCI_FUZZ_ITERATIONS")
         .ok()

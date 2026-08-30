@@ -4,7 +4,7 @@ title: Workspace test-suite review
 description: The default Rust suite is broader than the documented sub-second budget; Roc-gated builds run whenever roc is on PATH; several kitchen-sink and CI checks overlap; generated-app HTTP, operator pytest, and the SSE target rule are the main coverage holes.
 tags: [domain/rocci, domain/rocdown, concern/testing, concern/ci, concern/validation, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T20:20:00Z }
+generated: { by: process:cursor, at: 2026-08-30T20:30:00Z }
 stale_after: 2026-11-30
 authority: descriptive
 owners: [human:nils]
@@ -64,6 +64,11 @@ sources:
     title: Rocdown skip_without_roc probe that runs roc build
     author: process:git
     last_modified: 2026-08-22
+  - id: suite-plan
+    resource: ../../plans/ops/workspace-test-suite.md
+    title: Fast default suite and hosted Roc smokes
+    author: process:cursor
+    last_modified: 2026-08-30
   - id: sse-plan
     resource: ../../plans/rocci/sse-patch-target-tests.md
     title: Planned SSE patch-target wire-format tests
@@ -128,8 +133,8 @@ Measured 2026-08-30 on this checkout. Counts and timings below are from
 `2026-08-23-fb208ba` was on `PATH` for the first workspace run and removed
 for the timed runs.
 
-This is an audit of current tests, not a plan. Follow-ups stay
-recommendations.
+This is an audit of current tests. Implementation is the paired
+[fast default suite plan](/plans/ops/workspace-test-suite.md).[^suite-plan]
 
 ## Inventory
 
@@ -299,7 +304,7 @@ or manual job runs `--ignored`.[^roc-backend][^agents]
 
 ## Recommended follow-ups
 
-Not a plan. Highest leverage first:
+Highest leverage first. Phases live on the paired plan:[^suite-plan]
 
 1. Gate Roc compile and HTTP smokes on `ROCCI_REQUIRE_ROC=1` (or
    `#[ignore]`), so `cargo test --workspace` matches the documented
@@ -316,6 +321,7 @@ Not a plan. Highest leverage first:
 6. Implement the existing SSE patch-target plan.
 7. Run `rocci-ops` pytest from CI `lint` or a small ops job.
 
+[^suite-plan]: Implementation plan for the opt-in Roc gate, hosted Roc job, fuzz/cli_e2e shrink, and pytest.
 [^agents]: Default suites claimed under 2s; ignored fuzz and perf commands.
 [^contributing]: `cargo test --workspace` documented as the fast crate suite; install steps put `roc` on `PATH`.
 [^ci-py]: Hosted test job is `cargo test --workspace` plus `--doc`; fixtures-and-docs re-tests `rocci-docs` and inspects AllSyntax; no Roc and no pytest.

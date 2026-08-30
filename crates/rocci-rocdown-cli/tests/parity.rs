@@ -8,40 +8,17 @@ use std::{
 static ROC_LOCK: Mutex<()> = Mutex::new(());
 
 fn skip_without_roc() -> bool {
+    if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() != Some("1") {
+        eprintln!("skipping: ROCCI_REQUIRE_ROC is not 1");
+        return true;
+    }
     let help_ok = Command::new("roc")
         .arg("help")
         .output()
         .map(|output| output.status.success())
         .unwrap_or(false);
     if !help_ok {
-        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-            panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
-        }
-        eprintln!("skipping: roc not on PATH");
-        return true;
-    }
-    let test_dir = env::temp_dir().join(format!("roc-probe-{}", std::process::id()));
-    let _ = fs::create_dir_all(&test_dir);
-    let probe_file = test_dir.join("main.roc");
-    let _ = fs::write(
-        &probe_file,
-        "app [main!] { pf: platform \"https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst\" }\nmain! = |_| Ok({})\n",
-    );
-    let build_ok = Command::new("roc")
-        .arg("build")
-        .arg(&probe_file)
-        .arg("--opt=dev")
-        .current_dir(&test_dir)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-    let _ = fs::remove_dir_all(&test_dir);
-    if !build_ok {
-        if env::var("ROCCI_REQUIRE_ROC").ok().as_deref() == Some("1") {
-            panic!("roc compilation failed during environment probe");
-        }
-        eprintln!("skipping: roc compilation not functional in this environment");
-        return true;
+        panic!("roc is required (ROCCI_REQUIRE_ROC=1) but was not found on PATH");
     }
     false
 }
