@@ -49,12 +49,16 @@ sudo chown deploy:deploy /home/deploy/.ssh/authorized_keys
 sudo chmod 600 /home/deploy/.ssh/authorized_keys
 
 sudo install -d -o deploy -g deploy -m 0750 \
+  /srv/rocci \
   /srv/rocci/docker \
   /srv/rocci/incoming \
   /srv/rocci/releases \
+  /srv/rocci/tools \
+  /srv/rocci-staging \
   /srv/rocci-staging/docker \
   /srv/rocci-staging/incoming \
-  /srv/rocci-staging/releases
+  /srv/rocci-staging/releases \
+  /srv/rocci-staging/tools
 sudo usermod -aG docker deploy
 ```
 
@@ -260,8 +264,10 @@ stopping the islands service, copying the file back onto
 
 ## First cutover (existing shared origin)
 
-1. Create `/srv/rocci-staging/{docker,incoming,releases}` as `deploy` (see
-   Bootstrap).
+1. Own the lane root as `deploy` (not only the child dirs). Bootstrap also
+   writes `tools/rocci-ops` and `pyproject.toml` directly under
+   `/srv/rocci-staging`. If the root is root-owned, `mkdir` of `tools/`
+   fails with Permission denied. See Bootstrap.
 2. Promote `staging` so `site.yml` publishes to `:8081`. Leave Cloudflare on
    `:8080` until that stack is healthy.
 3. Retarget staging Tunnel hostnames to `http://127.0.0.1:8081`.

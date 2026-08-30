@@ -96,9 +96,10 @@ cdn, and live-app images.[^origin-ops][^prod-readme]
 
 ## Phase 4 — Operator cutover
 
-**Bound:** VPS directories for the staging root, promote staging, retarget
-Tunnel staging hosts to `:8081`, promote production without live
-origins.[^prod-readme]
+**Bound:** VPS directories for the staging root (`deploy` must own
+`/srv/rocci-staging` itself so `tools/` and `pyproject.toml` can be
+written), promote staging, retarget Tunnel staging hosts to `:8081`,
+promote production without live origins.[^prod-readme]
 
 **Status:** not started. Do not log complete until CI and Knowledge succeed
 and the VPS/Tunnel steps are done.
