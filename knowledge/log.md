@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-08-30
 
+- Filed draft [rocci-ops DX alignment](plans/ops/rocci-ops.md): command tree split, hosted `archive` helpers, operator `release patch|minor|major|v*|dev`, Cut release workflow. Exploratory; do not log complete until CI and Knowledge succeed.
 - Filed draft [Rocci application structure and run entry](research/rocci/application-structure-and-entry.md) and paired [directory-as-app standalone entry](plans/rocci/application-structure-and-entry.md). Implementation already merged as PR 90; these records were still local. Exploratory; do not log complete until CI and Knowledge succeed.
 - Replaced leftover `--profile rocci` commands with `--profile base` (Knowledge CI and published okmate). Historical load-timing records that contrasted the old name with `base` now say `--profile strict`. Exploratory; do not log complete until CI and Knowledge succeed.
 - Rewrote [origin README](../docker/prod/README.md) as the operator map for nested lanes: `/srv/rocci` is only the parent; leftovers under `/srv/rocci` and `/srv/rocci-staging` are not origins; migrate into `prod/`, retarget Tunnel, then promote production. Pair: [origin lane separation](plans/ops/origin-lane-separation.md). Exploratory; cutover still operator work. Do not log complete until CI and Knowledge succeed.

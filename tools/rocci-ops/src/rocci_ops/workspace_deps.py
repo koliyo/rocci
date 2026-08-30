@@ -5,8 +5,6 @@ knowledge/decisions/consolidate-rocdown-product-boundary.md. Unclassified
 workspace members fail.
 """
 
-from __future__ import annotations
-
 import json
 import subprocess
 import sys

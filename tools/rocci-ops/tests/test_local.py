@@ -3,30 +3,23 @@ from pathlib import Path
 
 import pytest
 
-from rocci_ops.local import (
-    CLI_CRATES,
-    INSTALL_USAGE,
+from rocci_ops.install import CLI_CRATES, INSTALL_USAGE, install_command, latest_vsix
+from rocci_ops.icons import ICONSET_SIZES, render_brand_icons
+from rocci_ops.package import PACKAGE_USAGE, package_command
+from rocci_ops.playground import _require_playground_dist, playground_wasm_artifact
+from rocci_ops.promote import (
     PROMOTE_USAGE,
-    PROMOTE_TAG_USAGE,
-    _require_playground_dist,
-    playground_wasm_artifact,
-    build_site,
-    install_command,
-    latest_vsix,
-    package_site,
-    parse_worktrees,
     promote_command,
     promote_production,
     promote_staging,
-    promote_tag,
-    wait_for_promote_ci,
-    render_brand_icons,
-    require_darwin,
 )
+from rocci_ops.site import build_site, package_site
+from rocci_ops.util import require_darwin
+from rocci_ops.worktrees import parse_worktrees
 
 
 def test_package_vscode_does_not_copy_language_server() -> None:
-    source = Path(__file__).resolve().parents[1] / "src" / "rocci_ops" / "local.py"
+    source = Path(__file__).resolve().parents[1] / "src" / "rocci_ops" / "package.py"
     text = source.read_text(encoding="utf-8")
     start = text.index("def package_vscode")
     body = text[start : text.index("\ndef ", start + 1)]
@@ -58,11 +51,11 @@ def test_promote_usage() -> None:
         raise AssertionError("expected SystemExit")
 
 
-def test_promote_tag_usage() -> None:
+def test_promote_rejects_tag() -> None:
     try:
-        promote_command(["tag"])
+        promote_command(["tag", "v1.2.3"])
     except SystemExit as exc:
-        assert str(exc) == PROMOTE_TAG_USAGE
+        assert str(exc) == PROMOTE_USAGE
     else:
         raise AssertionError("expected SystemExit")
 
@@ -73,9 +66,9 @@ def test_install_vscode_and_cursor_use_vsix(monkeypatch, tmp_path) -> None:
     vsix = vscode / "rocci-0.1.0.vsix"
     vsix.write_bytes(b"vsix")
     calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr("rocci_ops.local.run", lambda argv, cwd=None, env=None: calls.append(list(argv)))
-    monkeypatch.setattr("rocci_ops.local.Path.home", lambda: tmp_path / "home")
+    monkeypatch.setattr("rocci_ops.install.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.install.run", lambda argv, cwd=None, env=None: calls.append(list(argv)))
+    monkeypatch.setattr("rocci_ops.install.Path.home", lambda: tmp_path / "home")
 
     assert install_command(["vscode"]) == 0
     assert calls == [["code", "--install-extension", str(vsix)]]
@@ -94,17 +87,11 @@ def test_install_vscode_and_cursor_use_vsix(monkeypatch, tmp_path) -> None:
 
 def test_promote_command_routes(monkeypatch) -> None:
     called: list[str] = []
-    monkeypatch.setattr("rocci_ops.local.promote_staging", lambda: called.append("staging") or 0)
-    monkeypatch.setattr("rocci_ops.local.promote_production", lambda: called.append("production") or 0)
-    monkeypatch.setattr(
-        "rocci_ops.local.promote_tag",
-        lambda tag, from_ref="main": called.append(f"{tag}:{from_ref}") or 0,
-    )
+    monkeypatch.setattr("rocci_ops.promote.promote_staging", lambda: called.append("staging") or 0)
+    monkeypatch.setattr("rocci_ops.promote.promote_production", lambda: called.append("production") or 0)
     assert promote_command(["staging"]) == 0
     assert promote_command(["production"]) == 0
-    assert promote_command(["tag", "v1.2.3"]) == 0
-    assert promote_command(["tag", "v1.2.3", "--from", "staging"]) == 0
-    assert called == ["staging", "production", "v1.2.3:main", "v1.2.3:staging"]
+    assert called == ["staging", "production"]
 
 
 def test_latest_vsix_picks_newest(tmp_path) -> None:
@@ -119,35 +106,32 @@ def test_latest_vsix_picks_newest(tmp_path) -> None:
     assert latest_vsix(tmp_path) == newer
 
 
-def test_bundle_usage() -> None:
-    from rocci_ops.local import main
-
+def test_package_usage() -> None:
     try:
-        main(["bundle"])
+        package_command([])
     except SystemExit as exc:
+        assert str(exc) == PACKAGE_USAGE
         assert "macos" in str(exc)
-        assert "okf" in str(exc)
+        assert "site" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
 
 
-def test_package_site_usage() -> None:
-    from rocci_ops.local import main
-
+def test_package_okf_is_retired() -> None:
     try:
-        main(["package"])
+        package_command(["okf"])
     except SystemExit as exc:
-        assert "site" in str(exc)
+        assert "okmate" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
 
 
 def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr("rocci_ops.local.build_playground", lambda: 0)
+    monkeypatch.setattr("rocci_ops.site.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.site.build_playground", lambda: 0)
     monkeypatch.setattr(
-        "rocci_ops.local.run",
+        "rocci_ops.site.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
 
@@ -160,21 +144,21 @@ def test_build_site_stages_checks_tests_and_builds(monkeypatch, tmp_path) -> Non
 
 def test_package_site_builds_playground_before_cargo(monkeypatch, tmp_path) -> None:
     calls: list[object] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.site.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
-        "rocci_ops.local.build_playground",
+        "rocci_ops.site.build_playground",
         lambda: calls.append("playground") or 0,
     )
     monkeypatch.setattr(
-        "rocci_ops.local.stage_example_docs",
+        "rocci_ops.site.stage_example_docs",
         lambda: calls.append("docs"),
     )
     monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
+        "rocci_ops.site.subprocess.run",
         lambda *args, **kwargs: type("Result", (), {"stdout": "\n", "returncode": 0})(),
     )
     monkeypatch.setattr(
-        "rocci_ops.local.run",
+        "rocci_ops.site.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
     (tmp_path / "dist/examples-live").mkdir(parents=True)
@@ -260,9 +244,9 @@ def test_promote_staging_aborts_conflict_and_restores_branch(monkeypatch, tmp_pa
             return type("Result", (), {"returncode": 0})()
         return type("Result", (), {"stdout": "", "returncode": 0})()
 
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr("rocci_ops.local.subprocess.run", fake_subprocess_run)
-    monkeypatch.setattr("rocci_ops.local.run", fake_run)
+    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.promote.subprocess.run", fake_subprocess_run)
+    monkeypatch.setattr("rocci_ops.promote.run", fake_run)
 
     with pytest.raises(subprocess.CalledProcessError):
         promote_staging()
@@ -278,12 +262,12 @@ def test_promote_staging_aborts_conflict_and_restores_branch(monkeypatch, tmp_pa
 
 def test_promote_staging_merges_main_pushes_and_restores_branch(monkeypatch, tmp_path) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
+        "rocci_ops.promote.subprocess.run",
         lambda *args, **kwargs: type("Result", (), {"stdout": "feature\n"})(),
     )
-    monkeypatch.setattr("rocci_ops.local.run", lambda argv, cwd=None, env=None: calls.append(list(argv)))
+    monkeypatch.setattr("rocci_ops.promote.run", lambda argv, cwd=None, env=None: calls.append(list(argv)))
 
     assert promote_staging() == 0
     assert calls == [
@@ -298,13 +282,13 @@ def test_promote_staging_merges_main_pushes_and_restores_branch(monkeypatch, tmp
 
 def test_promote_production_pushes_origin_staging(monkeypatch, tmp_path) -> None:
     calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
+        "rocci_ops.promote.subprocess.run",
         lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
     )
     monkeypatch.setattr(
-        "rocci_ops.local.run",
+        "rocci_ops.promote.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
 
@@ -315,119 +299,11 @@ def test_promote_production_pushes_origin_staging(monkeypatch, tmp_path) -> None
     ]
 
 
-def test_promote_tag_annotates_and_pushes_origin_main(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    waited: list[str] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.local.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr("rocci_ops.local.wait_for_promote_ci", waited.append)
-
-    assert promote_tag("v1.2.3") == 0
-    assert waited == ["abc"]
-    assert calls == [
-        ["git", "fetch", "origin"],
-        ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/main"],
-        ["git", "push", "origin", "v1.2.3"],
-    ]
-
-
-def test_promote_tag_from_is_configurable(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.local.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr("rocci_ops.local.wait_for_promote_ci", lambda sha: None)
-
-    assert promote_tag("v1.2.3", from_ref="staging") == 0
-    assert ["git", "tag", "-a", "v1.2.3", "-m", "v1.2.3", "origin/staging"] in calls
-
-
-def test_promote_tag_force_moves_dev(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.local.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr("rocci_ops.local.wait_for_promote_ci", lambda sha: None)
-
-    assert promote_tag("dev") == 0
-    assert calls == [
-        ["git", "fetch", "origin"],
-        ["git", "tag", "-a", "-f", "dev", "-m", "dev", "origin/main"],
-        ["git", "push", "--force", "origin", "dev"],
-    ]
-
-
-def test_promote_tag_does_not_push_when_ci_fails(monkeypatch, tmp_path) -> None:
-    calls: list[list[str]] = []
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
-        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": "abc\n"})(),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.local.run",
-        lambda argv, cwd=None, env=None: calls.append(list(argv)),
-    )
-    monkeypatch.setattr(
-        "rocci_ops.local.wait_for_promote_ci",
-        lambda sha: (_ for _ in ()).throw(SystemExit(f"CI failed for {sha}")),
-    )
-    try:
-        promote_tag("v1.2.3")
-    except SystemExit as exc:
-        assert "abc" in str(exc)
-    else:
-        raise AssertionError("expected SystemExit")
-    assert calls == [["git", "fetch", "origin"]]
-
-
-def test_wait_for_promote_ci_waits_default_checks(monkeypatch) -> None:
-    from rocci_ops.release import DEFAULT_CHECKS
-
-    seen: list[str] = []
-    monkeypatch.setattr("rocci_ops.local.github_repo", lambda: "koliyo/rocci")
-    monkeypatch.setattr("rocci_ops.local.gh_run", lambda args: type("R", (), {"stdout": ""})())
-    monkeypatch.setattr(
-        "rocci_ops.local.wait_for_check",
-        lambda **kwargs: seen.append(kwargs["check"]),
-    )
-    wait_for_promote_ci("abc")
-    assert seen == list(DEFAULT_CHECKS)
-
-
-def test_promote_tag_requires_v_prefix_or_dev() -> None:
-    try:
-        promote_tag("1.2.3")
-    except SystemExit as exc:
-        assert "dev" in str(exc)
-    else:
-        raise AssertionError("expected SystemExit")
-
-
 def test_promote_production_requires_origin_staging(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
-    monkeypatch.setattr("rocci_ops.local.run", lambda argv, cwd=None, env=None: None)
+    monkeypatch.setattr("rocci_ops.promote.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.promote.run", lambda argv, cwd=None, env=None: None)
     monkeypatch.setattr(
-        "rocci_ops.local.subprocess.run",
+        "rocci_ops.promote.subprocess.run",
         lambda *args, **kwargs: type("Result", (), {"returncode": 1, "stdout": ""})(),
     )
     try:
@@ -439,7 +315,7 @@ def test_promote_production_requires_origin_staging(monkeypatch, tmp_path) -> No
 
 
 def test_require_darwin_rejects_other(monkeypatch) -> None:
-    monkeypatch.setattr("rocci_ops.local.platform.system", lambda: "Linux")
+    monkeypatch.setattr("rocci_ops.util.platform.system", lambda: "Linux")
     try:
         require_darwin("The macOS app bundle")
     except SystemExit as exc:
@@ -449,7 +325,7 @@ def test_require_darwin_rejects_other(monkeypatch) -> None:
 
 
 def test_render_brand_icons_requires_rsvg(monkeypatch) -> None:
-    monkeypatch.setattr("rocci_ops.local.shutil.which", lambda _: None)
+    monkeypatch.setattr("rocci_ops.icons.shutil.which", lambda _: None)
     try:
         render_brand_icons()
     except SystemExit as exc:
@@ -471,16 +347,16 @@ def test_render_brand_icons_invokes_rsvg(monkeypatch, tmp_path) -> None:
     copies: list[tuple[str, str]] = []
 
     monkeypatch.setattr(
-        "rocci_ops.local.shutil.which",
+        "rocci_ops.icons.shutil.which",
         lambda name: "/usr/bin/rsvg-convert" if name == "rsvg-convert" else None,
     )
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.icons.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
-        "rocci_ops.local.run",
+        "rocci_ops.icons.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
     monkeypatch.setattr(
-        "rocci_ops.local.shutil.copy2",
+        "rocci_ops.icons.shutil.copy2",
         lambda src, dst: copies.append((str(src), str(dst))),
     )
 
@@ -495,8 +371,6 @@ def test_render_brand_icons_invokes_rsvg(monkeypatch, tmp_path) -> None:
 
 
 def test_render_brand_icons_generates_icns_when_iconutil_present(monkeypatch, tmp_path) -> None:
-    from rocci_ops.local import ICONSET_SIZES
-
     brand = tmp_path / "brand"
     brand.mkdir()
     (brand / "rocci-app.svg").write_text("<svg/>", encoding="utf-8")
@@ -513,13 +387,13 @@ def test_render_brand_icons_generates_icns_when_iconutil_present(monkeypatch, tm
             "iconutil": "/usr/bin/iconutil",
         }[name]
 
-    monkeypatch.setattr("rocci_ops.local.shutil.which", which)
-    monkeypatch.setattr("rocci_ops.local.repo_root", lambda: tmp_path)
+    monkeypatch.setattr("rocci_ops.icons.shutil.which", which)
+    monkeypatch.setattr("rocci_ops.icons.repo_root", lambda: tmp_path)
     monkeypatch.setattr(
-        "rocci_ops.local.run",
+        "rocci_ops.icons.run",
         lambda argv, cwd=None, env=None: calls.append(list(argv)),
     )
-    monkeypatch.setattr("rocci_ops.local.shutil.copy2", lambda src, dst: None)
+    monkeypatch.setattr("rocci_ops.icons.shutil.copy2", lambda src, dst: None)
 
     assert render_brand_icons() == 0
     assert len(calls) == 3 + len(ICONSET_SIZES) + 1
