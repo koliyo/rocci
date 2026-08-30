@@ -107,6 +107,31 @@ fn kitchen_sink_has_no_error_diagnostics_and_component_symbols() {
     assert!(names.contains(&"PATCH /actions/patch"));
     assert!(names.contains(&"POST /actions/increment"));
     assert!(names.contains(&"GET /sse"));
+
+    let hello_pos = KITCHEN_SINK.find("<Hello").expect("<Hello") + 1;
+    let (line, character) = line_col(KITCHEN_SINK, hello_pos);
+    let hover = server.hover(HoverParams {
+        text_document_position_params: position_params(line, character),
+        work_done_progress_params: WorkDoneProgressParams::default(),
+    });
+    assert!(hover.is_some(), "hover on <Hello> should return info");
+
+    let tokens = server.semantic_tokens_full(SemanticTokensParams {
+        text_document: identifier(),
+        work_done_progress_params: WorkDoneProgressParams::default(),
+        partial_result_params: PartialResultParams::default(),
+    });
+    assert!(tokens.is_some(), "semantic tokens should be present");
+
+    let regions = server.inspect_regions(&test_uri());
+    assert!(
+        regions.is_some(),
+        "inspect regions should return region tree"
+    );
+    assert!(
+        !regions.unwrap().is_empty(),
+        "region tree should have nodes"
+    );
 }
 
 #[test]

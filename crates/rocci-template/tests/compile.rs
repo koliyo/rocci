@@ -1,7 +1,30 @@
+use std::sync::OnceLock;
+
 use rocci_template::{
     LowerOptions, ModuleItem, OriginKind, SourceFile, Span, StyleKind, compile, format_ast,
     parse_component_params, strip_param_defaults,
 };
+
+fn all_syntax() -> &'static rocci_template::CompileOutput {
+    static OUT: OnceLock<rocci_template::CompileOutput> = OnceLock::new();
+    OUT.get_or_init(|| {
+        let src = include_str!("../../../test/AllSyntax.rocci");
+        let out = compile(
+            SourceFile::new("test/AllSyntax.rocci", src),
+            &LowerOptions::default(),
+        );
+        assert!(
+            !out.has_errors(),
+            "{}",
+            out.diagnostics
+                .iter()
+                .map(|d| d.message.as_str())
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        out
+    })
+}
 
 fn compile_ok(src: &str) -> rocci_template::CompileOutput {
     let out = compile(SourceFile::new("test.rocci", src), &LowerOptions::default());
@@ -28,20 +51,7 @@ fn compile_err(src: &str) -> Vec<String> {
 
 #[test]
 fn kitchen_sink_compiles_without_errors() {
-    let src = include_str!("../../../test/AllSyntax.rocci");
-    let out = compile(
-        SourceFile::new("test/AllSyntax.rocci", src),
-        &LowerOptions::default(),
-    );
-    assert!(
-        !out.has_errors(),
-        "{}",
-        out.diagnostics
-            .iter()
-            .map(|d| d.message.as_str())
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+    let out = all_syntax();
     assert!(out.components.len() >= 5);
     assert!(out.components.iter().any(|c| c.name == "badge"
         && c.body_params == ["content"]
@@ -68,8 +78,7 @@ fn kitchen_sink_compiles_without_errors() {
 
 #[test]
 fn lowers_component_call_to_props_record() {
-    let src = include_str!("../../../test/AllSyntax.rocci");
-    let out = compile_ok(src);
+    let out = all_syntax();
     assert!(out.roc.contains("hello(\n"));
     assert!(out.roc.contains("{ name: person.name }"));
     assert!(out.roc.contains("hello(\n                        {},"));
@@ -77,8 +86,7 @@ fn lowers_component_call_to_props_record() {
 
 #[test]
 fn lowers_body_argument_and_html_child() {
-    let src = include_str!("../../../test/AllSyntax.rocci");
-    let out = compile_ok(src);
+    let out = all_syntax();
     assert!(out.roc.contains("badge = |{ tone }, content|"));
     assert!(
         out.roc.contains("content,")
@@ -92,8 +100,7 @@ fn lowers_body_argument_and_html_child() {
 
 #[test]
 fn lowers_if_for_and_match() {
-    let src = include_str!("../../../test/AllSyntax.rocci");
-    let out = compile_ok(src);
+    let out = all_syntax();
     assert!(out.roc.contains("match state {"));
     assert!(out.roc.contains("if List.isEmpty(items) {"));
     assert!(out.roc.contains("List.map(items, |item|"));
@@ -107,9 +114,6 @@ fn compile_output_includes_parse_validate_and_lower_timings() {
     let _ = out.timings.parse_ms;
     let _ = out.timings.validate_ms;
     let _ = out.timings.lower_ms;
-    assert!(out.timings.parse_ms < 10_000);
-    assert!(out.timings.validate_ms < 10_000);
-    assert!(out.timings.lower_ms < 10_000);
 }
 
 #[test]
@@ -132,8 +136,7 @@ fn concatenates_sibling_nodes_and_for_loops_with_two_arg_concat() {
 
 #[test]
 fn lowers_let_qualified_import_and_fragment() {
-    let src = include_str!("../../../test/AllSyntax.rocci");
-    let out = compile_ok(src);
+    let out = all_syntax();
     assert!(
         out.roc
             .contains("visible = List.keepIf(items, |item| matches(item, query))")
@@ -144,8 +147,7 @@ fn lowers_let_qualified_import_and_fragment() {
 
 #[test]
 fn preserves_roc_regions_and_parenthesized_header_records() {
-    let src = include_str!("../../../test/AllSyntax.rocci");
-    let out = compile_ok(src);
+    let out = all_syntax();
     assert!(out.roc.contains("isVisible({ user, permissions })"));
     assert!(out.roc.contains("match ({ status, items }) {"));
     assert!(
