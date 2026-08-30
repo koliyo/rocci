@@ -25,6 +25,17 @@ pub fn resolve_preopen(root: &Path, rel: &str) -> Result<PathBuf> {
     Ok(out)
 }
 
+pub fn content_type_for(path: &Path) -> &'static str {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("js") => "text/javascript; charset=utf-8",
+        Some("css") => "text/css; charset=utf-8",
+        Some("svg") => "image/svg+xml",
+        Some("html") => "text/html; charset=utf-8",
+        Some("txt") => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -72,5 +83,21 @@ mod tests {
     fn rejects_parent_escape() {
         let err = resolve_preopen(Path::new("/tmp"), "../etc/passwd").unwrap_err();
         assert!(err.to_string().contains("escapes"), "{err}");
+    }
+
+    #[test]
+    fn javascript_uses_text_javascript() {
+        assert_eq!(
+            content_type_for(Path::new("assets/datastar.js")),
+            "text/javascript; charset=utf-8"
+        );
+        assert_eq!(
+            content_type_for(Path::new("hello.txt")),
+            "text/plain; charset=utf-8"
+        );
+        assert_eq!(
+            content_type_for(Path::new("assets/rocci.css")),
+            "text/css; charset=utf-8"
+        );
     }
 }

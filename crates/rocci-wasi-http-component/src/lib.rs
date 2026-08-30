@@ -2,6 +2,17 @@
 
 pub const HELLO_WEB_HTML: &str = rocci_wasi_http::StubGuest::HTML;
 
+pub fn preopen_asset_rel_path(method: u8, path: &str) -> Option<String> {
+    if method != rocci_wasi_http::ServerRequest::METHOD_GET {
+        return None;
+    }
+    if path == "/hello.txt" || path.starts_with("/assets/") {
+        Some(path.trim_start_matches('/').to_string())
+    } else {
+        None
+    }
+}
+
 #[cfg(target_family = "wasm")]
 mod service {
     use std::sync::{Mutex, OnceLock};
@@ -34,10 +45,10 @@ mod service {
         }
 
         fn respond(&mut self, request: &ServerRequest) -> rocci_wasi_http::OutcomeToHost {
-            if request.method == ServerRequest::METHOD_GET && request.target_path == "/hello.txt" {
-                return rocci_wasi_http::OutcomeToHost::File {
-                    rel_path: "hello.txt".into(),
-                };
+            if let Some(rel_path) =
+                crate::preopen_asset_rel_path(request.method, &request.target_path)
+            {
+                return rocci_wasi_http::OutcomeToHost::File { rel_path };
             }
             self.linked.respond(request)
         }
@@ -278,8 +289,7 @@ mod service {
                     let outgoing = adapter()
                         .lock()
                         .unwrap_or_else(|poisoned| poisoned.into_inner())
-                        .serve_file(&rel_path)
-                        .map_err(|err| ErrorCode::InternalError(Some(err.to_string())))?;
+                        .serve_file(&rel_path);
                     outgoing_to_wasi(outgoing)
                 }
                 OutcomeToHost::Stream { source } => stream_linked_sse(source).await,
@@ -304,5 +314,26 @@ mod tests {
     #[test]
     fn roc_hello_web_body_is_not_the_rust_constant() {
         assert_ne!(super::HELLO_WEB_HTML, "<b>Hello from server</b><br>");
+    }
+
+    #[test]
+    fn get_assets_is_a_preopen_file() {
+        let rel = super::preopen_asset_rel_path(
+            rocci_wasi_http::ServerRequest::METHOD_GET,
+            "/assets/datastar.js",
+        )
+        .unwrap();
+        assert_eq!(rel, "assets/datastar.js");
+        assert!(
+            super::preopen_asset_rel_path(rocci_wasi_http::ServerRequest::METHOD_GET, "/")
+                .is_none()
+        );
+        assert!(
+            super::preopen_asset_rel_path(
+                rocci_wasi_http::ServerRequest::METHOD_POST,
+                "/assets/datastar.js"
+            )
+            .is_none()
+        );
     }
 }

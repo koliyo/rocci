@@ -29,6 +29,7 @@ const STEP_END: u8 = 1;
 const STEP_ERR: u8 = 2;
 const STEP_WAIT: u8 = 3;
 const REQUEST_SIZE: usize = 104;
+const BODY_HANDLE: usize = 28;
 const ROC_STR_SIZE: usize = 12;
 const RAW_OS_STR_SIZE: usize = 16;
 const RAW_OS_STR_TAG: usize = 12;
@@ -289,6 +290,8 @@ fn write_request(buf: &mut [u8; REQUEST_SIZE], request: &ServerRequest) {
     buf[56..68].copy_from_slice(&empty_roc_str());
     write_roc_str(buf[68..80].as_mut_ptr(), &request.target_path);
     buf[80..92].copy_from_slice(&empty_roc_str());
+    let body = crate::hosted_body::register(&request.body) as u32;
+    buf[BODY_HANDLE..BODY_HANDLE + 4].copy_from_slice(&body.to_le_bytes());
     buf[98] = 1;
     buf[99] = request.method;
     buf[102] = request.target_tag;

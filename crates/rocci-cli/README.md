@@ -15,12 +15,16 @@ cargo run -p rocci-cli -- validate [rocci.toml]
 # Compile a single .rocci template to Roc
 cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 
-# Experimental WASI HTTP component compiled from the .rocci (not `--host wasm`; `rocci run` stays native)
+# Experimental WASI HTTP component (not `--host wasm`; `rocci run` stays native).
+# Pass the entry `.rocci`; sibling `.rocci` / `.roc` in that tree are included.
 cargo run -p rocci-cli -- build --http-module \
   examples/rocci/standalone/counter/Counter.rocci -o http-module.wasm
+# Multi-file: same flag, entry only
+#   examples/rocci/standalone/live-counter/LiveCounter.rocci
 mkdir -p .counter-data
 wasmtime serve -Sp3 -Scli --env DB_PATH=./counter.db \
-  --dir=.counter-data::. --addr 127.0.0.1:8080 http-module.wasm
+  --dir=.counter-data::. --dir=./http-module.assets::/assets \
+  --addr 127.0.0.1:8080 http-module.wasm
 
 # Package a Linux server binary plus assets (not a macOS .app)
 cargo run -p rocci-cli -- build --release examples/rocci/custom/datastar [-o target/release/rocci-server] [--target x64musl|arm64musl|…]

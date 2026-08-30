@@ -1235,6 +1235,57 @@ fn embed_css_false_keeps_artifacts_without_style_element() {
 }
 
 #[test]
+fn stylesheet_href_links_document_head_without_style_element() {
+    let src = r#"
+@css {
+    body { margin: 0; }
+}
+
+@component Page = |{}|
+    <html lang="en">
+        <head>
+            <title>Hi</title>
+        </head>
+        <body>
+            <p>ok</p>
+        </body>
+    </html>
+"#;
+    let out = compile(
+        SourceFile::new("test.rocci", src),
+        &LowerOptions {
+            embed_css: false,
+            stylesheet_href: Some("/assets/rocci.css".into()),
+            ..LowerOptions::default()
+        },
+    );
+    assert!(
+        !out.has_errors(),
+        "{}",
+        out.diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    assert!(
+        out.roc.contains("\"link\""),
+        "expected stylesheet link:\n{}",
+        out.roc
+    );
+    assert!(
+        out.roc.contains("/assets/rocci.css"),
+        "expected extracted href:\n{}",
+        out.roc
+    );
+    assert!(
+        !out.roc.contains("\"style\""),
+        "stylesheet_href should not embed a style element\n{}",
+        out.roc
+    );
+}
+
+#[test]
 fn unscoped_file_css_skips_scope_wrapper() {
     let src = r#"
 @css {

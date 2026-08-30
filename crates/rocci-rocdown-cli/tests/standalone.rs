@@ -35,6 +35,7 @@ fn plan_ready(path: &Path) -> GenericAppPlan {
                     routes: m.routes,
                     mapped: m.mapped,
                     local_assets: m.local_assets,
+                    styles: Vec::new(),
                 })
                 .collect(),
             redirect_trailing_slash: plan.redirect_trailing_slash,

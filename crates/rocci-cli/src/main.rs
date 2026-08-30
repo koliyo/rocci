@@ -57,7 +57,8 @@ enum Commands {
         #[arg(long, value_enum)]
         opt: Option<rocci_cli::native_target::RocOpt>,
         /// Experimental WASI HTTP component compiled from the input `.rocci`
-        /// (not `--host wasm` apply). Writes a `wasi:http/service` artifact
+        /// entry (sibling `.rocci` / `.roc` in the standalone tree included;
+        /// not `--host wasm` apply). Writes a `wasi:http/service` artifact
         /// for `wasmtime serve`; `rocci run` stays native 0.16.
         #[arg(long)]
         http_module: bool,
@@ -210,7 +211,8 @@ fn try_main() -> Result<()> {
                 eprintln!(
                     "{}",
                     style::note(&format!(
-                        "WASI 0.3 component; wasmtime serve -Sp3 -Scli {}",
+                        "WASI 0.3 component; wasmtime serve -Sp3 -Scli --dir={}::/assets {}",
+                        rocci_cli::http_module::assets_dir(&dest).display(),
                         dest.display()
                     ))
                 );

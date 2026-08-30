@@ -35,6 +35,12 @@ const VALUE_NULL: u8 = 2;
 const ROC_STR_SIZE: usize = 12;
 const ROC_LIST_SIZE: usize = 12;
 const PATH_SIZE: usize = 28;
+const BINDING_SIZE: usize = 32;
+const BINDING_VALUE_TAG: usize = 12;
+const BINDING_NAME: usize = 16;
+const VALUE_BYTES: u8 = 0;
+const VALUE_REAL: u8 = 3;
+const SQLITE_TRANSIENT: *const u8 = (-1isize) as *const u8;
 
 #[repr(C)]
 struct Sqlite3 {
@@ -78,6 +84,16 @@ unsafe extern "C" {
     fn sqlite3_column_bytes(stmt: *mut Sqlite3Stmt, i: c_int) -> c_int;
     fn sqlite3_errmsg(db: *mut Sqlite3) -> *const c_char;
     fn sqlite3_busy_timeout(db: *mut Sqlite3, ms: c_int) -> c_int;
+    fn sqlite3_bind_int64(stmt: *mut Sqlite3Stmt, index: c_int, value: i64) -> c_int;
+    fn sqlite3_bind_text(
+        stmt: *mut Sqlite3Stmt,
+        index: c_int,
+        value: *const c_char,
+        n: c_int,
+        destructor: *const u8,
+    ) -> c_int;
+    fn sqlite3_bind_null(stmt: *mut Sqlite3Stmt, index: c_int) -> c_int;
+    fn sqlite3_bind_parameter_index(stmt: *mut Sqlite3Stmt, name: *const c_char) -> c_int;
 }
 
 enum Resource {
@@ -249,6 +265,52 @@ fn exec_sql(db: *mut Sqlite3, sql: &str) -> Result<(), (i64, String)> {
     } else {
         Err((rc as i64, c_msg(unsafe { sqlite3_errmsg(db) })))
     }
+}
+
+fn bind_params(stmt: *mut Sqlite3Stmt, bindings: *const u8) -> Result<(), (i64, String)> {
+    if bindings.is_null() {
+        return Ok(());
+    }
+    let elems = read_u32(bindings, 0) as *const u8;
+    let len = read_u32(bindings, 4) as usize;
+    if elems.is_null() || len == 0 {
+        return Ok(());
+    }
+    for index in 0..len {
+        let elem = unsafe { elems.add(index * BINDING_SIZE) };
+        let name = read_roc_str(unsafe { elem.add(BINDING_NAME) });
+        let c_name = CString::new(name).map_err(|_| (1_i64, "nul in binding name".into()))?;
+        let param = unsafe { sqlite3_bind_parameter_index(stmt, c_name.as_ptr()) };
+        if param == 0 {
+            continue;
+        }
+        let tag = unsafe { *elem.add(BINDING_VALUE_TAG) };
+        let rc = match tag {
+            VALUE_INTEGER => {
+                let value = i64::from_le_bytes(
+                    unsafe { std::slice::from_raw_parts(elem, 8) }
+                        .try_into()
+                        .expect("i64"),
+                );
+                unsafe { sqlite3_bind_int64(stmt, param, value) }
+            }
+            VALUE_STRING => {
+                let text = read_roc_str(elem);
+                let c_text = CString::new(text).map_err(|_| (1_i64, "nul in binding".into()))?;
+                let rc = unsafe {
+                    sqlite3_bind_text(stmt, param, c_text.as_ptr(), -1, SQLITE_TRANSIENT)
+                };
+                let _ = c_text;
+                rc
+            }
+            VALUE_NULL | VALUE_BYTES | VALUE_REAL => unsafe { sqlite3_bind_null(stmt, param) },
+            _ => unsafe { sqlite3_bind_null(stmt, param) },
+        };
+        if rc != SQLITE_OK {
+            return Err((rc as i64, "bind failed".into()));
+        }
+    }
+    Ok(())
 }
 
 fn prepare_stmt(db: *mut Sqlite3, sql: &str) -> Result<*mut Sqlite3Stmt, (i64, String)> {
@@ -459,7 +521,7 @@ pub extern "C" fn hosted_sqlite_columns(out: *mut u8, statement: *mut u64) {
 pub extern "C" fn hosted_sqlite_start(
     out: *mut u8,
     statement: *mut u64,
-    _bindings: *const u8,
+    bindings: *const u8,
     _timeout_ms: i64,
 ) {
     let Some(id) = handle_id(statement) else {
@@ -505,6 +567,11 @@ pub extern "C" fn hosted_sqlite_start(
             return;
         }
     };
+    if let Err((code, message)) = bind_params(stmt, bindings) {
+        unsafe { sqlite3_finalize(stmt) };
+        write_err(out, HANDLE_RESULT_SIZE, HANDLE_RESULT_TAG, code, &message);
+        return;
+    }
     let mut store = lock_store();
     let exec_id = store.next;
     store.next += 1;

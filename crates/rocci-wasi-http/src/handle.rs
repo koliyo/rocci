@@ -50,8 +50,14 @@ impl<G: RocGuest> Adapter<G> {
         self.guest.respond(&map_request(incoming))
     }
 
-    pub fn serve_file(&self, rel_path: &str) -> Result<OutgoingResponse> {
+    pub fn serve_file(&self, rel_path: &str) -> OutgoingResponse {
         self.read_preopen(rel_path)
+            .unwrap_or_else(|_| OutgoingResponse {
+                status: 404,
+                headers: vec![("content-type".into(), "text/plain; charset=utf-8".into())],
+                body: b"not found".to_vec(),
+                streamed: false,
+            })
     }
 
     pub async fn handle(&mut self, incoming: IncomingRequest) -> Result<OutgoingResponse> {
@@ -125,7 +131,10 @@ impl<G: RocGuest> Adapter<G> {
         let body = std::fs::read(&joined).with_context(|| format!("read {}", joined.display()))?;
         Ok(OutgoingResponse {
             status: 200,
-            headers: vec![("content-type".into(), "application/octet-stream".into())],
+            headers: vec![(
+                "content-type".into(),
+                crate::files::content_type_for(&joined).into(),
+            )],
             body,
             streamed: false,
         })

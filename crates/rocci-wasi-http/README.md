@@ -22,5 +22,7 @@ crate depends on `map` only.
 the app, `roc build --target=wasm32` against sibling `../roc-basic-webserver`
 (or `ROCCI_BASIC_WEBSERVER`), and writes a `wasi:http/service` **WASI 0.3**
 component. Serve with `wasmtime serve -Sp3 -Scli`. Sqlite apps need
-`--env DB_PATH=…` and `--dir=host::guest`. `--host wasm` stays apply.
+`--env DB_PATH=…` and `--dir=host::guest`. Map the sidecar
+`<dest>.assets/` with `--dir=<dest>.assets::/assets` so `GET /assets/*`
+resolves (Datastar plus extracted `@css` at `/assets/rocci.css`). `--host wasm` stays apply.
 Still omitted: Cmd, in-guest TLS, desktop URL.

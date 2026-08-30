@@ -12,7 +12,9 @@ use rocci_desktop::PreviewOptions;
 use rocci_template::{Diagnostic, LowerOptions, Segment, SourceFile, compile, format_diagnostic};
 
 use crate::datastar_asset;
-use crate::driver::{self, GenericAppPlan, GenericModule, ResolvedEntry};
+use crate::driver::{
+    self, EXTRACTED_STYLESHEET_HREF, GenericAppPlan, GenericModule, ResolvedEntry,
+};
 use crate::error_page::{FailedFile, MappedModule};
 use crate::logs::{self, Progress};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
@@ -496,6 +498,31 @@ pub fn standalone_island_lower_options() -> LowerOptions {
     }
 }
 
+pub fn standalone_http_module_lower_options() -> LowerOptions {
+    LowerOptions {
+        embed_css: false,
+        stylesheet_href: Some(EXTRACTED_STYLESHEET_HREF.to_string()),
+        ..LowerOptions::default()
+    }
+}
+
+pub fn standalone_http_module_app_plan(primary: &Path) -> Result<GenericAppPlan> {
+    match plan_standalone(
+        primary,
+        &standalone_http_module_lower_options(),
+        Progress::default(),
+    )? {
+        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Failed(files), _, _) => {
+            let name = files
+                .first()
+                .map(|file| file.name.as_str())
+                .unwrap_or("template");
+            bail!("template compilation failed for {name}")
+        }
+    }
+}
+
 pub fn standalone_island_app_plan(primary: &Path) -> Result<GenericAppPlan> {
     match plan_standalone(
         primary,
@@ -585,6 +612,7 @@ fn plan_standalone(
                 segments: compiled.segments,
             },
             local_assets: compiled.local_assets,
+            styles: compiled.styles,
         });
     }
     let profile = rec.finish();
@@ -786,6 +814,7 @@ struct CompiledSource {
     diagnostics: Vec<Diagnostic>,
     segments: Vec<Segment>,
     local_assets: Vec<String>,
+    styles: Vec<String>,
     timings: rocci_template::CompileTimings,
     inspect: crate::inspect::InspectPage,
 }
@@ -809,6 +838,11 @@ fn compile_source(name: &str, src: &str, lower: &LowerOptions) -> Result<Compile
         diagnostics: compiled.diagnostics,
         segments: compiled.segments,
         local_assets: Vec::new(),
+        styles: compiled
+            .styles
+            .iter()
+            .map(|style| style.css.clone())
+            .collect(),
         timings: compiled.timings,
         inspect,
     })
@@ -920,6 +954,30 @@ mod tests {
             .parent()
             .unwrap()
             .to_path_buf()
+    }
+
+    #[test]
+    fn live_counter_http_module_plan_links_extracted_css() {
+        let path = repo_root().join("examples/rocci/standalone/live-counter/LiveCounter.rocci");
+        let plan = standalone_http_module_app_plan(&path).expect("plan live-counter");
+        let css = plan.extracted_css();
+        assert!(css.contains("counter-card"), "{css}");
+        assert!(css.contains("min-height: 100vh"), "{css}");
+        assert!(
+            plan.modules[0].roc.contains(EXTRACTED_STYLESHEET_HREF),
+            "{}",
+            plan.modules[0].roc
+        );
+        let ui = plan
+            .modules
+            .iter()
+            .find(|module| module.type_name == "LiveCounterUi")
+            .expect("LiveCounterUi");
+        assert!(
+            !ui.roc.contains("\"style\""),
+            "live fragments must stay style-free\n{}",
+            ui.roc
+        );
     }
 
     fn roc_build_staged_standalone(relative: &str) -> crate::driver::TempDir {

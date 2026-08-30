@@ -40,14 +40,21 @@ Lower one `.rocci` file to Roc. `-o` writes a file; otherwise stdout.
 cargo run -q -p rocci-cli -- build --http-module INPUT.rocci [-o http-module.wasm]
 ```
 
-Writes a WASI 0.3 `wasi:http/service` **component** compiled from `INPUT.rocci`
-against the sibling `../roc-basic-webserver` wasm32 platform (or
-`ROCCI_BASIC_WEBSERVER`). **Not** apply `--host wasm`, and **not** a musl
-`--release` process. Missing fork or missing `roc` is an error. Serve with
-`wasmtime serve -Sp3 -Scli`. Sqlite apps need `--env DB_PATH=…` and
-`--dir=host::guest` (see `examples/rocci/standalone/counter`). Live SSE
-comes from the compiled app (`examples/rocci/standalone/live-counter`).
-`rocci run` stays native 0.16.0. Still omitted: Cmd, in-guest TLS, desktop URL.
+`INPUT.rocci` is the **entry** (the file with `@init` / routes), not a
+directory and not a file list. Discovery matches `rocci run`: every `.rocci`
+under the standalone app root (the entry’s directory, or a `rocci.toml` above
+it before `.git`) plus authored `.roc` helpers. Live-counter is
+`LiveCounter.rocci`; `LiveCounterUi.rocci` and `Origin.roc` come along.
+
+Writes a WASI 0.3 `wasi:http/service` **component** against the sibling
+`../roc-basic-webserver` wasm32 platform (or `ROCCI_BASIC_WEBSERVER`). **Not**
+apply `--host wasm`, and **not** a musl `--release` process. Missing fork or
+missing `roc` is an error. Serve with `wasmtime serve -Sp3 -Scli`. Sqlite apps
+need `--env DB_PATH=…` and `--dir=host::guest`. `--http-module` writes
+`<dest>.assets/` (Datastar, extracted `@css` as `rocci.css`, and app files);
+map it with `--dir=<dest>.assets::/assets`. Live SSE comes from the compiled app
+(`examples/rocci/standalone/live-counter`). `rocci run` stays native 0.16.0.
+Still omitted: Cmd, in-guest TLS, desktop URL.
 
 ## Build release
 

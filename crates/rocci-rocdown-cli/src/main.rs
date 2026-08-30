@@ -832,6 +832,7 @@ fn run_standalone_doc(
                 routes: module.routes,
                 mapped: module.mapped,
                 local_assets: module.local_assets,
+                styles: Vec::new(),
             })
             .collect(),
         redirect_trailing_slash: plan.redirect_trailing_slash,

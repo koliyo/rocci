@@ -27,7 +27,7 @@ pub fn build_http_module(input: &Path, dest: &Path) -> Result<()> {
         );
     }
 
-    let plan = run::standalone_island_app_plan(input)?;
+    let plan = run::standalone_http_module_app_plan(input)?;
     let src_dir = input
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
@@ -66,12 +66,23 @@ pub fn build_http_module(input: &Path, dest: &Path) -> Result<()> {
             captured.display()
         );
     }
+    let dest = absolute_path(dest)?;
     let object = dest.with_extension("roc_app.o");
     if let Some(parent) = object.parent() {
         fs::create_dir_all(parent)?;
     }
     fs::copy(&captured, &object)
         .with_context(|| format!("copy {} -> {}", captured.display(), object.display()))?;
+
+    let staged_assets = workspace.path.join("assets");
+    if staged_assets.is_dir() {
+        let assets = assets_dir(&dest);
+        if assets.exists() {
+            fs::remove_dir_all(&assets).with_context(|| format!("clear {}", assets.display()))?;
+        }
+        driver::copy_tree(&staged_assets, &assets)
+            .with_context(|| format!("copy assets -> {}", assets.display()))?;
+    }
 
     let crate_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = crate_root.join("../..");
@@ -96,7 +107,7 @@ pub fn build_http_module(input: &Path, dest: &Path) -> Result<()> {
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(dest, bytes).with_context(|| format!("write {}", dest.display()))
+    fs::write(&dest, bytes).with_context(|| format!("write {}", dest.display()))
 }
 
 pub fn resolve_basic_webserver() -> Result<PathBuf> {
@@ -120,6 +131,18 @@ pub fn resolve_basic_webserver() -> Result<PathBuf> {
     bail!(
         "missing ../roc-basic-webserver (set ROCCI_BASIC_WEBSERVER); --http-module compiles the .rocci against the fork wasm32 platform"
     )
+}
+
+pub fn assets_dir(dest: &Path) -> PathBuf {
+    dest.with_extension("assets")
+}
+
+fn absolute_path(path: &Path) -> Result<PathBuf> {
+    if path.is_absolute() {
+        Ok(path.to_path_buf())
+    } else {
+        Ok(env::current_dir().context("current directory")?.join(path))
+    }
 }
 
 fn resolve_roc() -> Result<PathBuf> {
@@ -170,6 +193,29 @@ fn read_component_bytes(workspace: &Path) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dest_stem_names_the_assets_dir() {
+        assert_eq!(
+            assets_dir(Path::new("http-module.wasm")),
+            PathBuf::from("http-module.assets")
+        );
+    }
+
+    #[test]
+    fn relative_dest_makes_roc_app_o_absolute() {
+        let dest = absolute_path(Path::new("http-module.wasm")).unwrap();
+        assert!(dest.is_absolute());
+        let object = dest.with_extension("roc_app.o");
+        assert!(object.is_absolute());
+        assert!(
+            object
+                .file_name()
+                .is_some_and(|name| name == "http-module.roc_app.o"),
+            "{}",
+            object.display()
+        );
+    }
 
     #[test]
     fn missing_fork_error_names_the_flag() {

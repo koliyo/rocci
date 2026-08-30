@@ -9,6 +9,8 @@ pub mod files;
 pub mod guest;
 pub mod handle;
 #[cfg(target_family = "wasm")]
+pub mod hosted_body;
+#[cfg(target_family = "wasm")]
 pub mod hosted_sqlite;
 #[cfg(not(target_family = "wasm"))]
 pub mod linked;

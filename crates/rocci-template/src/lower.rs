@@ -18,6 +18,7 @@ pub struct LowerOptions {
     pub theme_id: Option<String>,
     pub color_scheme_attr: Option<String>,
     pub embed_css: bool,
+    pub stylesheet_href: Option<String>,
     pub scope_file_css: bool,
 }
 
@@ -29,6 +30,7 @@ impl Default for LowerOptions {
             theme_id: None,
             color_scheme_attr: None,
             embed_css: true,
+            stylesheet_href: None,
             scope_file_css: true,
         }
     }
@@ -210,6 +212,7 @@ pub fn lower_template_items(
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
         embed_css: options.embed_css,
+        stylesheet_href: options.stylesheet_href.clone(),
         inject_live_path: None,
     };
     match items {
@@ -361,6 +364,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         theme_id: options.theme_id.clone(),
         color_scheme_attr: options.color_scheme_attr.clone(),
         embed_css: options.embed_css,
+        stylesheet_href: options.stylesheet_href.clone(),
         inject_live_path,
     };
     let inject_datastar = (document_has_action(document) || emitter.inject_live_path.is_some())
@@ -445,7 +449,14 @@ struct Emitter<'a> {
     theme_id: Option<String>,
     color_scheme_attr: Option<String>,
     embed_css: bool,
+    stylesheet_href: Option<String>,
     inject_live_path: Option<(String, Span)>,
+}
+
+#[derive(Clone, Copy)]
+enum HeadInject<'a> {
+    EmbeddedStyle(&'a str),
+    StylesheetLink(&'a str),
 }
 
 impl<'a> Emitter<'a> {
@@ -550,9 +561,23 @@ impl<'a> Emitter<'a> {
         };
         if self.embed_css {
             if let Some(css) = self.injected_css(&component_css, component_id.as_deref()) {
-                self.lower_html_value_with_style(rest, &body_params, &css);
+                self.lower_html_value_with_head(
+                    rest,
+                    &body_params,
+                    HeadInject::EmbeddedStyle(&css),
+                );
             } else if self.theme_css.is_some() && is_html_document(rest) {
-                self.lower_html_value_with_style(rest, &body_params, "");
+                self.lower_html_value_with_head(rest, &body_params, HeadInject::EmbeddedStyle(""));
+            } else {
+                self.lower_html_value(rest, &body_params);
+            }
+        } else if let Some(href) = self.stylesheet_href.clone() {
+            if is_html_document(rest) {
+                self.lower_html_value_with_head(
+                    rest,
+                    &body_params,
+                    HeadInject::StylesheetLink(&href),
+                );
             } else {
                 self.lower_html_value(rest, &body_params);
             }
@@ -818,11 +843,11 @@ impl<'a> Emitter<'a> {
         }
     }
 
-    fn lower_html_value_with_style(
+    fn lower_html_value_with_head(
         &mut self,
         items: &[TemplateItem],
         body_params: &[String],
-        css: &str,
+        inject: HeadInject<'_>,
     ) {
         if let [TemplateItem::Element(el)] = items
             && el.name.name == "html"
@@ -832,30 +857,57 @@ impl<'a> Emitter<'a> {
                 .iter()
                 .any(|item| matches!(item, TemplateItem::For(_)))
         {
-            let css = self.prepend_theme_css(css);
-            self.lower_html_document_with_style(el, body_params, &css);
+            match inject {
+                HeadInject::EmbeddedStyle(css) => {
+                    let css = self.prepend_theme_css(css);
+                    self.lower_html_document_with_head(
+                        el,
+                        body_params,
+                        HeadInject::EmbeddedStyle(&css),
+                    );
+                }
+                HeadInject::StylesheetLink(href) => {
+                    self.lower_html_document_with_head(
+                        el,
+                        body_params,
+                        HeadInject::StylesheetLink(href),
+                    );
+                }
+            }
             return;
         }
-        self.emit_html(".fragment(\n");
-        self.indent += 1;
-        self.push_indent();
-        self.emit("[\n");
-        self.indent += 1;
-        self.push_indent();
-        self.lower_style_element(css);
-        self.emit(",\n");
-        self.push_indent();
-        self.lower_html_value(items, body_params);
-        self.emit(",\n");
-        self.indent -= 1;
-        self.push_indent();
-        self.emit("],\n");
-        self.indent -= 1;
-        self.push_indent();
-        self.emit(")");
+        match inject {
+            HeadInject::StylesheetLink(_) => {
+                self.lower_html_value(items, body_params);
+            }
+            HeadInject::EmbeddedStyle(css) => {
+                self.emit_html(".fragment(\n");
+                self.indent += 1;
+                self.push_indent();
+                self.emit("[\n");
+                self.indent += 1;
+                self.push_indent();
+                self.lower_style_element(css);
+                self.emit(",\n");
+                self.push_indent();
+                self.lower_html_value(items, body_params);
+                self.emit(",\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit("],\n");
+                self.indent -= 1;
+                self.push_indent();
+                self.emit(")");
+            }
+        }
     }
 
-    fn lower_html_document_with_style(&mut self, el: &Element, body_params: &[String], css: &str) {
+    fn lower_html_document_with_head(
+        &mut self,
+        el: &Element,
+        body_params: &[String],
+        inject: HeadInject<'_>,
+    ) {
         self.emit_html(".element(\n");
         self.indent += 1;
         self.push_indent();
@@ -879,7 +931,7 @@ impl<'a> Emitter<'a> {
             for (i, item) in el.children.iter().enumerate() {
                 self.push_indent();
                 if i == head_idx {
-                    self.lower_head_with_style(head, body_params, css);
+                    self.lower_head_with_inject(head, body_params, inject);
                 } else {
                     self.lower_item(item, body_params, ValueCtx::Node);
                 }
@@ -887,7 +939,7 @@ impl<'a> Emitter<'a> {
             }
         } else {
             self.push_indent();
-            self.lower_synthetic_head(css);
+            self.lower_synthetic_head(inject);
             self.emit(",\n");
             for item in &el.children {
                 self.push_indent();
@@ -903,7 +955,12 @@ impl<'a> Emitter<'a> {
         self.emit(")");
     }
 
-    fn lower_head_with_style(&mut self, el: &Element, body_params: &[String], css: &str) {
+    fn lower_head_with_inject(
+        &mut self,
+        el: &Element,
+        body_params: &[String],
+        inject: HeadInject<'_>,
+    ) {
         self.emit_html(".element(\n");
         self.indent += 1;
         self.push_indent();
@@ -919,7 +976,7 @@ impl<'a> Emitter<'a> {
         self.emit("[\n");
         self.indent += 1;
         self.push_indent();
-        self.lower_style_element(css);
+        self.lower_head_inject(inject);
         self.emit(",\n");
         self.indent -= 1;
         self.push_indent();
@@ -935,7 +992,7 @@ impl<'a> Emitter<'a> {
         self.emit(")");
     }
 
-    fn lower_synthetic_head(&mut self, css: &str) {
+    fn lower_synthetic_head(&mut self, inject: HeadInject<'_>) {
         self.emit_html(".element(\n");
         self.indent += 1;
         self.push_indent();
@@ -947,8 +1004,39 @@ impl<'a> Emitter<'a> {
         self.emit("[\n");
         self.indent += 1;
         self.push_indent();
-        self.lower_style_element(css);
+        self.lower_head_inject(inject);
         self.emit(",\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit("],\n");
+        self.indent -= 1;
+        self.push_indent();
+        self.emit(")");
+    }
+
+    fn lower_head_inject(&mut self, inject: HeadInject<'_>) {
+        match inject {
+            HeadInject::EmbeddedStyle(css) => self.lower_style_element(css),
+            HeadInject::StylesheetLink(href) => self.lower_stylesheet_link_element(href),
+        }
+    }
+
+    fn lower_stylesheet_link_element(&mut self, href: &str) {
+        self.emit_html(".void_element(\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit("\"link\",\n");
+        self.push_indent();
+        self.emit("[\n");
+        self.indent += 1;
+        self.push_indent();
+        self.emit_html(".attribute(\"rel\", ");
+        self.emit_string("stylesheet", Span::point(0), OriginKind::Scaffolding);
+        self.emit("),\n");
+        self.push_indent();
+        self.emit_html(".attribute(\"href\", ");
+        self.emit_string(href, Span::point(0), OriginKind::Scaffolding);
+        self.emit("),\n");
         self.indent -= 1;
         self.push_indent();
         self.emit("],\n");

@@ -5,8 +5,10 @@ linked Roc `roc_*_for_host` object (`ROCCI_ROC_APP_O`, or
 `fixtures/sqlite_row.o` when that env is unset). The default fixture
 opens in-memory sqlite and returns `hello-sqlite`. `rocci build
 --http-module` supplies the compiled `.rocci` object. Hosted
-`hosted_sqlite_*` is sync and serializes other `handle`s. `GET /hello.txt`
-is the preopen file; `/sse-empty` and `/sse-wait` stay fixture guests.
+`hosted_sqlite_*` is sync and serializes other `handle`s. `GET /assets/*`
+is a preopen file (`wasmtime serve --dir=http-module.assets::/assets`).
+`GET /hello.txt` is the fixture preopen; `/sse-empty` and `/sse-wait` stay
+fixture guests.
 No Wasmtime in this crate. Earlier fixtures stay at `fixtures/roc_app.o`
 and `fixtures/env_log.o`.
 
@@ -44,10 +46,14 @@ curl -s -D - http://127.0.0.1:8080/sse-wait    # 200ms Wait then one Emit
 
 Two overlapping `/sse-wait` connections stay near one wait (~220ms), not two.
 
-Preopen (`wasmtime serve --dir=crates/rocci-wasi-http/fixtures/static::/`):
+Preopen (`wasmtime serve --dir=crates/rocci-wasi-http/fixtures/static::/`
+for `/hello.txt`, and `--dir=http-module.assets::/assets` after
+`--http-module`):
 
 ```sh
-curl -s http://127.0.0.1:8080/hello.txt   # preopen-bytes
+curl -s http://127.0.0.1:8080/hello.txt           # preopen-bytes
+curl -sI http://127.0.0.1:8080/assets/datastar.js # 200 text/javascript
+curl -sI http://127.0.0.1:8080/assets/rocci.css   # 200 text/css after --http-module
 ```
 
 ## SQLite
