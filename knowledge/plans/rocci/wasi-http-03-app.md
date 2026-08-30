@@ -373,6 +373,17 @@ increment, reset. `cargo fmt --all -- --check`.
 **Exit:** Those three routes match native `rocci run` behavior for
 status and the count morph.
 
+**Phase 6 recorded (2026-08-30):** `rocci build --http-module` on
+`examples/rocci/standalone/counter/Counter.rocci` serves the counter card.
+`GET /` is 200 HTML count 0. `POST /actions/counter/increment` and
+`/reset` are 200 `text/event-stream` Datastar morphs (count 1, then 0).
+File sqlite uses WASI `--dir` + `DB_PATH`; hosted open forces DELETE
+journal and URI `nolock=1`. App routes go to the linked Roc guest.
+`Box.unbox` consumes context; the adapter increfs the RocBox before each
+respond. Fragment outcomes are Stream; one-shot `roc_sse_advance_for_host`
+drains Emit then End. Example README documents `wasmtime serve`.
+`rocci run` is unchanged.
+
 ## Phase 7: Generated SSE app from a real Roc object
 
 **Bound:** `--http-module` on `live-counter` (or the current standalone
@@ -405,7 +416,7 @@ Crate READMEs and the CLI page agree.
 | Real `roc build` object | Phase 2 hello-web linked; Phase 3 env-log + hosted Env/Stderr |
 | `--http-module` uses `.rocci` body | Phase 5 recorded |
 | sqlite-in-component | Phase 4 recorded; `GET /` is `hello-sqlite` |
-| Counter under `wasmtime serve` | Not shipped; Phase 6 |
+| Counter under `wasmtime serve` | Phase 6 recorded |
 | Generated SSE from Roc object | Not shipped; Phase 7 |
 | `rocci run` / `--host wasm` / musl | Unchanged |
 | Fork wasm32 target | Phase 1 recorded on sibling `wasi-http-03-app` |
@@ -420,10 +431,12 @@ roc build --target=wasm32 --no-link examples/hello-web.roc
 # Product
 rocci build --http-module examples/rocci/standalone/counter/Counter.rocci \
   -o http-module.wasm
-wasmtime serve -Sp3 -Scli --dir=. http-module.wasm
-# WASI env: DB_PATH=./counter.db
+mkdir -p .counter-data
+wasmtime serve -Sp3 -Scli --env DB_PATH=./counter.db \
+  --dir=.counter-data::. --addr 127.0.0.1:8080 http-module.wasm
 curl -s http://127.0.0.1:8080/
 curl -s -X POST http://127.0.0.1:8080/actions/counter/increment
+curl -s -X POST http://127.0.0.1:8080/actions/counter/reset
 ```
 
 ## Non-goals that stay with earlier plans

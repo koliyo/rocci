@@ -9,22 +9,20 @@ mod service {
     use std::time::Duration;
 
     use rocci_wasi_http::{
-        Adapter, EchoGuest, EmptySseGuest, IncomingRequest, LinkedHelloWebGuest, OutgoingResponse,
-        RocGuest, ServerRequest, SseStepToHost, WaitEmitGuest, abi::map_request,
+        Adapter, EmptySseGuest, IncomingRequest, LinkedHelloWebGuest, OutgoingResponse, RocGuest,
+        ServerRequest, SseStepToHost, WaitEmitGuest, abi::map_request,
     };
     use wasip3::http::types::{ErrorCode, Fields, Method, Request, Response};
     use wasip3::{spawn_local, wit_future, wit_stream};
 
     struct RoutedGuest {
         linked: LinkedHelloWebGuest,
-        echo: EchoGuest,
     }
 
     impl Default for RoutedGuest {
         fn default() -> Self {
             Self {
                 linked: LinkedHelloWebGuest::new(),
-                echo: EchoGuest::new(),
             }
         }
     }
@@ -32,24 +30,19 @@ mod service {
     impl RocGuest for RoutedGuest {
         fn init(&mut self) {
             self.linked.init();
-            self.echo.init();
         }
 
         fn respond(&mut self, request: &ServerRequest) -> rocci_wasi_http::OutcomeToHost {
-            if request.method == ServerRequest::METHOD_GET && request.target_path == "/" {
-                return self.linked.respond(request);
-            }
             if request.method == ServerRequest::METHOD_GET && request.target_path == "/hello.txt" {
                 return rocci_wasi_http::OutcomeToHost::File {
                     rel_path: "hello.txt".into(),
                 };
             }
-            self.echo.respond(request)
+            self.linked.respond(request)
         }
 
         fn shutdown(&mut self) {
             self.linked.shutdown();
-            self.echo.shutdown();
         }
     }
 

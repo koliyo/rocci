@@ -11,6 +11,7 @@ const SQLITE_ROW: c_int = 100;
 const SQLITE_DONE: c_int = 101;
 const SQLITE_OPEN_READWRITE: c_int = 0x0000_0002;
 const SQLITE_OPEN_CREATE: c_int = 0x0000_0004;
+const SQLITE_OPEN_URI: c_int = 0x0000_0040;
 const SQLITE_INTEGER: c_int = 1;
 const SQLITE_FLOAT: c_int = 2;
 const SQLITE_TEXT: c_int = 3;
@@ -76,6 +77,7 @@ unsafe extern "C" {
     fn sqlite3_column_text(stmt: *mut Sqlite3Stmt, i: c_int) -> *const u8;
     fn sqlite3_column_bytes(stmt: *mut Sqlite3Stmt, i: c_int) -> c_int;
     fn sqlite3_errmsg(db: *mut Sqlite3) -> *const c_char;
+    fn sqlite3_busy_timeout(db: *mut Sqlite3, ms: c_int) -> c_int;
 }
 
 enum Resource {
@@ -322,7 +324,13 @@ pub extern "C" fn hosted_sqlite_open(
             raw
         }
     };
-    let c_path = match CString::new(filename) {
+    let memory = filename == ":memory:";
+    let open_name = if memory {
+        filename
+    } else {
+        format!("file:{filename}?mode=rwc&nolock=1")
+    };
+    let c_path = match CString::new(open_name) {
         Ok(value) => value,
         Err(_) => {
             write_err(out, HANDLE_RESULT_SIZE, HANDLE_RESULT_TAG, 14, "bad path");
@@ -330,14 +338,12 @@ pub extern "C" fn hosted_sqlite_open(
         }
     };
     let mut db = std::ptr::null_mut();
-    let rc = unsafe {
-        sqlite3_open_v2(
-            c_path.as_ptr(),
-            &mut db,
-            SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
-            std::ptr::null(),
-        )
+    let flags = if memory {
+        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
+    } else {
+        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_URI
     };
+    let rc = unsafe { sqlite3_open_v2(c_path.as_ptr(), &mut db, flags, std::ptr::null()) };
     if rc != SQLITE_OK || db.is_null() {
         let message = if db.is_null() {
             "open failed".into()
@@ -355,11 +361,9 @@ pub extern "C" fn hosted_sqlite_open(
         );
         return;
     }
-    let pragma = if journal_mode == 1 {
-        "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;"
-    } else {
-        "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;"
-    };
+    let _ = journal_mode;
+    unsafe { sqlite3_busy_timeout(db, 5_000) };
+    let pragma = "PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;";
     if let Err((code, message)) = exec_sql(db, pragma) {
         unsafe { sqlite3_close(db) };
         write_err(out, HANDLE_RESULT_SIZE, HANDLE_RESULT_TAG, code, &message);

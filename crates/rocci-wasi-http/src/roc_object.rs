@@ -19,9 +19,15 @@ const INIT_CONTEXT: usize = 208;
 const OUTCOME_SIZE: usize = 48;
 const OUTCOME_TAG: usize = 44;
 const ORDINARY: u8 = 1;
+const STREAM: u8 = 2;
 const BODY_PTR: usize = 8;
-const BODY_LEN: usize = 12;
 const STATUS: usize = 32;
+const STEP_SIZE: usize = 32;
+const STEP_TAG: usize = 24;
+const STEP_EMIT: u8 = 0;
+const STEP_END: u8 = 1;
+const STEP_ERR: u8 = 2;
+const STEP_WAIT: u8 = 3;
 const REQUEST_SIZE: usize = 104;
 const ROC_STR_SIZE: usize = 12;
 const RAW_OS_STR_SIZE: usize = 16;
@@ -104,6 +110,7 @@ unsafe extern "C" {
     fn roc_init_for_host(out: *mut u8);
     fn roc_respond_for_host(out: *mut u8, request: *const u8, context: *mut c_void);
     fn roc_shutdown_for_host(out: *mut u8, reason: *const u8, context: *mut c_void);
+    fn roc_sse_advance_for_host(out: *mut u8, source: *mut u8, wake: u64);
 }
 
 pub(crate) fn read_u32(ptr: *const u8, offset: usize) -> u32 {
@@ -233,6 +240,55 @@ fn empty_roc_str() -> [u8; 12] {
     small_roc_str("")
 }
 
+fn incref_roc_box(ptr: usize) {
+    if ptr == 0 {
+        return;
+    }
+    let rc = (ptr - std::mem::size_of::<isize>()) as *mut isize;
+    let n = unsafe { rc.read() };
+    if n == 0 {
+        return;
+    }
+    unsafe { rc.write(n + 1) };
+}
+
+fn read_list_u8(ptr: *const u8, offset: usize) -> Vec<u8> {
+    let bytes = read_u32(ptr, offset) as *const u8;
+    let len = read_u32(ptr, offset + 4) as usize;
+    if bytes.is_null() || len == 0 {
+        Vec::new()
+    } else {
+        unsafe { std::slice::from_raw_parts(bytes, len) }.to_vec()
+    }
+}
+
+fn drain_sse_source(mut source: usize) -> Vec<u8> {
+    let mut body = Vec::new();
+    let mut wake = 0u64;
+    loop {
+        let mut step = [0u8; STEP_SIZE];
+        unsafe { roc_sse_advance_for_host(step.as_mut_ptr(), source as *mut u8, wake) };
+        match step[STEP_TAG] {
+            STEP_EMIT => {
+                body.extend_from_slice(&read_list_u8(step.as_ptr(), 8));
+                source = read_u32(step.as_ptr(), 20) as usize;
+                let wait = u64::from_le_bytes(step[0..8].try_into().unwrap());
+                if wait > 0 {
+                    wake = wake.wrapping_add(1);
+                }
+            }
+            STEP_WAIT => {
+                source = read_u32(step.as_ptr(), 8) as usize;
+                wake = wake.wrapping_add(1);
+            }
+            STEP_END => break,
+            STEP_ERR => panic!("roc_sse_advance_for_host error"),
+            tag => panic!("roc_sse_advance_for_host tag={tag}"),
+        }
+    }
+    body
+}
+
 fn write_request(buf: &mut [u8; REQUEST_SIZE], request: &ServerRequest) {
     buf.fill(0);
     buf[0..8].copy_from_slice(&request.body_limit_bytes.to_le_bytes());
@@ -240,7 +296,7 @@ fn write_request(buf: &mut [u8; REQUEST_SIZE], request: &ServerRequest) {
     buf[16..28].copy_from_slice(&empty_roc_str());
     buf[44..56].copy_from_slice(&empty_roc_str());
     buf[56..68].copy_from_slice(&empty_roc_str());
-    buf[68..80].copy_from_slice(&small_roc_str(&request.target_path));
+    write_roc_str(buf[68..80].as_mut_ptr(), &request.target_path);
     buf[80..92].copy_from_slice(&empty_roc_str());
     buf[98] = 1;
     buf[99] = request.method;
@@ -271,7 +327,10 @@ impl RocGuest for LinkedHelloWebGuest {
     fn init(&mut self) {
         let mut out = [0u8; INIT_SIZE];
         unsafe { roc_init_for_host(out.as_mut_ptr()) };
-        assert_eq!(out[INIT_TAG], 1, "roc_init_for_host");
+        if out[INIT_TAG] != 1 {
+            let code = i64::from_le_bytes(out[0..8].try_into().unwrap());
+            panic!("roc_init_for_host err={code}");
+        }
         self.context =
             u32::from_le_bytes(out[INIT_CONTEXT..INIT_CONTEXT + 4].try_into().unwrap()) as usize;
     }
@@ -280,27 +339,34 @@ impl RocGuest for LinkedHelloWebGuest {
         let mut raw = [0u8; REQUEST_SIZE];
         write_request(&mut raw, request);
         let mut out = [0u8; OUTCOME_SIZE];
+        incref_roc_box(self.context);
         unsafe { roc_respond_for_host(out.as_mut_ptr(), raw.as_ptr(), self.context_ptr()) };
-        assert_eq!(out[OUTCOME_TAG], ORDINARY, "ordinary outcome");
-        let status = u16::from_le_bytes(out[STATUS..STATUS + 2].try_into().unwrap());
-        let body_ptr =
-            u32::from_le_bytes(out[BODY_PTR..BODY_PTR + 4].try_into().unwrap()) as *const u8;
-        let body_len = u32::from_le_bytes(out[BODY_LEN..BODY_LEN + 4].try_into().unwrap()) as usize;
-        let body = if body_ptr.is_null() || body_len == 0 {
-            Vec::new()
-        } else {
-            unsafe { std::slice::from_raw_parts(body_ptr, body_len) }.to_vec()
-        };
-        OutcomeToHost::Ordinary(OrdinaryResponse {
-            exit_code: 0,
-            body,
-            headers: vec![ServerHeader {
-                name: "content-type".into(),
-                value: "text/html; charset=utf-8".into(),
-            }],
-            status,
-            stop: false,
-        })
+        match out[OUTCOME_TAG] {
+            ORDINARY => {
+                let status = u16::from_le_bytes(out[STATUS..STATUS + 2].try_into().unwrap());
+                OutcomeToHost::Ordinary(OrdinaryResponse {
+                    exit_code: 0,
+                    body: read_list_u8(out.as_ptr(), BODY_PTR),
+                    headers: vec![ServerHeader {
+                        name: "content-type".into(),
+                        value: "text/html; charset=utf-8".into(),
+                    }],
+                    status,
+                    stop: false,
+                })
+            }
+            STREAM => OutcomeToHost::Ordinary(OrdinaryResponse {
+                exit_code: 0,
+                body: drain_sse_source(read_u32(out.as_ptr(), 0) as usize),
+                headers: vec![ServerHeader {
+                    name: "content-type".into(),
+                    value: "text/event-stream".into(),
+                }],
+                status: 200,
+                stop: false,
+            }),
+            tag => panic!("roc_respond_for_host tag={tag}"),
+        }
     }
 
     fn shutdown(&mut self) {
