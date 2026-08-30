@@ -4,7 +4,7 @@ title: Link a real Rocci app into the WASI 0.3 HTTP module
 description: "Take rocci build --http-module from the hello-web stub to a compiled .rocci. The sibling koliyo/roc-basic-webserver fork supplies a wasm32 platform target; the Rocci component stays the wasi:http/service linker. Destination: wasmtime serve shows Counter, then a generated SSE app. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:16:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:20:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -242,6 +242,14 @@ hello-web (Phase 0: `--no-link` is absent) yields
 **Exit:** That object exists and `wasm-tools` / `llvm-nm` (or
 equivalent) shows those exports.
 
+**Phase 1 recorded (2026-08-30):** Sibling `../roc-basic-webserver`
+(`wasi-http-03-app`): `targets.wasm32` + `platform/wasm32_host.c`
+(allocator, 3-arg `roc_realloc`, weak trap stubs for every `hosted_*`).
+`python scripts/build_wasm32_object.py` captures
+`roc_app_llvm_wasm32_speed.o` and relinks `--export=` of the three
+names. `wasm-tools print` shows `roc_init_for_host` / `roc_respond_for_host`
+/ `roc_shutdown_for_host`. Native Hyper/`ring` stay off this target.
+
 ## Phase 2: Link the hello-web Roc object into the component
 
 **Bound:** `rocci-wasi-http-component` (or a build script it owns)
@@ -372,7 +380,7 @@ Crate READMEs and the CLI page agree.
 | Counter under `wasmtime serve` | Not shipped; Phase 6 |
 | Generated SSE from Roc object | Not shipped; Phase 7 |
 | `rocci run` / `--host wasm` / musl | Unchanged |
-| Fork wasm32 target | Not shipped; Phase 1 in `../roc-basic-webserver` |
+| Fork wasm32 target | Phase 1 recorded on sibling `wasi-http-03-app` |
 | `roc-lang` PR | Not opened |
 
 ## Suggested command surface (after Phase 6)
