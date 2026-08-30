@@ -55,6 +55,7 @@ pub fn evaluate_page(
 ) -> Result<EvaluatedIslands> {
     let lower = LowerOptions {
         embed_css: false,
+        html_type: "Html.Node".to_string(),
         ..LowerOptions::default()
     };
     let compiled = compile_islands(
@@ -325,6 +326,7 @@ fn stage_service_module(workspace: &Path, service_path: &Path) -> Result<String>
         SourceFile::new(source_name, &src),
         &rocci_template::LowerOptions {
             embed_css: false,
+            html_type: "Html.Node".to_string(),
             ..rocci_template::LowerOptions::default()
         },
     );

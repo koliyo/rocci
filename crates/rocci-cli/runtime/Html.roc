@@ -2,6 +2,8 @@ import pf.Attribute
 import pf.Html as PlatformHtml
 
 Html := [].{
+    Node : PlatformHtml.Node
+
     attribute = Attribute.attribute
 
     boolean_attribute = |name, enabled|

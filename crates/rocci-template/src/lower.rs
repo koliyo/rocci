@@ -14,6 +14,7 @@ use crate::span::{SourceFile, Span};
 #[derive(Clone, Debug)]
 pub struct LowerOptions {
     pub html_module: String,
+    pub html_type: String,
     pub theme_css: Option<String>,
     pub theme_id: Option<String>,
     pub color_scheme_attr: Option<String>,
@@ -26,6 +27,7 @@ impl Default for LowerOptions {
     fn default() -> Self {
         Self {
             html_module: "Html".to_string(),
+            html_type: "Html".to_string(),
             theme_css: None,
             theme_id: None,
             color_scheme_attr: None,
@@ -192,6 +194,7 @@ pub fn lower_template_items(
         src: source.src,
         file_name: source.name,
         html: &options.html_module,
+        html_type: &options.html_type,
         roc: String::new(),
         segments: Vec::new(),
         indent,
@@ -344,6 +347,7 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         src: source.src,
         file_name: source.name,
         html: &options.html_module,
+        html_type: &options.html_type,
         roc: String::new(),
         segments: Vec::new(),
         indent: 0,
@@ -429,6 +433,7 @@ struct Emitter<'a> {
     src: &'a str,
     file_name: &'a str,
     html: &'a str,
+    html_type: &'a str,
     roc: String,
     segments: Vec<Segment>,
     indent: usize,
@@ -490,10 +495,10 @@ impl<'a> Emitter<'a> {
             let mut anno = props_ty;
             for _ in &body_params {
                 anno.push_str(", ");
-                anno.push_str(self.html);
+                anno.push_str(self.html_type);
             }
             anno.push_str(" -> ");
-            anno.push_str(self.html);
+            anno.push_str(self.html_type);
             self.emit_mapped(
                 &roc_name,
                 component.name.span,

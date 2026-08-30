@@ -494,6 +494,7 @@ enum StandaloneReady {
 pub fn standalone_island_lower_options() -> LowerOptions {
     LowerOptions {
         embed_css: false,
+        html_type: "Html.Node".to_string(),
         ..LowerOptions::default()
     }
 }
@@ -501,6 +502,7 @@ pub fn standalone_island_lower_options() -> LowerOptions {
 pub fn standalone_http_module_lower_options() -> LowerOptions {
     LowerOptions {
         embed_css: false,
+        html_type: "Html.Node".to_string(),
         stylesheet_href: Some(EXTRACTED_STYLESHEET_HREF.to_string()),
         ..LowerOptions::default()
     }
