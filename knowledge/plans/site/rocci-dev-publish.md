@@ -4,7 +4,7 @@ title: Deploy rocci.dev with Cloudflare, a small VPS, and CI
 description: "Put rocci.dev on Cloudflare (CDN, Universal SSL, Tunnel, mail) in front of a small amd64 VPS running hybrid Caddy plus islands artifacts. Human DNS, mail, VPS, Tunnel process, bootstrap SSH, GitHub Environment, deploy user, origin docker kit, and Access-gated staging route were reported in place. CI packages site/ and deploys from staging or production; main lands PRs. Exploratory."
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/ci, concern/architecture, integration/datastar]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T09:26:00Z }
+generated: { by: process:cursor, at: 2026-08-30T08:50:00Z }
 stale_after: 2026-11-20
 authority: exploratory
 owners: [human:nils]
@@ -432,8 +432,9 @@ hostname requirement. No second origin stack.
 - Scp the origin kit plus `site.tgz` and `islands`. Atomic publish:
   unpack into `releases/<sha>/`, `docker compose up -d --build`, curl
   `http://127.0.0.1:8080/health` on the VPS, then point `current` at that
-  release. Failed health restores the previous release. Both branches
-  publish `/srv/rocci`; deploys serialize.
+  release. Failed health restores the previous release. `ROCCI_LANE`
+  selects `/srv/rocci` (`:8080`, no live examples) or `/srv/rocci-staging`
+  (`:8081`, live examples). Deploys serialize.
 - Document the Environments, that `main` is the landing branch, and that
   fork PRs cannot deploy. Promote with `git push origin
   origin/main:staging` then `origin/staging:production`.
@@ -441,7 +442,7 @@ hostname requirement. No second origin stack.
 **Does not:** `workflow_dispatch` deploy from a non-promote branch;
 deploy from contributor forks; store the SSH key in the repo;
 Cloudflare Tunnel hostname routing; the public `https://rocci.dev/` curls;
-a separate staging Compose stack or SQLite volume.
+Cloudflare API from CI. Live-example origins on the production lane.
 
 **Exit:** A push to `staging` or `production` that runs `site.yml` publishes
 artifacts in that Actions run. A failing `package` job does not touch the

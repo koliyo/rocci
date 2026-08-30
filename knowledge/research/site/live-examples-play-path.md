@@ -4,7 +4,7 @@ title: Front doors for live example apps without paid wildcard TLS
 description: "Universal SSL covers only rocci.dev and one label. Deep example hosts need ACM; Total TLS skips Tunnel. /play/<id>/ on the site host 404s /assets/datastar.js and sends /actions/ to islands. The TLS-free Host front door is <id>-example-staging.rocci.dev. Exploratory."
 tags: [domain/rocci, concern/publication, concern/architecture, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T20:35:00Z }
+generated: { by: process:cursor, at: 2026-08-30T08:50:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -81,7 +81,8 @@ was empty on 2026-08-29. Concrete Tunnel DNS rows (apex, `www`,
 
 `origin/staging` last packaged 2026-08-23 and does not include origin
 live-app compose. Promoting `staging` still required for the VPS to run
-those containers. `staging` and `production` share `/srv/rocci`.[^prod-readme]
+those containers. `staging` is `/srv/rocci-staging` on `:8081`;
+`production` is `/srv/rocci` on `:8080` without live-example origins.[^prod-readme]
 
 ## Why dedicated example hosts cost money
 
@@ -155,7 +156,7 @@ remain in Caddy; it is not the public front door.[^play-plan][^deploy-plan]
 [^origins-plan]: Host-per-app contract; path prefix was out of bound; advertise after TLS.
 [^deploy-plan]: Wildcard DNS gap; ACM vs Total TLS; promote staging for origin compose.
 [^play-plan]: Chosen `/play/<id>/` implementation phases.
-[^prod-readme]: Shared origin; Universal SSL on first-level staging; ACM note for example wildcards.
+[^prod-readme]: Separate origin lanes; Universal SSL on first-level staging; ACM note for example wildcards.
 [^cdn-caddy]: Host matchers then islands `/actions/` and `/sse`.
 [^launch-audit]: Reserved example hosts failed TLS; do not advertise until they serve.
 [^cf-universal-ssl]: Full setup Universal SSL is apex plus first-level subdomains.

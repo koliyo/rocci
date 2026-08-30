@@ -4,7 +4,7 @@ name: rocci-hybrid-prebuilt
 
 services:
   islands:
-    image: rocci-islands:local
+    image: rocci-islands:${ROCCI_IMAGE_TAG:-local}
     build: ${ROCCI_ISLANDS_CONTEXT:?ROCCI_ISLANDS_CONTEXT must be a directory containing the islands binary and Dockerfile}
     environment:
       ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
@@ -20,13 +20,14 @@ services:
       start_period: 10s
 
   cdn:
-    image: rocci-cdn:local
+    image: rocci-cdn:${ROCCI_IMAGE_TAG:-local}
     build: ./cdn
     environment:
       ROCCI_HTTP_PORT: "${ROCCI_HTTP_PORT:-8080}"
     volumes:
       - ${ROCCI_DIST:?ROCCI_DIST must be an absolute path to a built Rocdown dist}:/src/site/dist:ro
       - ./cdn/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./cdn/examples.stub.caddy:/etc/caddy/examples.caddy:ro
     ports:
       - "${ROCCI_HTTP_PORT:-8080}:80"
     depends_on:

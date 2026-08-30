@@ -31,6 +31,7 @@ def test_site_push_is_staging_and_production_only() -> None:
     assert "pull_request" not in text
     assert _on_push_branches(text) == "branches: [staging, production]"
     assert 'github.ref == \'refs/heads/staging\' || github.ref == \'refs/heads/production\'' in text
+    assert "ROCCI_LANE: ${{ github.ref_name }}" in text
 
 
 def test_no_workflow_uses_self_hosted_runners() -> None:

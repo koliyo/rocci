@@ -10,16 +10,17 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from rocci_ops.lanes import resolved_lane, should_publish_live
 from rocci_ops.paths import repo_root
 from rocci_ops.sshutil import validate_sha
 
 
 def origin_root() -> Path:
-    return Path(os.environ.get("ROCCI_ORIGIN_ROOT", "/srv/rocci"))
+    return Path(resolved_lane().origin_root)
 
 
 def http_port() -> str:
-    return os.environ.get("ROCCI_HTTP_PORT", "8080")
+    return resolved_lane().http_port
 
 
 def keep_releases() -> int:
@@ -54,11 +55,13 @@ def compose_project_dir() -> Path:
 
 
 def compose_env(root: Path, live_ids: list[str] | None = None) -> dict[str, str]:
+    cfg = resolved_lane()
     env = os.environ.copy()
-    env["COMPOSE_PROJECT_NAME"] = env.get("COMPOSE_PROJECT_NAME") or "rocci-prod"
+    env["COMPOSE_PROJECT_NAME"] = cfg.compose_project
     env["ROCCI_DIST"] = str(root / "dist")
     env["ROCCI_ISLANDS_CONTEXT"] = str(root / "islands-context")
-    env["ROCCI_HTTP_PORT"] = http_port()
+    env["ROCCI_HTTP_PORT"] = cfg.http_port
+    env["ROCCI_IMAGE_TAG"] = cfg.image_tag
     live_root = root / "examples-live"
     for app_id in live_ids if live_ids is not None else live_app_ids(live_root):
         env[live_app_env_key(app_id)] = str(live_root / app_id)
@@ -67,6 +70,8 @@ def compose_env(root: Path, live_ids: list[str] | None = None) -> dict[str, str]
 
 def compose_up(root: Path, *, runner=subprocess.run) -> None:
     live_ids = live_app_ids(root / "examples-live")
+    if not should_publish_live(live_ids):
+        live_ids = []
     env = compose_env(root, live_ids)
     argv = [
         "docker",
@@ -86,6 +91,7 @@ def compose_up(root: Path, *, runner=subprocess.run) -> None:
             "up",
             "-d",
             "--build",
+            "--remove-orphans",
         ]
     )
     result = runner(argv, env=env, check=False)
@@ -131,11 +137,16 @@ def health_ok(
 
 
 def example_public_hosts(app_id: str) -> tuple[str, ...]:
-    return (
+    cfg = resolved_lane()
+    if cfg.name == "production" or cfg.publish_live is False:
+        return ()
+    hosts = (
         f"{app_id}-example-staging.rocci.dev",
-        f"{app_id}-example.rocci.dev",
         f"{app_id}.examples.localhost",
     )
+    if cfg.name == "staging":
+        return hosts
+    return hosts + (f"{app_id}-example.rocci.dev",)
 
 
 def health_checks(live_ids: list[str] | None = None) -> list[tuple[str, dict[str, str]]]:
@@ -241,6 +252,8 @@ def publish(sha: str, *, runner=subprocess.run, fetch=urllib.request.urlopen, sl
     unpack_release(sha, incoming, release)
     compose_up(release, runner=runner)
     live_ids = live_app_ids(release / "examples-live")
+    if not should_publish_live(live_ids):
+        live_ids = []
     if not wait_health(live_ids=live_ids, fetch=fetch, sleeper=sleeper):
         print(f"error: origin health failed for {sha}", flush=True)
         if previous is not None and previous.is_dir():
@@ -288,7 +301,7 @@ def up(
 
 
 def backup(dest_dir: Path, *, runner=subprocess.run) -> int:
-    project = os.environ.get("COMPOSE_PROJECT_NAME") or "rocci-prod"
+    project = resolved_lane().compose_project
     volume = os.environ.get("ROCCI_ISLANDS_VOLUME") or f"{project}_islands-db"
     dest_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())

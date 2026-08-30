@@ -6,6 +6,7 @@ import tarfile
 import urllib.error
 
 from rocci_ops.origin import health_probe, live_app_env_key, health_checks, publish, wait_health
+from rocci_ops.lanes import resolved_lane, should_publish_live
 
 
 class FakeResponse:
@@ -40,12 +41,47 @@ def test_live_app_env_and_health_hosts() -> None:
     hosts = [headers["Host"] for _url, headers in checks if headers]
     assert hosts == [
         "live-counter-example-staging.rocci.dev",
-        "live-counter-example.rocci.dev",
         "live-counter.examples.localhost",
+        "live-counter-example.rocci.dev",
         "datastar-example-staging.rocci.dev",
-        "datastar-example.rocci.dev",
         "datastar.examples.localhost",
+        "datastar-example.rocci.dev",
     ]
+
+
+def test_staging_lane_health_omits_production_example_hosts(monkeypatch) -> None:
+    monkeypatch.setenv("ROCCI_LANE", "staging")
+    checks = health_checks(["live-counter"])
+    hosts = [headers["Host"] for _url, headers in checks if headers]
+    assert hosts == [
+        "live-counter-example-staging.rocci.dev",
+        "live-counter.examples.localhost",
+    ]
+    assert "live-counter-example.rocci.dev" not in hosts
+    assert any("/play/live-counter/health" in url for url, _headers in checks)
+    assert resolved_lane().http_port == "8081"
+    assert resolved_lane().origin_root == "/srv/rocci-staging"
+
+
+def test_unknown_lane_exits(monkeypatch) -> None:
+    monkeypatch.setenv("ROCCI_LANE", "lab")
+    try:
+        resolved_lane()
+    except SystemExit as exc:
+        assert "unknown ROCCI_LANE" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_production_lane_skips_live_health_and_compose(monkeypatch) -> None:
+    monkeypatch.setenv("ROCCI_LANE", "production")
+    assert should_publish_live(["live-counter"]) is False
+    assert health_checks([]) == [("http://127.0.0.1:8080/health", {})]
+    hosts = [headers.get("Host") for _url, headers in health_checks(["live-counter"]) if headers]
+    assert hosts == []
+    assert resolved_lane().http_port == "8080"
+    assert resolved_lane().origin_root == "/srv/rocci"
+    assert resolved_lane().image_tag == "prod"
 
 
 def test_health_probe_reports_http_error() -> None:
@@ -211,4 +247,53 @@ def test_publish_live_apps_use_origin_compose_and_rollback(monkeypatch, tmp_path
         raise AssertionError("expected SystemExit")
     assert any("compose.origin.yml" in argv for argv in compose_argv[0])
     assert compose_env[0]["ROCCI_LIVE_COUNTER_CONTEXT"].endswith("/releases/abc/examples-live/live-counter")
+    assert compose_env[0]["ROCCI_IMAGE_TAG"] == "local"
+    assert "--remove-orphans" in compose_argv[0]
     assert compose_argv[-1].count("-f") == 1
+
+
+def test_publish_live_disabled_skips_origin_compose(monkeypatch, tmp_path: Path) -> None:
+    origin = tmp_path / "origin"
+    incoming = origin / "incoming" / "abc"
+    incoming.mkdir(parents=True)
+    live = incoming / "examples-live" / "live-counter"
+    live.mkdir(parents=True)
+    (live / "server").write_bytes(b"srv")
+    (incoming / "islands").write_bytes(b"bin")
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        info = tarfile.TarInfo("index.html")
+        data = b"<html></html>"
+        info.size = len(data)
+        tar.addfile(info, io.BytesIO(data))
+    (incoming / "site.tgz").write_bytes(buf.getvalue())
+
+    docker = tmp_path / "repo" / "docker"
+    (docker / "islands").mkdir(parents=True)
+    (docker / "app").mkdir(parents=True)
+    (docker / "islands" / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
+    (docker / "app" / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
+    (docker / "app" / "entrypoint.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    (docker / "compose.hybrid.yml").write_text("services: {}\n", encoding="utf-8")
+    (docker / "compose.origin.yml").write_text("services: {}\n", encoding="utf-8")
+    (tmp_path / "repo" / "tools" / "rocci-ops").mkdir(parents=True)
+    (tmp_path / "repo" / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
+
+    monkeypatch.setenv("ROCCI_ORIGIN_ROOT", str(origin))
+    monkeypatch.setenv("ROCCI_REPO_ROOT", str(tmp_path / "repo"))
+    monkeypatch.setenv("ROCCI_LANE", "production")
+
+    compose_argv: list[list[str]] = []
+
+    def runner(argv, **_kwargs):
+        compose_argv.append(list(argv))
+        return SimpleNamespace(returncode=0)
+
+    def fetch(_url, timeout=5):
+        return FakeResponse(200)
+
+    assert publish("abc", runner=runner, fetch=fetch, sleeper=lambda _s: None) == 0
+    assert compose_argv
+    assert not any("compose.origin.yml" in argv for argv in compose_argv)
+    assert "--remove-orphans" in compose_argv[0]
