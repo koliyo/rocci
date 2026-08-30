@@ -86,13 +86,31 @@ fn main() {
     if env::var("CARGO_CFG_TARGET_FAMILY").as_deref() != Ok("wasm") {
         return;
     }
-    let fixture =
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("fixtures/sqlite_row.o");
+    let fixture = env::var_os("ROCCI_ROC_APP_O")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("fixtures/sqlite_row.o")
+        });
+    println!("cargo:rerun-if-env-changed=ROCCI_ROC_APP_O");
+    println!("cargo:rerun-if-changed={}", fixture.display());
     if !fixture.is_file() {
-        panic!("missing fixtures/sqlite_row.o (Phase 4 wasm32 sqlite-row object)");
+        panic!(
+            "missing Roc wasm32 object {} (set ROCCI_ROC_APP_O or fixtures/sqlite_row.o)",
+            fixture.display()
+        );
     }
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let bytes =
+        std::fs::read(&fixture).unwrap_or_else(|err| panic!("read {}: {err}", fixture.display()));
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    std::hash::Hash::hash(&bytes, &mut hasher);
+    let linked = out_dir.join(format!(
+        "roc_app-{:016x}.o",
+        std::hash::Hasher::finish(&hasher)
+    ));
+    std::fs::write(&linked, bytes)
+        .unwrap_or_else(|err| panic!("write {}: {err}", linked.display()));
     let sqlite = compile_sqlite3(&out_dir);
-    println!("cargo:rustc-cdylib-link-arg={}", fixture.display());
+    println!("cargo:rustc-cdylib-link-arg={}", linked.display());
     println!("cargo:rustc-cdylib-link-arg={}", sqlite.display());
 }

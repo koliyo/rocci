@@ -4,7 +4,7 @@ title: Link a real Rocci app into the WASI 0.3 HTTP module
 description: "Take rocci build --http-module from the hello-web stub to a compiled .rocci. The sibling koliyo/roc-basic-webserver fork supplies a wasm32 platform target; the Rocci component stays the wasi:http/service linker. Destination: wasmtime serve shows Counter, then a generated SSE app. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:52:00Z }
+generated: { by: process:cursor, at: 2026-08-30T11:09:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -347,6 +347,14 @@ app / `wasmtime serve`). Ignored Roc test as above.
 **Exit:** `wasmtime serve` on CLI output for the fixture is that
 fixture's HTML, not hello-web.
 
+**Phase 5 recorded (2026-08-30):** `rocci build --http-module` lowers the
+input, rewrites generated `main.roc` onto the local fork platform, captures
+`roc_app_llvm_wasm32_speed.o`, and links it via `ROCCI_ROC_APP_O`. Missing
+fork or `roc` is an error. `wasmtime serve` `GET /` for
+`tests/fixtures/http-alpha` is `<p>http-alpha</p>`, not hello-web. Two
+`.rocci` inputs produce different bodies (`ROCCI_REQUIRE_ROC=1`).
+`dispatch.rs` `PLATFORM` for `rocci run` is still 0.16.0.
+
 ## Phase 6: Counter serve proof
 
 **Bound:**
@@ -395,7 +403,7 @@ Crate READMEs and the CLI page agree.
 | --- | --- |
 | Portable 0.3 component | Shipped experimental (hello-web stub) |
 | Real `roc build` object | Phase 2 hello-web linked; Phase 3 env-log + hosted Env/Stderr |
-| `--http-module` uses `.rocci` body | Not shipped; Phase 5 |
+| `--http-module` uses `.rocci` body | Phase 5 recorded |
 | sqlite-in-component | Phase 4 recorded; `GET /` is `hello-sqlite` |
 | Counter under `wasmtime serve` | Not shipped; Phase 6 |
 | Generated SSE from Roc object | Not shipped; Phase 7 |

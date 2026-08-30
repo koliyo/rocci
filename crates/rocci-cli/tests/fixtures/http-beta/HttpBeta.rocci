@@ -1,0 +1,10 @@
+import Html
+
+@get:view("/") {
+    mark({ label: "http-beta" })
+}
+
+@component
+Mark = |{ label }| {
+    <p>{label}</p>
+}

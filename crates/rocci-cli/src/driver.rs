@@ -54,6 +54,14 @@ impl GenericAppPlan {
     }
 
     pub fn main_roc(&self) -> String {
+        self.main_roc_with_options(None)
+    }
+
+    pub fn main_roc_with_platform(&self, platform: &str) -> String {
+        self.main_roc_with_options(Some(platform))
+    }
+
+    fn main_roc_with_options(&self, platform: Option<&str>) -> String {
         let primary = &self.modules[0];
         let siblings: Vec<DispatchSource<'_>> = self.modules[1..]
             .iter()
@@ -96,6 +104,7 @@ impl GenericAppPlan {
                 ),
                 log_handlers: self.log_handlers,
                 log_handlers_color: self.log_handlers && style::stderr_color(),
+                platform: platform.map(str::to_string),
             },
         )
     }

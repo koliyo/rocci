@@ -40,11 +40,11 @@ Lower one `.rocci` file to Roc. `-o` writes a file; otherwise stdout.
 cargo run -q -p rocci-cli -- build --http-module INPUT.rocci [-o http-module.wasm]
 ```
 
-Writes a WASI 0.3 `wasi:http/service` **component** (hello-web `handle` plus
-mapped/SSE/preopen routes), **not** apply `--host wasm`, and **not** a musl
-`--release` process. Serve it with `wasmtime serve -Sp3 -Scli`. `rocci run`
-stays native 0.16. The `.rocci` path is required for the CLI shape; the bytes
-are not a compiled app until a real Roc object link lands.
+Writes a WASI 0.3 `wasi:http/service` **component** compiled from `INPUT.rocci`
+against the sibling `../roc-basic-webserver` wasm32 platform (or
+`ROCCI_BASIC_WEBSERVER`). **Not** apply `--host wasm`, and **not** a musl
+`--release` process. Missing fork or missing `roc` is an error. Serve with
+`wasmtime serve -Sp3 -Scli`. `rocci run` stays native 0.16.0.
 
 ## Build release
 

@@ -5,6 +5,7 @@ pub mod dev_server;
 pub mod dispatch;
 pub mod driver;
 pub mod error_page;
+pub mod http_module;
 pub mod inspect;
 pub mod inspector;
 pub mod logs;
