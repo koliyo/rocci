@@ -1,9 +1,11 @@
 # rocci-wasi-http-component
 
 Portable WASI 0.3 `wasi:http/service` component. `GET /` calls the linked
-Roc `roc_*_for_host` object (`fixtures/roc_app.o`, hello-web
-`<b>Hello from server</b><br>`). Other routes echo mapped request fields.
-No Wasmtime in this crate.
+Roc `roc_*_for_host` object (`fixtures/env_log.o`). That fixture reads
+`GREETING`, logs `env-log` on stderr, and returns ordinary HTML
+`<p>${GREETING}</p>`. Other routes echo mapped request fields. No
+Wasmtime in this crate. Phase 2 hello-web object stays at
+`fixtures/roc_app.o`.
 
 ## Pins (Phase 0)
 
@@ -22,13 +24,13 @@ compatibility only, not this crate's export.
 
 ```sh
 cargo build -p rocci-wasi-http-component --target wasm32-wasip2
-wasmtime serve -Sp3 -Scli --addr 127.0.0.1:8080 \
+wasmtime serve -Sp3 -Scli --env GREETING=phase3-greeting --addr 127.0.0.1:8080 \
   target/wasm32-wasip2/debug/rocci_wasi_http_component.wasm
 curl -i http://127.0.0.1:8080/
 ```
 
-`GET /` is 200 `text/html` with the Roc hello-web body
-`<b>Hello from server</b><br>`.
+`GET /` is 200 `text/html` with `<p>phase3-greeting</p>`. The serve host
+stderr includes a line `env-log`.
 
 Mapped fields (same names as `maps_get_path_query_and_headers` /
 `buffers_post_body`) echo as `text/plain` on other routes:

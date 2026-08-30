@@ -4,7 +4,7 @@ title: Link a real Rocci app into the WASI 0.3 HTTP module
 description: "Take rocci build --http-module from the hello-web stub to a compiled .rocci. The sibling koliyo/roc-basic-webserver fork supplies a wasm32 platform target; the Rocci component stays the wasi:http/service linker. Destination: wasmtime serve shows Counter, then a generated SSE app. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:24:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:30:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -289,6 +289,13 @@ value; stderr line appears on the serve host. `cargo fmt --all -- --check`.
 
 **Exit:** Those proofs pass.
 
+**Phase 3 recorded (2026-08-30):** Component links `fixtures/env_log.o`.
+`hosted_env_var` and `hosted_stderr_line` are Rust wasm C-ABI (`(sret, arg)`).
+Path construct/display stay pure Roc (object imports none).
+`wasmtime serve -Sp3 -Scli --env GREETING=phase3-greeting` `GET /` is
+`<p>phase3-greeting</p>`; serve host stderr shows `env-log`. Phase 2
+`fixtures/roc_app.o` kept.
+
 ## Phase 4: Sqlite hosted in the component
 
 **Bound:** One compile path that implements the `hosted_sqlite_*`
@@ -380,7 +387,7 @@ Crate READMEs and the CLI page agree.
 | Item | State |
 | --- | --- |
 | Portable 0.3 component | Shipped experimental (hello-web stub) |
-| Real `roc build` object | Phase 0: names present in `roc_app_llvm_wasm32_speed.o`; not linked yet |
+| Real `roc build` object | Phase 2 hello-web linked; Phase 3 env-log + hosted Env/Stderr |
 | `--http-module` uses `.rocci` body | Not shipped; Phase 5 |
 | sqlite-in-component | Not shipped; Phase 4 (required for Counter) |
 | Counter under `wasmtime serve` | Not shipped; Phase 6 |
