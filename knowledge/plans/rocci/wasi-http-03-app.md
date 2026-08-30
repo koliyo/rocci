@@ -4,7 +4,7 @@ title: Link a real Rocci app into the WASI 0.3 HTTP module
 description: "Take rocci build --http-module from the hello-web stub to a compiled .rocci. The sibling koliyo/roc-basic-webserver fork supplies a wasm32 platform target; the Rocci component stays the wasi:http/service linker. Destination: wasmtime serve shows Counter, then a generated SSE app. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T10:30:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:52:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -165,7 +165,7 @@ That checkout is now configured. This plan uses it. It does not open a
 | `rocci build --http-module App.rocci` | Copies prebuilt component; ignores App body[^cli-main] | Lowers App, `roc build --target=wasm32 --no-link` against the fork, links the object |
 | `GET /` | Phase 2: Roc hello-web `<b>Hello from server</b><br>` | App's `respond!` |
 | Platform URL | Unused for this flag | Local fork for `--http-module` only |
-| sqlite | Embedder-only; omitted from the component[^research] | Hosted sqlite Counter uses, sync, serializes |
+| sqlite | Phase 4: hosted in the component (`hello-sqlite` row) | Hosted sqlite Counter uses, sync, serializes |
 | `rocci run` | Native 0.16.0 URL[^dispatch-rs] | Unchanged |
 
 ## Phase 0: Measure Roc wasm32 emit against the fork
@@ -316,6 +316,13 @@ component crate. Do not pretend fibers yield sqlite.[^research][^counter]
 
 **Exit:** 200 from sqlite-in-component. A skip is not an Exit.
 
+**Phase 4 recorded (2026-08-30):** Component links `fixtures/sqlite_row.o`
+plus zig-built `sqlite3.o`. `hosted_sqlite_*` (open / prepare / columns /
+start / next_row) is Rust wasm C-ABI. Init result context RocBox is at
+offset 208 (32-bit `config` is 208 bytes), not 212. `wasmtime serve`
+`GET /` is 200 `hello-sqlite` from the context-held `Sqlite.Db`. Sync;
+serializes other `handle`s. Native embedder serialize test unchanged.
+
 ## Phase 5: `--http-module` compiles the input `.rocci`
 
 **Bound:** `rocci build --http-module INPUT.rocci` lowers INPUT,
@@ -389,7 +396,7 @@ Crate READMEs and the CLI page agree.
 | Portable 0.3 component | Shipped experimental (hello-web stub) |
 | Real `roc build` object | Phase 2 hello-web linked; Phase 3 env-log + hosted Env/Stderr |
 | `--http-module` uses `.rocci` body | Not shipped; Phase 5 |
-| sqlite-in-component | Not shipped; Phase 4 (required for Counter) |
+| sqlite-in-component | Phase 4 recorded; `GET /` is `hello-sqlite` |
 | Counter under `wasmtime serve` | Not shipped; Phase 6 |
 | Generated SSE from Roc object | Not shipped; Phase 7 |
 | `rocci run` / `--host wasm` / musl | Unchanged |

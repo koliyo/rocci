@@ -1,11 +1,11 @@
 # rocci-wasi-http-component
 
 Portable WASI 0.3 `wasi:http/service` component. `GET /` calls the linked
-Roc `roc_*_for_host` object (`fixtures/env_log.o`). That fixture reads
-`GREETING`, logs `env-log` on stderr, and returns ordinary HTML
-`<p>${GREETING}</p>`. Other routes echo mapped request fields. No
-Wasmtime in this crate. Phase 2 hello-web object stays at
-`fixtures/roc_app.o`.
+Roc `roc_*_for_host` object (`fixtures/sqlite_row.o`). That fixture opens
+in-memory sqlite, inserts a row, and returns `hello-sqlite`. Hosted
+`hosted_sqlite_*` is sync and serializes other `handle`s. Other routes
+echo mapped request fields. No Wasmtime in this crate. Earlier fixtures
+stay at `fixtures/roc_app.o` and `fixtures/env_log.o`.
 
 ## Pins (Phase 0)
 
@@ -24,13 +24,13 @@ compatibility only, not this crate's export.
 
 ```sh
 cargo build -p rocci-wasi-http-component --target wasm32-wasip2
-wasmtime serve -Sp3 -Scli --env GREETING=phase3-greeting --addr 127.0.0.1:8080 \
+wasmtime serve -Sp3 -Scli --addr 127.0.0.1:8080 \
   target/wasm32-wasip2/debug/rocci_wasi_http_component.wasm
 curl -i http://127.0.0.1:8080/
 ```
 
-`GET /` is 200 `text/html` with `<p>phase3-greeting</p>`. The serve host
-stderr includes a line `env-log`.
+`GET /` is 200 `text/html` with `hello-sqlite` from in-component sqlite.
+Nested sqlite inside `respond!` / `init!` serializes other `handle`s.
 
 Mapped fields (same names as `maps_get_path_query_and_headers` /
 `buffers_post_body`) echo as `text/plain` on other routes:
@@ -59,12 +59,10 @@ curl -s http://127.0.0.1:8080/hello.txt   # preopen-bytes
 
 ## SQLite
 
-SQLite stays **embedder-only**. `libsqlite3-sys` (bundled rusqlite) needs a C
-toolchain for `wasm32-wasip2`; host `clang` on this line has no
-`wasm32-unknown-wasip2` target (`WASI_SYSROOT` unset). This crate does not
-depend on the native `embedder` rusqlite feature. Nested sqlite inside
-`respond!` still **serializes** other `handle`s (parent Phase 0
-measurement); fibers do not park that path.
+The component hosts `hosted_sqlite_*` against wasm-safe sqlite3.c (zig
+`wasm32-wasi-musl`; `WASI_SYSROOT` unset). It does not depend on the native
+`embedder` rusqlite feature. Nested sqlite inside `respond!` / `init!`
+**serializes** other `handle`s; fibers do not park that path.
 
 `-Sp3` selects WASI 0.3. `-Scli` satisfies the `wasi:cli@0.2.9` imports
 that Rust `std` on `wasm32-wasip2` still pulls in. That is not a 0.2

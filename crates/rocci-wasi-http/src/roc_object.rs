@@ -1,13 +1,21 @@
 //! Call the linked `roc_*_for_host` object (wasm32 C ABI).
 
+use std::alloc::Layout;
+use std::collections::HashMap;
 use std::ffi::c_void;
+use std::sync::{Mutex, OnceLock};
 
 use crate::abi::{OrdinaryResponse, OutcomeToHost, ServerHeader, ServerRequest};
 use crate::guest::RocGuest;
 
+fn allocs() -> &'static Mutex<HashMap<usize, Layout>> {
+    static ALLOCS: OnceLock<Mutex<HashMap<usize, Layout>>> = OnceLock::new();
+    ALLOCS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
 const INIT_SIZE: usize = 224;
 const INIT_TAG: usize = 216;
-const INIT_CONTEXT: usize = 212;
+const INIT_CONTEXT: usize = 208;
 const OUTCOME_SIZE: usize = 48;
 const OUTCOME_TAG: usize = 44;
 const ORDINARY: u8 = 1;
@@ -33,9 +41,16 @@ const STDERR_OK: u8 = 1;
 #[unsafe(no_mangle)]
 pub extern "C" fn roc_alloc(size: usize, alignment: usize) -> *mut u8 {
     let align = alignment.max(1);
-    let layout = std::alloc::Layout::from_size_align(size.max(1), align)
-        .unwrap_or_else(|_| std::alloc::Layout::from_size_align(1, 1).unwrap());
-    unsafe { std::alloc::alloc(layout) }
+    let layout = Layout::from_size_align(size.max(1), align)
+        .unwrap_or_else(|_| Layout::from_size_align(1, 1).unwrap());
+    let ptr = unsafe { std::alloc::alloc(layout) };
+    if !ptr.is_null() {
+        allocs()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(ptr as usize, layout);
+    }
+    ptr
 }
 
 #[unsafe(no_mangle)]
@@ -43,16 +58,35 @@ pub extern "C" fn roc_realloc(ptr: *mut u8, new_size: usize, alignment: usize) -
     if ptr.is_null() {
         return roc_alloc(new_size, alignment);
     }
+    let old = allocs()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .remove(&(ptr as usize));
     let next = roc_alloc(new_size, alignment);
-    if !next.is_null() && new_size > 0 {
-        unsafe { std::ptr::copy_nonoverlapping(ptr, next, new_size) };
+    if let Some(old) = old {
+        if !next.is_null() {
+            let n = old.size().min(new_size);
+            if n > 0 {
+                unsafe { std::ptr::copy_nonoverlapping(ptr, next, n) };
+            }
+        }
+        unsafe { std::alloc::dealloc(ptr, old) };
     }
     next
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn roc_dealloc(ptr: *mut u8, _alignment: usize) {
-    let _ = ptr;
+    if ptr.is_null() {
+        return;
+    }
+    if let Some(layout) = allocs()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .remove(&(ptr as usize))
+    {
+        unsafe { std::alloc::dealloc(ptr, layout) };
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -72,7 +106,7 @@ unsafe extern "C" {
     fn roc_shutdown_for_host(out: *mut u8, reason: *const u8, context: *mut c_void);
 }
 
-fn read_u32(ptr: *const u8, offset: usize) -> u32 {
+pub(crate) fn read_u32(ptr: *const u8, offset: usize) -> u32 {
     u32::from_le_bytes(
         unsafe { std::slice::from_raw_parts(ptr.add(offset), 4) }
             .try_into()
@@ -80,14 +114,14 @@ fn read_u32(ptr: *const u8, offset: usize) -> u32 {
     )
 }
 
-fn write_u32(ptr: *mut u8, offset: usize, value: u32) {
+pub(crate) fn write_u32(ptr: *mut u8, offset: usize, value: u32) {
     unsafe {
         ptr.add(offset)
             .copy_from_nonoverlapping(value.to_le_bytes().as_ptr(), 4);
     }
 }
 
-fn read_roc_str(ptr: *const u8) -> String {
+pub(crate) fn read_roc_str(ptr: *const u8) -> String {
     let last = unsafe { *ptr.add(ROC_STR_SIZE - 1) };
     if last & 0x80 != 0 {
         let len = (last ^ 0x80) as usize;
@@ -102,7 +136,7 @@ fn read_roc_str(ptr: *const u8) -> String {
     String::from_utf8_lossy(unsafe { std::slice::from_raw_parts(bytes, len) }).into_owned()
 }
 
-fn write_roc_str(ptr: *mut u8, text: &str) {
+pub(crate) fn write_roc_str(ptr: *mut u8, text: &str) {
     let bytes = text.as_bytes();
     unsafe { std::ptr::write_bytes(ptr, 0, ROC_STR_SIZE) };
     if bytes.len() < ROC_STR_SIZE {
@@ -161,6 +195,11 @@ pub extern "C" fn hosted_stderr_line(out: *mut u8, message: *const u8) {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn hosted_env_is_windows(_dummy: *const u8) -> i32 {
+    0
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn hosted_env_var(out: *mut u8, name: *const u8) {
     unsafe { std::ptr::write_bytes(out, 0, ENV_RESULT_SIZE) };
     let key = if name.is_null() {
@@ -199,12 +238,13 @@ fn write_request(buf: &mut [u8; REQUEST_SIZE], request: &ServerRequest) {
     buf[0..8].copy_from_slice(&request.body_limit_bytes.to_le_bytes());
     buf[8..16].copy_from_slice(&request.content_length.to_le_bytes());
     buf[16..28].copy_from_slice(&empty_roc_str());
-    buf[40..52].copy_from_slice(&empty_roc_str());
-    buf[52..64].copy_from_slice(&empty_roc_str());
-    buf[64..76].copy_from_slice(&small_roc_str(&request.target_path));
-    buf[76..88].copy_from_slice(&empty_roc_str());
-    buf[100] = request.method;
-    buf[103] = request.target_tag;
+    buf[44..56].copy_from_slice(&empty_roc_str());
+    buf[56..68].copy_from_slice(&empty_roc_str());
+    buf[68..80].copy_from_slice(&small_roc_str(&request.target_path));
+    buf[80..92].copy_from_slice(&empty_roc_str());
+    buf[98] = 1;
+    buf[99] = request.method;
+    buf[102] = request.target_tag;
 }
 
 pub struct LinkedHelloWebGuest {
