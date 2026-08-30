@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     env, fs,
     path::{Path, PathBuf},
-    process::{Child, Command, Stdio},
+    process::{Command, Stdio},
     time::Instant,
 };
 
@@ -918,6 +918,7 @@ pub fn run_bundled(resources: &Path) -> Result<()> {
 mod tests {
     use super::*;
     use crate::driver::{roc_command, roc_invocation, stage_app_workspace, window_title};
+    use std::process::Child;
     use std::sync::Mutex;
 
     static ROC_LOCK: Mutex<()> = Mutex::new(());

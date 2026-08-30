@@ -321,6 +321,8 @@ mod tests {
         fs::write(
             &path,
             r#"
+import Html
+
 @fixture{target: Hello}
 helloSample = { name: "Roc" }
 
