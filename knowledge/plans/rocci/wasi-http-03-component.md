@@ -438,10 +438,11 @@ READMEs and the CLI page agree with the research.
 **Phase 8 recorded (2026-08-29):** Option 1 shipped for the experimental
 `--http-module` artifact (hello-web, mapping, SSE Wait overlap, one
 preopen). Remaining work moved to [app link](wasi-http-03-app.md)
-(real `roc build` object, sqlite-in-component, Counter). The sibling
-`../roc-basic-webserver` fork is now the wasm32 platform source; a
-`roc-lang` PR is still not opened unless asked. Not logged complete
-until CI and Knowledge succeed.
+and is now recorded there (Phases 0–7: object, sqlite-in-component,
+Counter, live-counter `/sse`). The sibling `../roc-basic-webserver`
+fork is the wasm32 platform source; a `roc-lang` PR is still not
+opened unless asked. Not logged complete until CI and Knowledge
+succeed.
 
 ## Disposition
 
@@ -449,11 +450,12 @@ until CI and Knowledge succeed.
 | --- | --- |
 | Option 1 (Rust component + Roc C-ABI object) | Shipped experimental |
 | `--http-module` | Component bytes; `wasmtime serve -Sp3 -Scli` |
-| sqlite-in-component | Omitted; compile blocker recorded |
-| `roc build` object link | Follow-on: [app link](wasi-http-03-app.md) |
+| sqlite-in-component | Recorded on [app link](wasi-http-03-app.md) |
+| `roc build` object link | Recorded on [app link](wasi-http-03-app.md) |
 | `--host wasm` / `rocci run` / musl | Unchanged |
-| Sibling fork wasm32 target | Follow-on: [app link](wasi-http-03-app.md) |
+| Sibling fork wasm32 target | Recorded on [app link](wasi-http-03-app.md) |
 | `roc-lang` fork PR | Not opened |
+| Still omitted | Cmd, in-guest TLS, desktop URL |
 
 ## Suggested command surface (Phase 0 fills versions)
 

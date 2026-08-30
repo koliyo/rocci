@@ -1,7 +1,7 @@
 ---
 type: Research Report
 title: Gaps for running basic-webserver as a WASI HTTP module
-description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! is the stall. Missing work is a new adapter, not a Rocci flag."
+description: "Pinned basic-webserver 0.16 is a native Tokio/Hyper process that binds TCP and calls Roc. Portable WASI HTTP inverts that: the runtime owns the listener and the guest exports async handle. The Roc handler call is blocking C-ABI (CPU occupancy); generated SSE Wait already lives in the host. Nested hosted I/O inside respond! still serializes. Option 1 plus app-link Phases 0–7 shipped experimental. Still omitted: Cmd, in-guest TLS, desktop URL."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
 generated: { by: process:cursor, at: 2026-08-30T10:26:00Z }
@@ -408,7 +408,7 @@ yielding.[^adapter-sqlite]
 | SSE `stream` + Wait as adapter clocks | Yes | Experimental |
 | One `file_root` preopen | Yes (reject `..`; native OS paths not granted) | Experimental |
 | sqlite in `respond!` | Yes, **sync**, serializes | Experimental |
-| Portable 0.3 `wasmtime serve` component | Yes: hello-web `roc_*`, mapped fields, SSE Wait overlap, one preopen; sqlite omitted | Experimental (`rocci build --http-module`)[^http-module-flag][^component-plan][^component-crate] |
+| Portable 0.3 `wasmtime serve` component | Yes: compiled `.rocci` via sibling fork object; hosted Env/Path/Stderr/sqlite; Counter + live-counter `/sse` | Experimental (`rocci build --http-module`)[^http-module-flag][^component-plan][^component-crate][^app-plan] |
 | `rocci run` / musl publish / `--host wasm` | Unchanged | Native 0.16 / apply |
 
 A 2026-08-30 re-measure against sibling `../roc-basic-webserver` overturns
@@ -419,9 +419,10 @@ the earlier "header does not emit `roc_respond_for_host`" finding. Both
 in the intermediate `roc_app_llvm_wasm32_speed.o`. `--no-link` is
 absent. Roc's linked `.wasm` still exports only `memory` because
 `wasm-ld` is not passed `--export=` for those names. Product tests still
-link `src/hello_web.wat` until the [app link](/plans/rocci/wasi-http-03-app.md)
-uses that object. `http-module` does not need a different `roc` than the
-Rocci pin.[^probe-crate][^app-plan]
+link `src/hello_web.wat` for embedder tests. The [app
+link](/plans/rocci/wasi-http-03-app.md) uses the captured object.
+`http-module` does not need a different `roc` than the Rocci
+pin.[^probe-crate][^app-plan]
 
 ### Phase 0 toolchain (`wasmtime serve` empty service)
 
@@ -443,11 +444,10 @@ why serve needs `-Scli`. `wasm-tools component wit` still shows the 0.3
 handler export. `wstd` / `#[wstd::http_server]` exports 0.2
 `incoming-handler` and was not used.
 
-SQLite is omitted from the component crate. Bundled `libsqlite3-sys`
-does not compile for `wasm32-wasip2` with host `clang` (no
-`wasm32-unknown-wasip2` target / no `WASI_SYSROOT`). Sync rusqlite in
-the native embedder still serializes other `handle`s; that measurement
-is unchanged.[^adapter-sqlite][^component-crate]
+The component hosts sqlite via zig-compiled `sqlite3.c`
+(`wasm32-wasi-musl`; `WASI_SYSROOT` unset). Bundled `libsqlite3-sys`
+build.rs is still not a crate build-dep. Sync hosted sqlite serializes
+other `handle`s; that measurement is unchanged.[^adapter-sqlite][^component-crate][^app-plan]
 
 ## What exists
 
@@ -582,16 +582,20 @@ slices and host handles. Option 1 does not need that builtin.
 
 ### 7. Rocci product wiring (after a platform exists)
 
-`rocci build --http-module` is an experimental flag that writes the
-`rocci-wasi-http-component` WASI 0.3 bytes (hello-web `handle`). It is
-**not** `--host wasm` (apply) and does not change `rocci run`. The
-`.rocci` path is still required for CLI shape; the bytes are not a
-compiled app. Remaining: link the measured `roc_app_llvm_wasm32_speed.o`
-(`roc build --target=wasm32` against the fork; `--no-link` is absent)
-and sqlite-in-component so Counter is the served app. The
-sibling checkout `../roc-basic-webserver` (`koliyo/roc-basic-webserver`)
-is the configured wasm32 platform source. A desktop URL over
-`wasmtime-wasi-http` is still missing. Disposition: [0.3 component
+`rocci build --http-module` is an experimental flag that writes a
+`wasi:http/service` WASI 0.3 component **compiled from the input
+`.rocci`**. It is **not** `--host wasm` (apply) and does not change
+`rocci run`. The sibling checkout `../roc-basic-webserver`
+(`koliyo/roc-basic-webserver`) is the wasm32 platform source
+(`--no-link` is absent; the fork relinks `--export=roc_*_for_host`).
+Hosted Env, Path, Stderr, and sqlite (DELETE journal, URI `nolock=1`)
+are in the component. Counter and live-counter serve under
+`wasmtime serve -Sp3 -Scli` with `--dir` + `DB_PATH`.
+
+**Still omitted:** Cmd, raw TCP, in-guest TLS / `ring`, a desktop URL
+over `wasmtime-wasi-http`. Nested sqlite inside `respond!` still
+serializes other `handle`s. No `roc-lang/basic-webserver` PR unless
+asked. Disposition: [0.3 component
 plan](/plans/rocci/wasi-http-03-component.md), [app
 link](/plans/rocci/wasi-http-03-app.md).[^http-module-flag][^component-plan][^app-plan]
 
@@ -650,10 +654,11 @@ curiosity if someone only wants one Wasmtime CLI with `--inherit-network`.
 Same adapter as A, with the wasm32 platform target in a basic-webserver
 checkout so Rocci keeps the 0.16 Roc API (`Server`, `Sse`, `Sqlite`).
 The configured sibling is `../roc-basic-webserver`
-(`koliyo/roc-basic-webserver`); it still has native targets only.
-A `roc-lang/basic-webserver` PR is not opened unless asked. Rocci does
+(`koliyo/roc-basic-webserver`); it now has a thin `wasm32` target and
+`scripts/build_wasm32_object.py` on branch `wasi-http-03-app`. A
+`roc-lang/basic-webserver` PR is not opened unless asked. Rocci does
 not vendor a full copy; a thin adapter that **calls** the same Roc ABI
-is enough to learn. Follow-on: [app
+is enough to learn. Follow-on recorded: [app
 link](/plans/rocci/wasi-http-03-app.md).[^app-plan]
 
 ### D. Do not pretend apply wasm is a server
@@ -669,9 +674,10 @@ tests (hello-web, SSE Wait clocks, one preopen, sync sqlite). A
 yield-on-sqlite path did not appear; document serialization instead.
 Research **option 1** (Rust is the component; Roc stays the 0.16 C-ABI
 object) shipped as `rocci-wasi-http-component` plus
-`rocci build --http-module`. Remaining: the [app
-link](/plans/rocci/wasi-http-03-app.md) (object, sqlite-in-component,
-Counter).[^component-plan][^app-plan][^http-module-flag]
+`rocci build --http-module`. The [app
+link](/plans/rocci/wasi-http-03-app.md) recorded object capture,
+sqlite-in-component, Counter, and live-counter `/sse`. Still omitted:
+Cmd, TLS, desktop URL.[^component-plan][^app-plan][^http-module-flag]
 
 Out of a first slice: Cmd, outbound HTTPS, HTTP/2 inside the guest,
 Hyper compression parity, `rocci run` UX, changing `--host wasm`, Wasm
@@ -683,13 +689,14 @@ Treat **A** as the only path that matches "WASI interface." Target WASI
 0.3 `wasi:http/service` so overlapping I/O uses Canonical ABI async, not
 a retarget of `http_server.rs` thread pools. Keep native 0.16 for
 `rocci run`. Do not overload apply `--host wasm`. Option 1 shipped for
-the experimental `--http-module` artifact (hello-web, mapping, SSE Wait
-overlap, one preopen under `wasmtime serve -Sp3 -Scli`). Sqlite nested
-in `respond!` still serializes in the embedder and is omitted from the
-component. The wasm32 host artifact now has a configured sibling fork
+the experimental `--http-module` artifact (compiled `.rocci`, mapping,
+SSE Wait overlap, one preopen, hosted sqlite under
+`wasmtime serve -Sp3 -Scli`). Sqlite nested in `respond!` still
+serializes. The wasm32 host artifact is the sibling fork
 (`../roc-basic-webserver`); a `roc-lang/basic-webserver` PR is still
-not opened unless asked. Follow-on: [app
-link](/plans/rocci/wasi-http-03-app.md).[^wasi-plan][^app-plan]
+not opened unless asked. App-link Phases 0–7 recorded: [app
+link](/plans/rocci/wasi-http-03-app.md). Still omitted: Cmd, TLS,
+desktop URL.[^wasi-plan][^app-plan]
 
 Publishing Phase 6 already recorded a product no-go for replacing musl
 islands with Wasm. That no-go is ops (musl containers suffice), not a

@@ -418,11 +418,18 @@ Upstream offer unchanged: no `roc-lang` PR unless asked.[^research][^component-p
 **Exit:** `okmate check knowledge --profile base --format terminal`.
 Crate READMEs and the CLI page agree.
 
+**Phase 8 recorded (2026-08-30):** Research remaining is done vs still
+omitted (Cmd, in-guest TLS, desktop URL). Parent adapter and component
+plans point here. Public CLI page and crate READMEs match: `--http-module`
+compiles the `.rocci`; serve with `--dir` + `DB_PATH` for sqlite apps.
+No `roc-lang` PR. `okmate check knowledge --profile base --format terminal`
+is warnings-only (pre-existing OKF4002 / OKF3002).
+
 ## Disposition (start of plan)
 
 | Item | State |
 | --- | --- |
-| Portable 0.3 component | Shipped experimental (hello-web stub) |
+| Portable 0.3 component | Shipped experimental; compiled `.rocci` |
 | Real `roc build` object | Phase 2 hello-web linked; Phase 3 env-log + hosted Env/Stderr |
 | `--http-module` uses `.rocci` body | Phase 5 recorded |
 | sqlite-in-component | Phase 4 recorded; `GET /` is `hello-sqlite` |
@@ -455,16 +462,16 @@ Native embedder tests, the 200ms probe table, and nested-C
 serialization honesty stay in `rocci-wasi-http` with `embedder`.
 This plan does not delete them.[^adapter-plan]
 
-[^research]: Option 1 shipped; remaining object link and sqlite-in-component.
-[^component-plan]: Phases 0–8 recorded; `.rocci` still CLI shape.
+[^research]: Option 1 plus app-link Phases 0–7; still omitted Cmd/TLS/desktop.
+[^component-plan]: Phases 0–8 recorded; remaining moved here and recorded.
 [^adapter-plan]: Native embedder; portable serve is the component plan.
-[^cli-main]: `--http-module` copies component bytes.
+[^cli-main]: `--http-module` compiles the input `.rocci`.
 [^dispatch-rs]: Generated apps pin 0.16.0; `rocci run` keeps that URL.
-[^component-lib]: `GET /` routes to `LinkedHelloWebGuest`.
-[^linked-rs]: Rust `roc_respond_for_host` emits hello-web HTML.
-[^hello-wat]: Fixture export names, not a compiled app.
-[^crate-readme]: `--http-module` writes the 0.3 component.
-[^cli-ref]: Public copy says the bytes are not a compiled app.
+[^component-lib]: App routes go to `LinkedHelloWebGuest`.
+[^linked-rs]: Linked object is the compiled app; Rust stubs stay for tests.
+[^hello-wat]: Fixture export names for embedder tests.
+[^crate-readme]: `--http-module` writes the compiled 0.3 component.
+[^cli-ref]: Public copy says the `.rocci` is compiled against the fork.
 [^counter]: Counter needs Env, Path, Sqlite, Stderr.
 [^wasm-platform]: Apply wasm32 is `main!`.
 [^roc-pin]: Rocci product nightly is `nightly-2026-08-23-fb208ba`.

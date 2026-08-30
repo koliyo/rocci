@@ -1,11 +1,14 @@
 # rocci-wasi-http-component
 
-Portable WASI 0.3 `wasi:http/service` component. `GET /` calls the linked
-Roc `roc_*_for_host` object (`fixtures/sqlite_row.o`). That fixture opens
-in-memory sqlite, inserts a row, and returns `hello-sqlite`. Hosted
-`hosted_sqlite_*` is sync and serializes other `handle`s. Other routes
-echo mapped request fields. No Wasmtime in this crate. Earlier fixtures
-stay at `fixtures/roc_app.o` and `fixtures/env_log.o`.
+Portable WASI 0.3 `wasi:http/service` component. App routes call the
+linked Roc `roc_*_for_host` object (`ROCCI_ROC_APP_O`, or
+`fixtures/sqlite_row.o` when that env is unset). The default fixture
+opens in-memory sqlite and returns `hello-sqlite`. `rocci build
+--http-module` supplies the compiled `.rocci` object. Hosted
+`hosted_sqlite_*` is sync and serializes other `handle`s. `GET /hello.txt`
+is the preopen file; `/sse-empty` and `/sse-wait` stay fixture guests.
+No Wasmtime in this crate. Earlier fixtures stay at `fixtures/roc_app.o`
+and `fixtures/env_log.o`.
 
 ## Pins (Phase 0)
 
@@ -32,17 +35,7 @@ curl -i http://127.0.0.1:8080/
 `GET /` is 200 `text/html` with `hello-sqlite` from in-component sqlite.
 Nested sqlite inside `respond!` / `init!` serializes other `handle`s.
 
-Mapped fields (same names as `maps_get_path_query_and_headers` /
-`buffers_post_body`) echo as `text/plain` on other routes:
-
-```sh
-curl -s http://127.0.0.1:8080/hello?x=1 -H 'accept: text/html'
-# path=/hello query=x=1 header.accept=text/html
-curl -s -X POST http://127.0.0.1:8080/ --data-binary abc
-# method=7 body=abc content_length=3
-```
-
-SSE (`stream<u8>`, Wait via `wasi:clocks` `wait-for`; idle timeout is the serve host's):
+SSE fixtures (`stream<u8>`, Wait via `wasi:clocks` `wait-for`; idle timeout is the serve host's):
 
 ```sh
 curl -s -D - http://127.0.0.1:8080/sse-empty   # immediate End

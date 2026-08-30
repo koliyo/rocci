@@ -120,10 +120,11 @@ stays the default (publishing Phase 6 no-go is unchanged).[^efficient-plan][^ser
 **Implementation (this revision):** Phases 0–6 are on branch
 `basic-webserver-wasi` (native embedder). Portable `wasmtime serve` and
 `rocci build --http-module` **component** bytes shipped on
-`wasi-http-03-component` (research option 1). Remaining work is the
-[app link](wasi-http-03-app.md) (real Roc object, sqlite-in-component,
-Counter). Not logged complete until CI and Knowledge workflow run IDs
-succeed.
+`wasi-http-03-component` (research option 1). The
+[app link](wasi-http-03-app.md) recorded a real Roc object,
+sqlite-in-component, Counter, and live-counter `/sse`. Still omitted:
+Cmd, in-guest TLS, desktop URL. Not logged complete until CI and
+Knowledge workflow run IDs succeed.
 
 `wasmtime serve` proof and `--http-module` emit: [WASI 0.3 HTTP
 component](wasi-http-03-component.md). Real app: [app link](wasi-http-03-app.md).

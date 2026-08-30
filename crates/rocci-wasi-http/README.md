@@ -19,6 +19,8 @@ Default features are `map` (abi, guest stubs, `Adapter`, files) plus
 crate depends on `map` only.
 
 `rocci run` stays native 0.16. `rocci build --http-module App.rocci` lowers
-the app, `roc build --target=wasm32` against the fork, and writes a
-`wasi:http/service` **WASI 0.3** component. Serve with
-`wasmtime serve -Sp3 -Scli http-module.wasm`. `--host wasm` stays apply.
+the app, `roc build --target=wasm32` against sibling `../roc-basic-webserver`
+(or `ROCCI_BASIC_WEBSERVER`), and writes a `wasi:http/service` **WASI 0.3**
+component. Serve with `wasmtime serve -Sp3 -Scli`. Sqlite apps need
+`--env DB_PATH=…` and `--dir=host::guest`. `--host wasm` stays apply.
+Still omitted: Cmd, in-guest TLS, desktop URL.

@@ -44,7 +44,10 @@ Writes a WASI 0.3 `wasi:http/service` **component** compiled from `INPUT.rocci`
 against the sibling `../roc-basic-webserver` wasm32 platform (or
 `ROCCI_BASIC_WEBSERVER`). **Not** apply `--host wasm`, and **not** a musl
 `--release` process. Missing fork or missing `roc` is an error. Serve with
-`wasmtime serve -Sp3 -Scli`. `rocci run` stays native 0.16.0.
+`wasmtime serve -Sp3 -Scli`. Sqlite apps need `--env DB_PATH=…` and
+`--dir=host::guest` (see `examples/rocci/standalone/counter`). Live SSE
+comes from the compiled app (`examples/rocci/standalone/live-counter`).
+`rocci run` stays native 0.16.0. Still omitted: Cmd, in-guest TLS, desktop URL.
 
 ## Build release
 

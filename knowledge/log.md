@@ -9,6 +9,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 ## 2026-08-30
 
 - Filed draft [Rocci application structure and run entry](research/rocci/application-structure-and-entry.md) and paired [directory-as-app standalone entry](plans/rocci/application-structure-and-entry.md). Implementation already merged as PR 90; these records were still local. Exploratory; do not log complete until CI and Knowledge succeed.
+- Recorded [app-link Phase 8](plans/rocci/wasi-http-03-app.md): research remaining is done vs omitted (Cmd, TLS, desktop URL); CLI page and crate READMEs match compiled `--http-module`. Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [app-link Phase 7](plans/rocci/wasi-http-03-app.md): live-counter `--http-module` `GET /sse` is compiled Datastar patches via `roc_sse_advance_for_host`; two `/sse-wait` connections overlap on wasmtime clocks (~214ms). Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [app-link Phase 6](plans/rocci/wasi-http-03-app.md): Counter `--http-module` under `wasmtime serve` is `GET /` count 0 and increment/reset Datastar morphs; file sqlite via `--dir` + `DB_PATH`. Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [app-link Phase 5](plans/rocci/wasi-http-03-app.md): `--http-module` compiles the input `.rocci` against the fork; `http-alpha` `GET /` is `<p>http-alpha</p>`. Missing fork/`roc` is an error. `rocci run` still pins 0.16.0. Exploratory; do not log complete until CI and Knowledge succeed.
