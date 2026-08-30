@@ -1,7 +1,5 @@
 """Enforce docs/coverage.toml and docs/search-queries.toml."""
 
-from __future__ import annotations
-
 import argparse
 import re
 import sys

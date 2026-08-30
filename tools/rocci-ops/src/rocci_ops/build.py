@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from rocci_ops.paths import repo_root
 from rocci_ops.playground import build_playground
 from rocci_ops.util import run
