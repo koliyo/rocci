@@ -4,7 +4,7 @@ title: rocci.dev public-launch operator sequence
 description: Maintainer sequence after the 2026-08-23 Should pass — promote current main to staging and smoke it, flip koliyo/rocci public, then promote production and route DNS. Hosted CI already lists production; the branch is created by the first promote-branch production push.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ci]
 status: draft
-generated: { by: process:cursor, at: 2026-08-23T00:30:00Z }
+generated: { by: process:cursor, at: 2026-08-30T08:50:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -83,8 +83,8 @@ Writing this plan does not flip visibility or route apex DNS.
   `staging` → `production` (public hostname once the Tunnel route
   exists). Never deploy from `main` or a pull request.[^prod-readme][^site-workflow]
 - First push to `production` creates the branch, runs hosted CI and
-  Knowledge, and runs site package/deploy. Both lanes currently publish
-  the same `/srv/rocci` origin.[^prod-readme][^publish-plan]
+  Knowledge, and runs site package/deploy. Lanes use separate origin
+  roots and Compose projects on one VPS.[^prod-readme][^publish-plan]
 - Deploy secrets stay Environment-only. Repository Actions secrets stay
   empty. CI, Knowledge, Site, and Release are GitHub-hosted only;
   `/ci-local` queues the same hosted jobs.[^ci-security-plan]
@@ -196,4 +196,4 @@ A current install tag remains a Should after this sequence, not a Must.
 [^site-workflow]: Package and deploy only when `github.ref` is `staging` or `production`.
 [^prod-readme]: Promote commands and custom-branch Environment policy.
 [^root-readme]: `promote-branch staging` then `promote-branch production` after a staging smoke.
-[^publish-plan]: Staging Access-gated; apex unrouted until a launch decision. Both lanes share one origin today.
+[^publish-plan]: Staging Access-gated; apex unrouted until a launch decision. Lanes use separate origin roots on one VPS.

@@ -18,13 +18,19 @@ def _actions_handle_block(caddy: str) -> str:
 def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     root = repo_root()
     hybrid = (root / "docker/cdn/Caddyfile").read_text(encoding="utf-8")
+    snippet = (root / "docker/cdn/examples.caddy").read_text(encoding="utf-8")
+    stub = (root / "docker/cdn/examples.stub.caddy").read_text(encoding="utf-8")
     examples = (root / "docker/examples/Caddyfile").read_text(encoding="utf-8")
     compose = (root / "docker/compose.examples.yml").read_text(encoding="utf-8")
     origin = (root / "docker/compose.origin.yml").read_text(encoding="utf-8")
     hybrid_compose = (root / "docker/compose.hybrid.yml").read_text(encoding="utf-8")
+    assert "import examples.caddy" in hybrid
     assert "handle /actions/*" in hybrid
     assert "handle /sse" in hybrid
+    assert "live-counter:8000" not in hybrid
+    assert "datastar:8000" not in hybrid
     assert "handle /actions/*" not in examples
+    assert "live-counter:8000" not in stub
     for host in (
         "live-counter-example.rocci.dev",
         "live-counter-example-staging.rocci.dev",
@@ -37,29 +43,31 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
         "datastar.examples.staging.rocci.dev",
         "datastar.examples.localhost",
     ):
-        assert host in hybrid
+        assert host in snippet
         assert host in examples
-    live_at = hybrid.find("@live-counter host")
-    datastar_at = hybrid.find("@datastar host")
-    play_live_at = hybrid.find("handle_path /play/live-counter")
-    play_datastar_at = hybrid.find("handle_path /play/datastar")
+        assert host not in hybrid
+    live_at = snippet.find("@live-counter host")
+    datastar_at = snippet.find("@datastar host")
+    play_live_at = snippet.find("handle_path /play/live-counter")
+    play_datastar_at = snippet.find("handle_path /play/datastar")
+    import_at = hybrid.find("import examples.caddy")
     actions_at = hybrid.find("handle /actions/*")
     sse_at = hybrid.find("handle /sse")
-    assert 0 <= live_at < actions_at
-    assert 0 <= datastar_at < actions_at
-    assert 0 <= play_live_at < actions_at
-    assert 0 <= play_datastar_at < actions_at
-    assert 0 <= actions_at < sse_at
-    assert "reverse_proxy live-counter:8000" in hybrid
-    assert "reverse_proxy datastar:8000" in hybrid
-    live_handle = hybrid[play_live_at : hybrid.find("}", play_live_at) + 1]
+    assert 0 <= live_at < play_live_at
+    assert 0 <= datastar_at < play_datastar_at
+    assert 0 <= import_at < actions_at < sse_at
+    assert "reverse_proxy live-counter:8000" in snippet
+    assert "reverse_proxy datastar:8000" in snippet
+    live_handle = snippet[play_live_at : snippet.find("}", play_live_at) + 1]
     assert "reverse_proxy live-counter:8000" in live_handle
-    assert "redir /play/live-counter /play/live-counter/" in hybrid
-    assert "redir /play/datastar /play/datastar/" in hybrid
+    assert "redir /play/live-counter /play/live-counter/" in snippet
+    assert "redir /play/datastar /play/datastar/" in snippet
     actions = _actions_handle_block(hybrid)
     assert "reverse_proxy islands:8001" in actions
     assert "live-counter:8000" not in actions
     assert "datastar:8000" not in actions
+    assert "examples.stub.caddy:/etc/caddy/examples.caddy" in hybrid_compose
+    assert "examples.caddy:/etc/caddy/examples.caddy" in origin
     assert "datastar:" in compose
     assert "live-counter:" in compose
     assert "edge:" in compose
@@ -79,10 +87,14 @@ def test_example_caddy_routes_by_host_without_stealing_site_actions() -> None:
     assert "dist/examples-live/live-counter/server" not in workflow
     assert "dist/examples-live/datastar/server" not in workflow
     ingress = (root / "docker/prod/cloudflared-ingress.yml.example").read_text(encoding="utf-8")
-    assert '"*.examples.rocci.dev"' in ingress or "*.examples.rocci.dev" in ingress
     assert "*.examples.staging.rocci.dev" in ingress
     assert "live-counter-example-staging.rocci.dev" in ingress
     assert "datastar-example-staging.rocci.dev" in ingress
+    assert "127.0.0.1:8081" in ingress
+    assert "hostname: rocci.dev" in ingress
+    assert "127.0.0.1:8080" in ingress
+    assert "hostname: live-counter-example.rocci.dev" not in ingress
+    assert 'hostname: "*.examples.rocci.dev"' not in ingress
     assert Path(root / "examples/rocci/apps.toml").is_file()
 
 

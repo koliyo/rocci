@@ -9,7 +9,7 @@ name: rocci-example-origins
 
 services:
   live-counter:
-    image: rocci-app:live-counter
+    image: rocci-app:live-counter-${ROCCI_IMAGE_TAG:-local}
     build: ${ROCCI_LIVE_COUNTER_CONTEXT:?ROCCI_LIVE_COUNTER_CONTEXT must contain server, assets/, and Dockerfile}
     environment:
       ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"
@@ -25,7 +25,7 @@ services:
       start_period: 10s
 
   datastar:
-    image: rocci-app:datastar
+    image: rocci-app:datastar-${ROCCI_IMAGE_TAG:-local}
     build: ${ROCCI_DATASTAR_CONTEXT:?ROCCI_DATASTAR_CONTEXT must contain server, assets/, and Dockerfile}
     environment:
       ROC_BASIC_WEBSERVER_HOST: "0.0.0.0"

@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from rocci_ops.lanes import resolved_lane
 from rocci_ops.paths import repo_root
 from rocci_ops.sshutil import (
     deploy_user,
@@ -17,12 +18,21 @@ from rocci_ops.sshutil import (
     validate_sha,
 )
 
-ORIGIN_ROOT_DEFAULT = "/srv/rocci"
-BOOTSTRAP_DOCKER_DEFAULT = "/srv/rocci/docker"
 
-
-def origin_publish_cmd(sha: str, origin_root: str) -> str:
-    return f"cd '{origin_root}' && uv run --no-dev rocci-ops origin publish '{sha}'"
+def origin_publish_cmd(sha: str, origin_root: str | None = None) -> str:
+    cfg = resolved_lane()
+    root = origin_root if origin_root is not None else cfg.origin_root
+    live = "1" if cfg.publish_live is not False else "0"
+    exports = [
+        f"ROCCI_ORIGIN_ROOT='{root}'",
+        f"ROCCI_HTTP_PORT='{cfg.http_port}'",
+        f"COMPOSE_PROJECT_NAME='{cfg.compose_project}'",
+        f"ROCCI_PUBLISH_LIVE='{live}'",
+        f"ROCCI_IMAGE_TAG='{cfg.image_tag}'",
+    ]
+    if cfg.name:
+        exports.insert(0, f"ROCCI_LANE='{cfg.name}'")
+    return f"cd '{root}' && {' '.join(exports)} uv run --no-dev rocci-ops origin publish '{sha}'"
 
 
 def probe(*, runner=subprocess.run) -> int:
@@ -64,8 +74,9 @@ def probe(*, runner=subprocess.run) -> int:
 
 
 def bootstrap(*, runner=subprocess.run) -> int:
-    dest = os.environ.get("ROCCI_BOOTSTRAP_DEST", BOOTSTRAP_DOCKER_DEFAULT)
-    origin_root = os.environ.get("ROCCI_ORIGIN_ROOT", ORIGIN_ROOT_DEFAULT)
+    cfg = resolved_lane()
+    dest = cfg.bootstrap_dest
+    origin_root = cfg.origin_root
     root = repo_root()
     docker = root / "docker"
     prod = docker / "prod"
@@ -82,6 +93,8 @@ def bootstrap(*, runner=subprocess.run) -> int:
     rocci_scp(
         [
             str(docker / "cdn" / "Caddyfile"),
+            str(docker / "cdn" / "examples.caddy"),
+            str(docker / "cdn" / "examples.stub.caddy"),
             str(docker / "cdn" / "Dockerfile"),
             str(docker / "cdn" / "entrypoint.sh"),
             f"{target}:{dest}/cdn/",
@@ -148,7 +161,8 @@ def push(artifact_dir: Path, sha: str, *, runner=subprocess.run) -> int:
     islands = artifact_dir / "islands"
     if not tgz.is_file() or not islands.is_file():
         raise SystemExit(f"error: {artifact_dir} must contain site.tgz and islands")
-    origin_root = os.environ.get("ROCCI_ORIGIN_ROOT", ORIGIN_ROOT_DEFAULT)
+    cfg = resolved_lane()
+    origin_root = cfg.origin_root
     target = ssh_target()
     incoming = f"{origin_root}/incoming/{sha}"
     bootstrap(runner=runner)

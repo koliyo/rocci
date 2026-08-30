@@ -4,7 +4,7 @@ title: Serve live examples at /play/id on the site host
 description: "Route live-counter and datastar at /play/<id>/ on staging.rocci.dev and later rocci.dev so Universal SSL and Access apply with no extra DNS. Strip that prefix in Caddy before islands /actions/. Keep /examples/<id>/ as docs. Do not advertise Launch until staging /play/ health is TLS 200. Exploratory."
 tags: [domain/rocci, concern/publication, concern/developer-experience, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T18:45:00Z }
+generated: { by: process:cursor, at: 2026-08-30T08:50:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -100,7 +100,7 @@ DNS.[^background][^cdn-caddy]
 | Docs vs play | `/examples/<id>/` is Rocdown. `/play/<id>/` is the live process.[^background] |
 | Islands isolation | Bare `/actions/*` and `/sse` on the site Host stay islands. Play-prefixed paths must not use that handle.[^cdn-caddy] |
 | Strip prefix | After `handle_path /play/<id>/*`, the app sees `/`, `/actions/`, `/sse`, `/health` as on a dedicated Host.[^cdn-caddy] |
-| Deploy lane | `site.yml` only from `staging` / `production`. Shared `/srv/rocci`.[^site-workflow][^prod-readme] |
+| Deploy lane | `site.yml` only from `staging` / `production`. Staging is `/srv/rocci-staging` on `:8081`; production is `/srv/rocci` on `:8080` without live-example containers.[^site-workflow][^prod-readme] |
 | Publish health | Failed live health must not flip `current`; rollback hybrid + examples together.[^origin-ops] |
 | Tests | Caddy and origin-health contracts stay in rocci-ops tests; no Roc required.[^example-tests] |
 
@@ -225,6 +225,6 @@ Cloudflare.[^origin-ops]
 [^origin-ops]: Health and rollback of hybrid plus examples.
 [^origin-compose]: live-counter and datastar services; no examples edge.
 [^example-tests]: Isolation assertions on the hybrid Caddyfile.
-[^prod-readme]: Promote staging; shared origin; Access on staging.rocci.dev.
+[^prod-readme]: Promote staging to `/srv/rocci-staging` `:8081`; Access on staging.rocci.dev.
 [^site-workflow]: Package and deploy only on staging or production.
 [^stage-rs]: Launch hrefs unused on repo catalog until advertise.

@@ -4,7 +4,7 @@ title: Deploy live example origins to staging
 description: "Operator sequence to serve live-counter and datastar on Access-gated example hostnames: confirm shipped origin code, add proxied DNS and a hand-ordered Advanced certificate, promote main to staging so site.yml packages examples-live and origin publish starts hybrid plus live apps, then smoke TLS and Host isolation. Do not advertise Launch or promote production until staging health is green."
 tags: [domain/rocci, concern/publication, concern/developer-experience, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T18:50:00Z }
+generated: { by: process:cursor, at: 2026-08-30T08:50:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -121,8 +121,8 @@ still hits the home island. Generated `/examples/` copy stays
 | --- | --- |
 | Advertise last | No generated `examples.rocci.dev` Launch href until staging example hosts have served TLS.[^origins-plan][^launch-audit] |
 | Deploy lane | `site.yml` packages and deploys only from `staging` or `production`. Pushes to `main` are no-ops.[^site-workflow][^prod-readme] |
-| Shared origin | `staging` and `production` currently publish the same `/srv/rocci`. A staging promote rebuilds hybrid **and** live apps on that box. Origin deploys are serialized.[^prod-readme] |
-| One origin port | Tunnel targets `http://127.0.0.1:8080`. Hybrid Caddy Host-routes example names to live containers. Do not add a second `:8080` edge.[^tunnel-ingress][^cdn-caddy][^origin-compose] |
+| Separate lanes | `staging` publishes `/srv/rocci-staging` on `:8081` (hybrid plus live apps). `production` publishes `/srv/rocci` on `:8080` (hybrid only). Origin deploys are serialized.[^prod-readme] |
+| Two origin ports | Production Tunnel targets `http://127.0.0.1:8080`. Staging and live-example hosts target `:8081`. Do not run `compose.examples.yml` `edge` on the VPS.[^tunnel-ingress][^cdn-caddy][^origin-compose] |
 | Publish health | `origin publish` GETs site `/health`, each live id at `/play/<id>/health`, and `Host` for `<id>-example-staging.rocci.dev`, `<id>-example.rocci.dev`, and `<id>.examples.localhost`. Failure restores the previous release (hybrid + examples together).[^origin-ops][^play-path] |
 | Proxy orange | Example DNS stays **Proxied**. Grey-cloud skips Cloudflare edge TLS. |
 | Universal SSL is not enough | Full-setup Universal SSL covers `rocci.dev` and `*.rocci.dev` only.[^cf-universal-ssl][^origins-plan][^launch-audit] |
@@ -186,16 +186,17 @@ after a good handshake as a certificate bug.
 1. `origin/main` contains `docker/compose.origin.yml` and Caddy example
    Host matchers. Hosted CI on that SHA is green.
 2. Zero Trust → Tunnels: published hostnames include
-   `*.examples.staging.rocci.dev` and `*.examples.rocci.dev`, service
-   `http://127.0.0.1:8080`.[^tunnel-ingress]
+   `*.examples.staging.rocci.dev` and first-level
+   `<id>-example-staging.rocci.dev`, service
+   `http://127.0.0.1:8081`.[^tunnel-ingress]
 3. Access: Self-hosted app for `*.examples.staging.rocci.dev` with the
    same Allow (maintainer email) and Service Auth as
    `staging.rocci.dev`.[^prod-readme]
 4. Copy the Tunnel CNAME target from the `staging.rocci.dev` DNS row
    (typically `<uuid>.cfargotunnel.com`).
-5. Remember: promoting `staging` rebuilds the **shared** `/srv/rocci`
-   origin. Do not start Phase 3 during an unrelated production
-   publish.[^prod-readme]
+5. Remember: promoting `staging` publishes `/srv/rocci-staging` on
+   `:8081`. Production stays on `/srv/rocci` `:8080`. Do not start Phase
+   3 during an unrelated production publish.[^prod-readme]
 
 **Exit**
 
@@ -308,8 +309,8 @@ promote. No laptop `compose.examples.yml` on the VPS.
   `Host: datastar.examples.localhost`.[^origin-ops]
 
 If package or health fails, do not start Phase 4 public curls as a
-success gate. Inspect the failed job; do not `docker compose` a second
-stack on `:8080`.
+success gate. Inspect the failed job; do not run
+`compose.examples.yml` `edge` on the VPS.
 
 ## Phase 4 — Staging smoke through Access
 
@@ -344,13 +345,13 @@ Confirm isolation:
 - Optional VPS loopback if public 502 after a green Site job:
 
   ```sh
-  curl -sf http://127.0.0.1:8080/health
-  curl -sf http://127.0.0.1:8080/play/live-counter/health
-  curl -sf http://127.0.0.1:8080/play/datastar/health
-  curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8080/health
-  curl -sf -H 'Host: datastar-example-staging.rocci.dev' http://127.0.0.1:8080/health
-  curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8080/health
-  curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8080/health
+  curl -sf http://127.0.0.1:8081/health
+  curl -sf http://127.0.0.1:8081/play/live-counter/health
+  curl -sf http://127.0.0.1:8081/play/datastar/health
+  curl -sf -H 'Host: live-counter-example-staging.rocci.dev' http://127.0.0.1:8081/health
+  curl -sf -H 'Host: datastar-example-staging.rocci.dev' http://127.0.0.1:8081/health
+  curl -sf -H 'Host: live-counter.examples.localhost' http://127.0.0.1:8081/health
+  curl -sf -H 'Host: datastar.examples.localhost' http://127.0.0.1:8081/health
   ```
 
   Those are the same checks `origin publish` already ran.[^prod-readme][^origin-ops]
@@ -387,8 +388,8 @@ hostname contract.[^origin-ops][^prod-readme]
 [^origins-plan]: Code Phases 0–4 on main; advertise is Phase 5; `*.rocci.dev` is not enough.
 [^play-path]: `/play/<id>/` leftover; ACM-free smoke is `<id>-example-staging.rocci.dev`.
 [^publish-plan]: Cloudflare is DNS and edge TLS; Tunnel to loopback Caddy; Access on staging.
-[^prod-readme]: Promote `main` → `staging`; shared `/srv/rocci`; example wildcards need their own certs.
-[^tunnel-ingress]: Sample ingress lists both example wildcards to `:8080`.
+[^prod-readme]: Promote `main` → `staging`; separate `/srv/rocci` and `/srv/rocci-staging`; example wildcards need their own certs.
+[^tunnel-ingress]: Sample ingress lists staging hosts to `:8081` and `rocci.dev` to `:8080`.
 [^site-workflow]: Package and deploy only when `ref` is `staging` or `production`; uploads `examples-live/**`.
 [^origin-ops]: Unpack examples-live; compose hybrid plus origin examples; Host health; rollback previous release.
 [^origin-compose]: live-counter and datastar services; cdn waits until they are healthy.
