@@ -273,6 +273,9 @@ pub(crate) fn resolve_standalone_entry(start: &Path) -> Result<PathBuf> {
             format_module_list(&app_root, &inits)
         );
     }
+    if let Some(entry) = configured_app_entry(&app_root)? {
+        return Ok(entry);
+    }
     if let Some(entry) = inits.into_iter().next() {
         return Ok(entry);
     }
@@ -311,6 +314,35 @@ pub(crate) fn resolve_standalone_entry(start: &Path) -> Result<PathBuf> {
         ));
     }
     bail!("{}", lines.join("\n"))
+}
+
+fn configured_app_entry(app_root: &Path) -> Result<Option<PathBuf>> {
+    let config_path = app_root.join("rocci.toml");
+    if !config_path.is_file() {
+        return Ok(None);
+    }
+    let config = Config::from_file(&config_path)?;
+    let Some(entry) = config.app.entry else {
+        return Ok(None);
+    };
+    let resolved = app_root.join(&entry);
+    if !resolved.is_file() {
+        bail!(
+            "app.entry `{entry}` is not a file under {}",
+            app_root.display()
+        );
+    }
+    if resolved.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+        bail!("app.entry `{entry}` must be a .rocci file");
+    }
+    let root = app_root
+        .canonicalize()
+        .unwrap_or_else(|_| app_root.to_path_buf());
+    let canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
+    if !canonical.starts_with(&root) {
+        bail!("app.entry `{entry}` must stay under the app root");
+    }
+    Ok(Some(resolved))
 }
 
 fn format_module_list(app_root: &Path, paths: &[PathBuf]) -> String {
@@ -1360,6 +1392,21 @@ import Html
         let err = resolve_standalone_entry(&dir).unwrap_err().to_string();
         assert!(err.contains("no .rocci modules"), "{err}");
         assert!(!err.contains("main.roc"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_standalone_prefers_configured_entry() {
+        let dir = temp_app("entry-prefers");
+        fs::write(
+            dir.join("rocci.toml"),
+            "[app]\nidentifier = \"dev.rocci.entry\"\nentry = \"Beta.rocci\"\n",
+        )
+        .unwrap();
+        fs::write(dir.join("Alpha.rocci"), view_only_src()).unwrap();
+        fs::write(dir.join("Beta.rocci"), view_only_src()).unwrap();
+        let resolved = resolve_standalone_entry(&dir).expect("configured entry");
+        assert_eq!(resolved, dir.join("Beta.rocci"));
         cleanup(&dir);
     }
 

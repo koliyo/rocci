@@ -37,6 +37,7 @@ pub struct AppConfig {
     #[serde(default = "default_identifier")]
     pub identifier: String,
     pub version: Option<String>,
+    pub entry: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -211,6 +212,7 @@ impl Default for AppConfig {
             name: default_app_name(),
             identifier: default_identifier(),
             version: None,
+            entry: None,
         }
     }
 }
@@ -303,6 +305,7 @@ impl Config {
             return Err(Error::config("app.name must not be empty"));
         }
         validate_identifier(&self.app.identifier)?;
+        validate_app_entry(self.app.entry.as_deref())?;
         if self.windows.is_empty() {
             return Err(Error::config("at least one [[windows]] entry is required"));
         }
@@ -417,6 +420,30 @@ fn validate_window(window: &WindowConfig) -> Result<()> {
             "window {} min_height cannot exceed height",
             window.label
         )));
+    }
+    Ok(())
+}
+
+fn validate_app_entry(entry: Option<&str>) -> Result<()> {
+    let Some(entry) = entry else {
+        return Ok(());
+    };
+    if entry.trim().is_empty() {
+        return Err(Error::config("app.entry must not be empty"));
+    }
+    let path = Path::new(entry);
+    if path.is_absolute() {
+        return Err(Error::config(
+            "app.entry must be relative to the rocci.toml directory",
+        ));
+    }
+    if path
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        return Err(Error::config(
+            "app.entry must stay under the app root (no `..`)",
+        ));
     }
     Ok(())
 }
@@ -604,6 +631,45 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("loopback"));
+    }
+
+    #[test]
+    fn parses_optional_app_entry() {
+        let config = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            entry = "backend/Blocks.rocci"
+            "#,
+        )
+        .unwrap();
+        assert_eq!(config.app.entry.as_deref(), Some("backend/Blocks.rocci"));
+    }
+
+    #[test]
+    fn rejects_escaping_app_entry() {
+        let error = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            entry = "../Other.rocci"
+            "#,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("app.entry"), "{error}");
+    }
+
+    #[test]
+    fn rejects_empty_app_entry() {
+        let error = Config::from_toml(
+            r#"
+            [app]
+            identifier = "dev.rocci.demo"
+            entry = ""
+            "#,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("app.entry"), "{error}");
     }
 
     #[test]
