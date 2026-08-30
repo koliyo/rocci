@@ -43,6 +43,31 @@ pub fn run(
             public,
         );
     }
+    let path = if file.is_absolute() {
+        file.to_path_buf()
+    } else {
+        env::current_dir()?.join(file)
+    };
+    if path.is_dir() && !path.join("main.roc").is_file() {
+        if crate::path_hint::looks_like_okf_bundle(&path) {
+            bail!(
+                "no main.roc in {}; preview OKF knowledge bundles with `okmate view {}`",
+                path.display(),
+                file.display()
+            );
+        }
+        let entry = resolve_standalone_entry(&path)?;
+        return run_standalone(
+            &entry,
+            args,
+            no_window,
+            port,
+            live_reload,
+            log_handlers,
+            verbose,
+            public,
+        );
+    }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
     runtime_assets::stage_into(&resolved.app_dir)?;
@@ -181,6 +206,11 @@ fn standalone_app_root(entry: &Path) -> PathBuf {
         .filter(|parent| !parent.as_os_str().is_empty())
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
+    app_root_from(&start)
+}
+
+fn app_root_from(start_dir: &Path) -> PathBuf {
+    let start = start_dir.to_path_buf();
     let mut dir = start.clone();
     loop {
         if dir.join("rocci.toml").is_file() && !is_project_boundary(&dir) {
@@ -194,6 +224,138 @@ fn standalone_app_root(entry: &Path) -> PathBuf {
             _ => return start,
         }
     }
+}
+
+pub(crate) fn resolve_standalone_entry(start: &Path) -> Result<PathBuf> {
+    let start = if start.is_absolute() {
+        start.to_path_buf()
+    } else {
+        env::current_dir()?.join(start)
+    };
+    if !start.is_dir() {
+        bail!("no such standalone app directory: {}", start.display());
+    }
+    let app_root = app_root_from(&start);
+    let files = discover_standalone_tree(&app_root)?;
+    if files.is_empty() {
+        bail!(
+            "no .rocci modules in {}; pass a standalone file or a directory with a unique entry",
+            start.display()
+        );
+    }
+
+    let mut inits = Vec::new();
+    let mut root_views = Vec::new();
+    let mut routed = Vec::new();
+    for path in &files {
+        let src = fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        let compiled = compile_source(&path.display().to_string(), &src, &LowerOptions::default())?;
+        let has_init = compiled.init.is_some() || compiled.state_type.is_some();
+        let has_root_view = compiled
+            .routes
+            .iter()
+            .any(|route| route.method == "GET" && route.path == "/");
+        if has_init {
+            inits.push(path.clone());
+        }
+        if has_root_view {
+            root_views.push(path.clone());
+        }
+        if !compiled.routes.is_empty() && !has_init && !has_root_view {
+            routed.push(path.clone());
+        }
+    }
+
+    if inits.len() > 1 {
+        bail!(
+            "multiple process `@init` / `@context` modules in one app: {}",
+            format_module_list(&app_root, &inits)
+        );
+    }
+    if let Some(entry) = configured_app_entry(&app_root)? {
+        return Ok(entry);
+    }
+    if let Some(entry) = inits.into_iter().next() {
+        return Ok(entry);
+    }
+    if root_views.len() == 1 {
+        return Ok(root_views.remove(0));
+    }
+    if files.len() == 1 {
+        return Ok(files.into_iter().next().expect("one module"));
+    }
+
+    let mut lines = vec![format!(
+        "ambiguous standalone app in {}: entry is not unique",
+        start.display()
+    )];
+    if !root_views.is_empty() {
+        lines.push(format!(
+            "view(\"/\"): {}",
+            format_module_list(&app_root, &root_views)
+        ));
+    }
+    if !routed.is_empty() {
+        lines.push(format!(
+            "other routes: {}",
+            format_module_list(&app_root, &routed)
+        ));
+    }
+    let others: Vec<_> = files
+        .iter()
+        .filter(|path| !root_views.contains(path) && !routed.contains(path))
+        .cloned()
+        .collect();
+    if !others.is_empty() {
+        lines.push(format!(
+            "other modules: {}",
+            format_module_list(&app_root, &others)
+        ));
+    }
+    bail!("{}", lines.join("\n"))
+}
+
+fn configured_app_entry(app_root: &Path) -> Result<Option<PathBuf>> {
+    let config_path = app_root.join("rocci.toml");
+    if !config_path.is_file() {
+        return Ok(None);
+    }
+    let config = Config::from_file(&config_path)?;
+    let Some(entry) = config.app.entry else {
+        return Ok(None);
+    };
+    let resolved = app_root.join(&entry);
+    if !resolved.is_file() {
+        bail!(
+            "app.entry `{entry}` is not a file under {}",
+            app_root.display()
+        );
+    }
+    if resolved.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
+        bail!("app.entry `{entry}` must be a .rocci file");
+    }
+    let root = app_root
+        .canonicalize()
+        .unwrap_or_else(|_| app_root.to_path_buf());
+    let canonical = resolved.canonicalize().unwrap_or_else(|_| resolved.clone());
+    if !canonical.starts_with(&root) {
+        bail!("app.entry `{entry}` must stay under the app root");
+    }
+    Ok(Some(resolved))
+}
+
+fn format_module_list(app_root: &Path, paths: &[PathBuf]) -> String {
+    paths
+        .iter()
+        .map(|path| {
+            format!(
+                "`{}`",
+                path.strip_prefix(app_root).unwrap_or(path).display()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn is_project_boundary(dir: &Path) -> bool {
@@ -303,6 +465,7 @@ fn run_standalone(
         (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
     let (plan, profile, inspect_pages) = plan;
+    ensure_unique_process_init(&plan)?;
     let options = driver::DriverOptions {
         args: args.to_vec(),
         no_window,
@@ -454,13 +617,51 @@ fn plan_standalone(
 
 pub fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
     match plan_standalone(primary, &LowerOptions::default(), Progress::default())? {
-        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Ready(plan), _, _) => {
+            ensure_unique_process_init(&plan)?;
+            Ok(plan)
+        }
         (StandaloneReady::Failed(files), _, _) => {
             let name = files
                 .first()
                 .map(|file| file.name.as_str())
                 .unwrap_or("template");
             bail!("template compilation failed for {name}")
+        }
+    }
+}
+
+fn module_has_process_init(module: &GenericModule) -> bool {
+    module.init.is_some() || module.state_type.is_some()
+}
+
+fn process_init_file_name(module: &GenericModule) -> &str {
+    Path::new(&module.mapped.source_name)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(module.type_name.as_str())
+}
+
+fn ensure_unique_process_init(plan: &GenericAppPlan) -> Result<()> {
+    let inits: Vec<_> = plan
+        .modules
+        .iter()
+        .filter(|module| module_has_process_init(module))
+        .collect();
+    match inits.as_slice() {
+        [] => Ok(()),
+        [only] if only.type_name == plan.primary_name => Ok(()),
+        [only] => bail!(
+            "process `@init` is in `{}`; run that file or the app directory",
+            process_init_file_name(only)
+        ),
+        many => {
+            let names = many
+                .iter()
+                .map(|module| format!("`{}`", process_init_file_name(module)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("multiple process `@init` / `@context` modules in one app: {names}")
         }
     }
 }
@@ -1133,14 +1334,92 @@ import Html
         cleanup(&dir);
     }
 
+    fn standalone_example(name: &str) -> PathBuf {
+        repo_root().join("examples/rocci/standalone").join(name)
+    }
+
     #[test]
-    fn resolve_entry_directory_suggests_standalone_rocci() {
-        let dir = temp_app("standalone-hint");
-        fs::write(dir.join("Counter.rocci"), "").unwrap();
-        let err = resolve_entry(&dir).unwrap_err().to_string();
-        assert!(err.contains("no main.roc"));
-        assert!(err.contains("rocci run"));
-        assert!(err.contains("Counter.rocci"));
+    fn resolve_standalone_picks_unique_example_entries() {
+        let cases = [
+            ("counter", "Counter.rocci"),
+            ("styling", "Styling.rocci"),
+            ("live-counter", "LiveCounter.rocci"),
+            ("blocks", "backend/Blocks.rocci"),
+            ("multi-page-streams", "Dashboard.rocci"),
+        ];
+        for (dir, entry) in cases {
+            let path = standalone_example(dir);
+            if !path.is_dir() {
+                continue;
+            }
+            let resolved = resolve_standalone_entry(&path).expect(dir);
+            assert_eq!(
+                resolved,
+                path.join(entry),
+                "{dir} -> {}",
+                resolved.display()
+            );
+        }
+    }
+
+    #[test]
+    fn resolve_standalone_walks_up_from_blocks_backend() {
+        let backend = standalone_example("blocks").join("backend");
+        if !backend.is_dir() {
+            return;
+        }
+        let resolved = resolve_standalone_entry(&backend).expect("blocks/backend");
+        assert_eq!(
+            resolved,
+            standalone_example("blocks").join("backend/Blocks.rocci")
+        );
+    }
+
+    #[test]
+    fn resolve_standalone_parent_fails_as_multiple_inits() {
+        let parent = repo_root().join("examples/rocci/standalone");
+        if !parent.is_dir() {
+            return;
+        }
+        let err = resolve_standalone_entry(&parent).unwrap_err().to_string();
+        assert!(err.contains("multiple process `@init`"), "{err}");
+        assert!(!err.contains("main.roc"), "{err}");
+    }
+
+    #[test]
+    fn resolve_standalone_empty_directory_lists_no_main_hint() {
+        let dir = temp_app("empty-standalone");
+        let err = resolve_standalone_entry(&dir).unwrap_err().to_string();
+        assert!(err.contains("no .rocci modules"), "{err}");
+        assert!(!err.contains("main.roc"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_standalone_prefers_configured_entry() {
+        let dir = temp_app("entry-prefers");
+        fs::write(
+            dir.join("rocci.toml"),
+            "[app]\nidentifier = \"dev.rocci.entry\"\nentry = \"Beta.rocci\"\n",
+        )
+        .unwrap();
+        fs::write(dir.join("Alpha.rocci"), view_only_src()).unwrap();
+        fs::write(dir.join("Beta.rocci"), view_only_src()).unwrap();
+        let resolved = resolve_standalone_entry(&dir).expect("configured entry");
+        assert_eq!(resolved, dir.join("Beta.rocci"));
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn resolve_standalone_ambiguous_root_views_list_candidates() {
+        let dir = temp_app("two-roots");
+        fs::write(dir.join("Alpha.rocci"), view_only_src()).unwrap();
+        fs::write(dir.join("Beta.rocci"), view_only_src()).unwrap();
+        let err = resolve_standalone_entry(&dir).unwrap_err().to_string();
+        assert!(err.contains("ambiguous standalone app"), "{err}");
+        assert!(err.contains("Alpha.rocci"), "{err}");
+        assert!(err.contains("Beta.rocci"), "{err}");
+        assert!(!err.contains("main.roc"), "{err}");
         cleanup(&dir);
     }
 
@@ -1219,6 +1498,77 @@ import Html
         let err = discover_standalone_tree(&app).unwrap_err().to_string();
         assert!(err.contains("duplicate standalone module `Foo`"));
         cleanup(&app);
+    }
+
+    fn process_init_src() -> &'static str {
+        r#"
+import Html
+
+@context { n : I64 }
+
+@init {
+    { n: 0 }
+}
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#
+    }
+
+    fn view_only_src() -> &'static str {
+        r#"
+import Html
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#
+    }
+
+    #[test]
+    fn two_process_init_modules_fail_to_plan() {
+        let dir = temp_app("two-init");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Other.rocci"), process_init_src()).unwrap();
+        let err = standalone_app_plan(&dir.join("App.rocci"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("multiple process `@init`"), "{err}");
+        assert!(err.contains("App.rocci"), "{err}");
+        assert!(err.contains("Other.rocci"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn named_file_fails_when_sibling_owns_process_init() {
+        let dir = temp_app("ui-not-init");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Ui.rocci"), view_only_src()).unwrap();
+        let err = standalone_app_plan(&dir.join("Ui.rocci"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("process `@init` is in `App.rocci`"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn view_only_sibling_plans_with_init_primary() {
+        let dir = temp_app("init-plus-ui");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Ui.rocci"), view_only_src()).unwrap();
+        let plan = standalone_app_plan(&dir.join("App.rocci")).expect("plan with unique init");
+        assert_eq!(plan.primary_name, "App");
+        let mut names: Vec<_> = plan.modules.iter().map(|m| m.type_name.as_str()).collect();
+        names.sort();
+        assert_eq!(names, vec!["App", "Ui"]);
+        cleanup(&dir);
     }
 
     #[test]
