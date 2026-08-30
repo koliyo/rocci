@@ -58,8 +58,15 @@ pub struct OrdinaryResponse {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SseStepToHost {
-    EmitToHost { item: Vec<u8>, wait_millis: u64 },
-    WaitToHost { wait_millis: u64 },
+    EmitToHost {
+        item: Vec<u8>,
+        wait_millis: u64,
+        source: u64,
+    },
+    WaitToHost {
+        wait_millis: u64,
+        source: u64,
+    },
     EndToHost,
 }
 

@@ -398,6 +398,16 @@ Native Wait-overlap test stays green. `cargo fmt --all -- --check`.
 
 **Exit:** Live page patches from the compiled app, not `WaitEmitGuest`.
 
+**Phase 7 recorded (2026-08-30):** `--http-module` on
+`examples/rocci/standalone/live-counter/LiveCounter.rocci` links
+`roc_sse_advance_for_host`. `GET /` is the live-counter page.
+`GET /sse` is `text/event-stream` `datastar-patch-elements` from the
+compiled app, not `/sse-wait`'s `data: keepalive`. Stream Wait uses
+wasmtime clocks outside the adapter mutex; two `/sse-wait` connections
+finish in one 200ms wait (~214ms), not two. Native
+`overlapping_sse_waits_do_not_serialize` stays green. Example README
+documents serve and two-connection curls. `rocci run` is unchanged.
+
 ## Phase 8: Knowledge and public docs
 
 **Bound:** Research remaining becomes "done vs still omitted" (Cmd,
@@ -417,7 +427,7 @@ Crate READMEs and the CLI page agree.
 | `--http-module` uses `.rocci` body | Phase 5 recorded |
 | sqlite-in-component | Phase 4 recorded; `GET /` is `hello-sqlite` |
 | Counter under `wasmtime serve` | Phase 6 recorded |
-| Generated SSE from Roc object | Not shipped; Phase 7 |
+| Generated SSE from Roc object | Phase 7 recorded |
 | `rocci run` / `--host wasm` / musl | Unchanged |
 | Fork wasm32 target | Phase 1 recorded on sibling `wasi-http-03-app` |
 | `roc-lang` PR | Not opened |

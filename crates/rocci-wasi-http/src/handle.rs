@@ -45,11 +45,17 @@ impl<G: RocGuest> Adapter<G> {
         }
     }
 
-    pub async fn handle(&mut self, incoming: IncomingRequest) -> Result<OutgoingResponse> {
+    pub fn begin(&mut self, incoming: IncomingRequest) -> OutcomeToHost {
         self.initialize();
-        let request = map_request(incoming);
-        let outcome = self.guest.respond(&request);
-        match outcome {
+        self.guest.respond(&map_request(incoming))
+    }
+
+    pub fn serve_file(&self, rel_path: &str) -> Result<OutgoingResponse> {
+        self.read_preopen(rel_path)
+    }
+
+    pub async fn handle(&mut self, incoming: IncomingRequest) -> Result<OutgoingResponse> {
+        match self.begin(incoming) {
             OutcomeToHost::Ordinary(ordinary) => Ok(map_ordinary(ordinary)),
             OutcomeToHost::Stream { source } => self.stream_sse(source).await,
             OutcomeToHost::File { rel_path } => self.read_preopen(&rel_path),
@@ -62,7 +68,7 @@ impl<G: RocGuest> Adapter<G> {
     }
 
     #[cfg(feature = "embedder")]
-    async fn stream_sse(&mut self, source: u64) -> Result<OutgoingResponse> {
+    async fn stream_sse(&mut self, mut source: u64) -> Result<OutgoingResponse> {
         use std::time::Duration;
 
         let mut body = Vec::new();
@@ -70,15 +76,28 @@ impl<G: RocGuest> Adapter<G> {
         loop {
             let step = self.guest.sse_advance(source, wake);
             match step {
-                SseStepToHost::EmitToHost { item, wait_millis } => {
+                SseStepToHost::EmitToHost {
+                    item,
+                    wait_millis,
+                    source: next,
+                } => {
                     body.extend_from_slice(&item);
+                    if next != 0 {
+                        source = next;
+                    }
                     if wait_millis == 0 {
                         continue;
                     }
                     tokio::time::sleep(Duration::from_millis(wait_millis)).await;
                     wake = wake.wrapping_add(1);
                 }
-                SseStepToHost::WaitToHost { wait_millis } => {
+                SseStepToHost::WaitToHost {
+                    wait_millis,
+                    source: next,
+                } => {
+                    if next != 0 {
+                        source = next;
+                    }
                     if wait_millis > 0 {
                         tokio::time::sleep(Duration::from_millis(wait_millis)).await;
                     }

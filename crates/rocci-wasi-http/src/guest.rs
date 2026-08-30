@@ -170,6 +170,7 @@ impl RocGuest for WaitEmitGuest {
                 self.step = 1;
                 SseStepToHost::WaitToHost {
                     wait_millis: u64::try_from(self.wait.as_millis()).unwrap_or(0),
+                    source: 1,
                 }
             }
             1 => {
@@ -177,6 +178,7 @@ impl RocGuest for WaitEmitGuest {
                 SseStepToHost::EmitToHost {
                     item: b"data: keepalive\n\n".to_vec(),
                     wait_millis: 0,
+                    source: 1,
                 }
             }
             _ => SseStepToHost::EndToHost,

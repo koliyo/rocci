@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::ffi::c_void;
 use std::sync::{Mutex, OnceLock};
 
-use crate::abi::{OrdinaryResponse, OutcomeToHost, ServerHeader, ServerRequest};
+use crate::abi::{OrdinaryResponse, OutcomeToHost, ServerHeader, ServerRequest, SseStepToHost};
 use crate::guest::RocGuest;
 
 fn allocs() -> &'static Mutex<HashMap<usize, Layout>> {
@@ -111,6 +111,7 @@ unsafe extern "C" {
     fn roc_respond_for_host(out: *mut u8, request: *const u8, context: *mut c_void);
     fn roc_shutdown_for_host(out: *mut u8, reason: *const u8, context: *mut c_void);
     fn roc_sse_advance_for_host(out: *mut u8, source: *mut u8, wake: u64);
+    fn roc_sse_drop_source_for_host(source: *mut u8);
 }
 
 pub(crate) fn read_u32(ptr: *const u8, offset: usize) -> u32 {
@@ -262,31 +263,21 @@ fn read_list_u8(ptr: *const u8, offset: usize) -> Vec<u8> {
     }
 }
 
-fn drain_sse_source(mut source: usize) -> Vec<u8> {
-    let mut body = Vec::new();
-    let mut wake = 0u64;
-    loop {
-        let mut step = [0u8; STEP_SIZE];
-        unsafe { roc_sse_advance_for_host(step.as_mut_ptr(), source as *mut u8, wake) };
-        match step[STEP_TAG] {
-            STEP_EMIT => {
-                body.extend_from_slice(&read_list_u8(step.as_ptr(), 8));
-                source = read_u32(step.as_ptr(), 20) as usize;
-                let wait = u64::from_le_bytes(step[0..8].try_into().unwrap());
-                if wait > 0 {
-                    wake = wake.wrapping_add(1);
-                }
-            }
-            STEP_WAIT => {
-                source = read_u32(step.as_ptr(), 8) as usize;
-                wake = wake.wrapping_add(1);
-            }
-            STEP_END => break,
-            STEP_ERR => panic!("roc_sse_advance_for_host error"),
-            tag => panic!("roc_sse_advance_for_host tag={tag}"),
-        }
+fn parse_sse_step(step: &[u8; STEP_SIZE]) -> SseStepToHost {
+    match step[STEP_TAG] {
+        STEP_EMIT => SseStepToHost::EmitToHost {
+            item: read_list_u8(step.as_ptr(), 8),
+            wait_millis: u64::from_le_bytes(step[0..8].try_into().unwrap()),
+            source: read_u32(step.as_ptr(), 20) as u64,
+        },
+        STEP_WAIT => SseStepToHost::WaitToHost {
+            wait_millis: u64::from_le_bytes(step[0..8].try_into().unwrap()),
+            source: read_u32(step.as_ptr(), 8) as u64,
+        },
+        STEP_END => SseStepToHost::EndToHost,
+        STEP_ERR => panic!("roc_sse_advance_for_host error"),
+        tag => panic!("roc_sse_advance_for_host tag={tag}"),
     }
-    body
 }
 
 fn write_request(buf: &mut [u8; REQUEST_SIZE], request: &ServerRequest) {
@@ -355,17 +346,22 @@ impl RocGuest for LinkedHelloWebGuest {
                     stop: false,
                 })
             }
-            STREAM => OutcomeToHost::Ordinary(OrdinaryResponse {
-                exit_code: 0,
-                body: drain_sse_source(read_u32(out.as_ptr(), 0) as usize),
-                headers: vec![ServerHeader {
-                    name: "content-type".into(),
-                    value: "text/event-stream".into(),
-                }],
-                status: 200,
-                stop: false,
-            }),
+            STREAM => OutcomeToHost::Stream {
+                source: read_u32(out.as_ptr(), 0) as u64,
+            },
             tag => panic!("roc_respond_for_host tag={tag}"),
+        }
+    }
+
+    fn sse_advance(&mut self, source: u64, wake_generation: u64) -> SseStepToHost {
+        let mut step = [0u8; STEP_SIZE];
+        unsafe { roc_sse_advance_for_host(step.as_mut_ptr(), source as *mut u8, wake_generation) };
+        parse_sse_step(&step)
+    }
+
+    fn sse_drop_source(&mut self, source: u64) {
+        if source != 0 {
+            unsafe { roc_sse_drop_source_for_host(source as *mut u8) };
         }
     }
 

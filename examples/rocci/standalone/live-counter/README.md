@@ -20,3 +20,22 @@ curl -s -D - -o /dev/null -X POST http://127.0.0.1:8000/actions/counter/incremen
   -H 'Datastar-Request: true'
 # 200 text/event-stream (empty SSE)
 ```
+
+Experimental WASI 0.3 component (`rocci run` stays native). Live patches come
+from the compiled app (`roc_sse_advance_for_host`), not the `/sse-wait`
+fixture. Wait is wasmtime clocks; two `/sse` connections should stay near
+one 100ms poll, not two.
+
+```sh
+cargo run -q -p rocci-cli -- build --http-module \
+  examples/rocci/standalone/live-counter/LiveCounter.rocci -o http-module.wasm
+mkdir -p .counter-data
+wasmtime serve -Sp3 -Scli --env DB_PATH=./counter.db \
+  --dir=.counter-data::. --addr 127.0.0.1:8080 http-module.wasm
+curl -s http://127.0.0.1:8080/ | head
+curl -sN --max-time 1 http://127.0.0.1:8080/sse | head
+# overlapping waits (wall ~100ms, not ~200ms)
+curl -sN --max-time 1 http://127.0.0.1:8080/sse >/tmp/sse-a &
+curl -sN --max-time 1 http://127.0.0.1:8080/sse >/tmp/sse-b &
+wait
+```

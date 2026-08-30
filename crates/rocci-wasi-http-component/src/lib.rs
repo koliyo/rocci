@@ -9,8 +9,9 @@ mod service {
     use std::time::Duration;
 
     use rocci_wasi_http::{
-        Adapter, EmptySseGuest, IncomingRequest, LinkedHelloWebGuest, OutgoingResponse, RocGuest,
-        ServerRequest, SseStepToHost, WaitEmitGuest, abi::map_request,
+        Adapter, EmptySseGuest, IncomingRequest, LinkedHelloWebGuest, OutcomeToHost,
+        OutgoingResponse, RocGuest, ServerRequest, SseStepToHost, WaitEmitGuest,
+        abi::{map_ordinary, map_request},
     };
     use wasip3::http::types::{ErrorCode, Fields, Method, Request, Response};
     use wasip3::{spawn_local, wit_future, wit_stream};
@@ -43,6 +44,14 @@ mod service {
 
         fn shutdown(&mut self) {
             self.linked.shutdown();
+        }
+
+        fn sse_advance(&mut self, source: u64, wake_generation: u64) -> SseStepToHost {
+            self.linked.sse_advance(source, wake_generation)
+        }
+
+        fn sse_drop_source(&mut self, source: u64) {
+            self.linked.sse_drop_source(source);
         }
     }
 
@@ -108,6 +117,62 @@ mod service {
         wasip3::clocks::monotonic_clock::wait_for(wait_millis.saturating_mul(1_000_000)).await;
     }
 
+    async fn stream_linked_sse(mut source: u64) -> Result<Response, ErrorCode> {
+        let headers = Fields::from_list(&[("content-type".into(), b"text/event-stream".to_vec())])
+            .map_err(|_| ErrorCode::InternalError(None))?;
+        let (mut body_tx, body_rx) = wit_stream::new();
+        let (trailers_tx, trailers_rx) = wit_future::new(|| Ok(None));
+        spawn_local(async move {
+            let mut wake = 0u64;
+            loop {
+                let step = {
+                    let mut adapter = adapter()
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    adapter.guest_mut().sse_advance(source, wake)
+                };
+                match step {
+                    SseStepToHost::EmitToHost {
+                        item,
+                        wait_millis,
+                        source: next,
+                    } => {
+                        let _ = body_tx.write_all(item).await;
+                        if next != 0 {
+                            source = next;
+                        }
+                        clocks_wait(wait_millis).await;
+                        if wait_millis > 0 {
+                            wake = wake.wrapping_add(1);
+                        }
+                    }
+                    SseStepToHost::WaitToHost {
+                        wait_millis,
+                        source: next,
+                    } => {
+                        if next != 0 {
+                            source = next;
+                        }
+                        clocks_wait(wait_millis).await;
+                        wake = wake.wrapping_add(1);
+                    }
+                    SseStepToHost::EndToHost => {
+                        let mut adapter = adapter()
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner());
+                        adapter.guest_mut().sse_drop_source(source);
+                        break;
+                    }
+                }
+            }
+            drop(body_tx);
+            let _ = trailers_tx.write(Ok(None)).await;
+        });
+        let (response, _sent) = Response::new(headers, Some(body_rx), trailers_rx);
+        let _ = response.set_status_code(200);
+        Ok(response)
+    }
+
     async fn stream_sse_wasi<G: RocGuest + 'static>(
         mut guest: G,
         incoming: IncomingRequest,
@@ -126,17 +191,31 @@ mod service {
         let (trailers_tx, trailers_rx) = wit_future::new(|| Ok(None));
         spawn_local(async move {
             let mut wake = 0u64;
+            let mut source = source;
             loop {
                 let step = guest.sse_advance(source, wake);
                 match step {
-                    SseStepToHost::EmitToHost { item, wait_millis } => {
+                    SseStepToHost::EmitToHost {
+                        item,
+                        wait_millis,
+                        source: next,
+                    } => {
                         let _ = body_tx.write_all(item).await;
+                        if next != 0 {
+                            source = next;
+                        }
                         clocks_wait(wait_millis).await;
                         if wait_millis > 0 {
                             wake = wake.wrapping_add(1);
                         }
                     }
-                    SseStepToHost::WaitToHost { wait_millis } => {
+                    SseStepToHost::WaitToHost {
+                        wait_millis,
+                        source: next,
+                    } => {
+                        if next != 0 {
+                            source = next;
+                        }
                         clocks_wait(wait_millis).await;
                         wake = wake.wrapping_add(1);
                     }
@@ -187,13 +266,24 @@ mod service {
                 return stream_sse_wasi(WaitEmitGuest::new(Duration::from_millis(200)), incoming)
                     .await;
             }
-            let outgoing = adapter()
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .handle(incoming)
-                .await
-                .map_err(|err| ErrorCode::InternalError(Some(err.to_string())))?;
-            outgoing_to_wasi(outgoing)
+            let outcome = {
+                let mut adapter = adapter()
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                adapter.begin(incoming)
+            };
+            match outcome {
+                OutcomeToHost::Ordinary(ordinary) => outgoing_to_wasi(map_ordinary(ordinary)),
+                OutcomeToHost::File { rel_path } => {
+                    let outgoing = adapter()
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner())
+                        .serve_file(&rel_path)
+                        .map_err(|err| ErrorCode::InternalError(Some(err.to_string())))?;
+                    outgoing_to_wasi(outgoing)
+                }
+                OutcomeToHost::Stream { source } => stream_linked_sse(source).await,
+            }
         }
     }
 
