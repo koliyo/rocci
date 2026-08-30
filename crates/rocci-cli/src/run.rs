@@ -303,6 +303,7 @@ fn run_standalone(
         (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
     let (plan, profile, inspect_pages) = plan;
+    ensure_unique_process_init(&plan)?;
     let options = driver::DriverOptions {
         args: args.to_vec(),
         no_window,
@@ -454,13 +455,51 @@ fn plan_standalone(
 
 pub fn standalone_app_plan(primary: &Path) -> Result<GenericAppPlan> {
     match plan_standalone(primary, &LowerOptions::default(), Progress::default())? {
-        (StandaloneReady::Ready(plan), _, _) => Ok(plan),
+        (StandaloneReady::Ready(plan), _, _) => {
+            ensure_unique_process_init(&plan)?;
+            Ok(plan)
+        }
         (StandaloneReady::Failed(files), _, _) => {
             let name = files
                 .first()
                 .map(|file| file.name.as_str())
                 .unwrap_or("template");
             bail!("template compilation failed for {name}")
+        }
+    }
+}
+
+fn module_has_process_init(module: &GenericModule) -> bool {
+    module.init.is_some() || module.state_type.is_some()
+}
+
+fn process_init_file_name(module: &GenericModule) -> &str {
+    Path::new(&module.mapped.source_name)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(module.type_name.as_str())
+}
+
+fn ensure_unique_process_init(plan: &GenericAppPlan) -> Result<()> {
+    let inits: Vec<_> = plan
+        .modules
+        .iter()
+        .filter(|module| module_has_process_init(module))
+        .collect();
+    match inits.as_slice() {
+        [] => Ok(()),
+        [only] if only.type_name == plan.primary_name => Ok(()),
+        [only] => bail!(
+            "process `@init` is in `{}`; run that file or the app directory",
+            process_init_file_name(only)
+        ),
+        many => {
+            let names = many
+                .iter()
+                .map(|module| format!("`{}`", process_init_file_name(module)))
+                .collect::<Vec<_>>()
+                .join(", ");
+            bail!("multiple process `@init` / `@context` modules in one app: {names}")
         }
     }
 }
@@ -1219,6 +1258,77 @@ import Html
         let err = discover_standalone_tree(&app).unwrap_err().to_string();
         assert!(err.contains("duplicate standalone module `Foo`"));
         cleanup(&app);
+    }
+
+    fn process_init_src() -> &'static str {
+        r#"
+import Html
+
+@context { n : I64 }
+
+@init {
+    { n: 0 }
+}
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#
+    }
+
+    fn view_only_src() -> &'static str {
+        r#"
+import Html
+
+@get:view("/") = |_| {
+    page({})
+}
+
+@component Page = |{}|
+    <html><body><p>ok</p></body></html>
+"#
+    }
+
+    #[test]
+    fn two_process_init_modules_fail_to_plan() {
+        let dir = temp_app("two-init");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Other.rocci"), process_init_src()).unwrap();
+        let err = standalone_app_plan(&dir.join("App.rocci"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("multiple process `@init`"), "{err}");
+        assert!(err.contains("App.rocci"), "{err}");
+        assert!(err.contains("Other.rocci"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn named_file_fails_when_sibling_owns_process_init() {
+        let dir = temp_app("ui-not-init");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Ui.rocci"), view_only_src()).unwrap();
+        let err = standalone_app_plan(&dir.join("Ui.rocci"))
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("process `@init` is in `App.rocci`"), "{err}");
+        cleanup(&dir);
+    }
+
+    #[test]
+    fn view_only_sibling_plans_with_init_primary() {
+        let dir = temp_app("init-plus-ui");
+        fs::write(dir.join("App.rocci"), process_init_src()).unwrap();
+        fs::write(dir.join("Ui.rocci"), view_only_src()).unwrap();
+        let plan = standalone_app_plan(&dir.join("App.rocci")).expect("plan with unique init");
+        assert_eq!(plan.primary_name, "App");
+        let mut names: Vec<_> = plan.modules.iter().map(|m| m.type_name.as_str()).collect();
+        names.sort();
+        assert_eq!(names, vec!["App", "Ui"]);
+        cleanup(&dir);
     }
 
     #[test]
