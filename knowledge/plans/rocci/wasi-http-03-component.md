@@ -4,7 +4,7 @@ title: WASI 0.3 HTTP component for wasmtime serve
 description: "Compile the existing rocci-wasi-http adapter as a portable WASI 0.3 wasi:http/service component so wasmtime serve accepts the artifact. Rust is the component; Roc stays a linked C-ABI object. Do not change --host wasm or rocci run."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-29T15:25:00Z }
+generated: { by: process:cursor, at: 2026-08-30T10:10:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -155,8 +155,9 @@ already calls (`roc_init_for_host` / `roc_respond_for_host` /
 
 This is research **option 1**. The [embedder plan](basic-webserver-wasi.md)
 shipped option 2 (native `Adapter`). This plan shipped the portable
-`rocci build --http-module` **component**. Remaining: sqlite-in-component
-and a real `roc build` object link.[^adapter-plan][^crate-readme][^cli-main]
+`rocci build --http-module` **component**. Remaining work is the
+[app link](wasi-http-03-app.md): real `roc build` object, sqlite-in-component,
+and Counter under `wasmtime serve`.[^adapter-plan][^crate-readme][^cli-main]
 
 `rocci run` stays native 0.16. `--host wasm` stays apply. Musl publish
 stays the default.[^efficient-plan][^serve-rs][^host-rs][^wasm-platform]
@@ -436,10 +437,11 @@ READMEs and the CLI page agree with the research.
 
 **Phase 8 recorded (2026-08-29):** Option 1 shipped for the experimental
 `--http-module` artifact (hello-web, mapping, SSE Wait overlap, one
-preopen). Remaining: sqlite-in-component (host `clang` / no
-`WASI_SYSROOT`) and a real `roc build --target=wasm32 --no-link` object.
-Upstream offer unchanged: wasm32 host artifact + WIT adapter; no fork PR
-unless asked. Not logged complete until CI and Knowledge succeed.
+preopen). Remaining work moved to [app link](wasi-http-03-app.md)
+(real `roc build` object, sqlite-in-component, Counter). The sibling
+`../roc-basic-webserver` fork is now the wasm32 platform source; a
+`roc-lang` PR is still not opened unless asked. Not logged complete
+until CI and Knowledge succeed.
 
 ## Disposition
 
@@ -448,9 +450,10 @@ unless asked. Not logged complete until CI and Knowledge succeed.
 | Option 1 (Rust component + Roc C-ABI object) | Shipped experimental |
 | `--http-module` | Component bytes; `wasmtime serve -Sp3 -Scli` |
 | sqlite-in-component | Omitted; compile blocker recorded |
-| `roc build` object link | Not shipped; `.rocci` path is CLI shape only |
+| `roc build` object link | Follow-on: [app link](wasi-http-03-app.md) |
 | `--host wasm` / `rocci run` / musl | Unchanged |
-| Upstream fork PR | Not opened |
+| Sibling fork wasm32 target | Follow-on: [app link](wasi-http-03-app.md) |
+| `roc-lang` fork PR | Not opened |
 
 ## Suggested command surface (Phase 0 fills versions)
 
