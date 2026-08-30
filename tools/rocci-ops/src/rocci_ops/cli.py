@@ -17,7 +17,6 @@ from rocci_ops import (
     worktrees,
     workspace_deps,
 )
-from rocci_ops.paths import ensure_h35_desktop
 
 USAGE = """\
 usage: rocci-ops <command> [args...]
@@ -50,16 +49,6 @@ subcommands:
 """
 
 
-def needs_h35_desktop(command: str, rest: list[str]) -> bool:
-    if command == "build" and rest != ["playground"]:
-        return True
-    if command == "install" and rest[:1] == ["cli"]:
-        return True
-    if command == "package" and rest[:1] == ["macos"]:
-        return True
-    return False
-
-
 def main(argv: list[str] | None = None) -> None:
     args = sys.argv[1:] if argv is None else argv
     if not args or args[0] in ("-h", "--help"):
@@ -68,8 +57,6 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(2)
         raise SystemExit(0)
     command, rest = args[0], args[1:]
-    if needs_h35_desktop(command, rest):
-        ensure_h35_desktop()
     if command == "build":
         raise SystemExit(build.build_command(rest))
     if command == "check":

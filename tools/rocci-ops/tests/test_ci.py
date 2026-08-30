@@ -1,24 +1,5 @@
 from rocci_ops.ci import JOB_NAMES, parse_ci_args, steps_for
-from rocci_ops.paths import ensure_h35_desktop, repo_root
-
-
-def test_h35_desktop_sibling_is_present_or_cloneable() -> None:
-    dest = ensure_h35_desktop(repo_root())
-    assert (dest / "Cargo.toml").is_file()
-    assert dest == (repo_root() / ".." / "h35-desktop").resolve()
-
-
-def test_h35_desktop_is_linked_beside_okmate_tool(
-    tmp_path, monkeypatch
-) -> None:
-    okmate = tmp_path / ".okmate-tool"
-    okmate.mkdir()
-    (okmate / "Cargo.toml").write_text("[package]\nname = \"okmate\"\n")
-    monkeypatch.setenv("OKMATE_DIR", str(okmate))
-    sibling = ensure_h35_desktop(repo_root())
-    linked = (okmate / ".." / "h35-desktop").resolve()
-    assert (linked / "Cargo.toml").is_file()
-    assert linked == sibling or linked.is_relative_to(tmp_path)
+from rocci_ops.paths import repo_root
 
 
 def test_list_jobs_are_stable() -> None:
