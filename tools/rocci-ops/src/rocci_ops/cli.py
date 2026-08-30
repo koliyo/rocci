@@ -2,29 +2,43 @@ from __future__ import annotations
 
 import sys
 
-from rocci_ops import ci, deploy, docs_coverage, local, origin, pr_checkout, release, workspace_deps
+from rocci_ops import (
+    build,
+    ci,
+    deploy,
+    docs_coverage,
+    install,
+    origin,
+    package,
+    pr_checkout,
+    promote,
+    release,
+    serve,
+    site,
+    worktrees,
+    workspace_deps,
+)
 from rocci_ops.paths import ensure_h35_desktop
 
 USAGE = """\
 usage: rocci-ops <command> [args...]
 
 commands:
-  check         deps | docs | zed
+  build         cargo release build of rocci, rocdown, and language-server; playground
   ci            run GitHub Actions validation jobs on this machine
-  release       package binaries, wait for CI, or publish a GitHub release
+  check         deps | docs | zed
+  install       cli | vscode | cursor
+  package       macos, vscode, zed, site, icons
+  site          stage generated examples, check, test, and build rocci.dev
+  serve         hybrid, static, site, app
   deploy        probe, bootstrap, or push origin artifacts over SSH
   origin        publish, up, or backup on the origin host
-  install       cli | vscode | cursor
-  package       package vscode, zed, or the rocci.dev site (docs + live apps)
-  site          stage generated examples, check, test, and build rocci.dev
-  bundle        macOS app bundles (`macos` for Rocci; `okf` is retired, use okmate)
-  build-playground
-  render-brand-icons
-  serve         docker compose helpers (hybrid, static, site, app)
   push-worktrees
   pr-checkout   list open PRs, or checkout one here as pr/<branch>
   promote       staging | production | tag
+  release       package binaries, wait for CI, or publish a GitHub release
 """
+
 
 CHECK_USAGE = """\
 usage: rocci-ops check deps|docs|zed [args...]
@@ -35,17 +49,15 @@ subcommands:
   zed     check Zed manifest and build the language server WASM
 """
 
-LOCAL_COMMANDS = {
-    "install",
-    "package",
-    "site",
-    "bundle",
-    "build-playground",
-    "render-brand-icons",
-    "serve",
-    "push-worktrees",
-    "promote",
-}
+
+def needs_h35_desktop(command: str, rest: list[str]) -> bool:
+    if command == "build" and rest != ["playground"]:
+        return True
+    if command == "install" and rest[:1] == ["cli"]:
+        return True
+    if command == "package" and rest[:1] == ["macos"]:
+        return True
+    return False
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -56,8 +68,10 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(2)
         raise SystemExit(0)
     command, rest = args[0], args[1:]
-    if command != "origin":
+    if needs_h35_desktop(command, rest):
         ensure_h35_desktop()
+    if command == "build":
+        raise SystemExit(build.build_command(rest))
     if command == "check":
         raise SystemExit(check_main(rest))
     if command == "ci":
@@ -70,8 +84,20 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(origin.main(rest))
     if command == "pr-checkout":
         raise SystemExit(pr_checkout.main(rest))
-    if command in LOCAL_COMMANDS:
-        raise SystemExit(local.main([command, *rest]))
+    if command == "install":
+        raise SystemExit(install.install_command(rest))
+    if command == "package":
+        raise SystemExit(package.package_command(rest))
+    if command == "site":
+        if rest:
+            raise SystemExit("usage: rocci-ops site")
+        raise SystemExit(site.build_site())
+    if command == "serve":
+        raise SystemExit(serve.serve_command(rest))
+    if command == "push-worktrees":
+        raise SystemExit(worktrees.push_worktrees_command(rest))
+    if command == "promote":
+        raise SystemExit(promote.promote_command(rest))
     sys.stderr.write(f"unknown command: {command}\n")
     sys.stderr.write(USAGE)
     raise SystemExit(2)
@@ -93,7 +119,7 @@ def check_main(argv: list[str]) -> int:
         if rest:
             sys.stderr.write("usage: rocci-ops check zed\n")
             return 2
-        return local.verify_zed()
+        return package.verify_zed()
     sys.stderr.write(f"unknown check subcommand: {sub}\n")
     sys.stderr.write(CHECK_USAGE)
     return 2

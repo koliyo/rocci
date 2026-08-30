@@ -151,6 +151,6 @@ def test_prod_readme_documents_lane_roots() -> None:
 
 
 def test_package_and_build_site_do_not_pass_all() -> None:
-    local = (repo_root() / "tools/rocci-ops/src/rocci_ops/local.py").read_text(encoding="utf-8")
-    assert '"--all"' not in local
-    assert "'--all'" not in local
+    site = (repo_root() / "tools/rocci-ops/src/rocci_ops/site.py").read_text(encoding="utf-8")
+    assert '"--all"' not in site
+    assert "'--all'" not in site

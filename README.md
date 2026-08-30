@@ -63,7 +63,7 @@ ad-hoc signed macOS `.app`. The bundled app does not need `roc` on `PATH` at
 runtime. From the repository root, with `roc` and `cargo` on `PATH`:
 
 ```sh
-uv run rocci-ops bundle macos
+uv run rocci-ops package macos
 open "target/release/bundle/macos/Datastar.app"
 ```
 
