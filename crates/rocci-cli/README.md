@@ -29,7 +29,8 @@ a temporary workaround for an optimized-backend compiler recursion. Dev
 artifacts are functional but may be larger and slower; pass `--opt speed` for
 production-performance output when the compiler path is known to work.
 
-# Run a standalone template application with live reload and embedded preview
+# Run a standalone app directory (unique @init) or a named .rocci entry
+cargo run -p rocci-cli -- run examples/rocci/standalone/counter
 cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
 
 # Print compile and wait phases to stderr

@@ -50,8 +50,13 @@ an app directory, a standalone `.rocci`, or `rocci.toml`. `--target` requires
 cargo run -q -p rocci-cli -- run [ENTRY] [serve options]
 ```
 
-Standalone `.rocci` or directory/`main.roc`. Starts HTTP and opens a preview
-window by default. Extra args after the entry go to the Roc binary.
+Standalone directory (`rocci run .` or `rocci run <dir>`), standalone
+`.rocci` file, or custom directory/`main.roc`. A standalone directory
+resolves a unique entry (`[app].entry`, then unique `@init` / `@context`,
+then unique `@get:view("/")`, then a single `.rocci`). Two process inits
+in one tree fail. Bare `rocci run` still defaults to `main.roc`. Starts
+HTTP and opens a preview window by default. Extra args after the entry go
+to the Roc binary.
 
 ## View
 

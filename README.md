@@ -22,8 +22,8 @@ Install the platform prerequisites required by Wry, plus `roc` and `cargo` on
 `PATH`. Then from the repository root:
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/styling/Styling.rocci
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter
+cargo run -q -p rocci-cli -- run examples/rocci/standalone/styling
 cargo run -q -p rocci-cli -- run examples/rocci/custom/snake
 cargo run -q -p rocci-cli -- run examples/rocci/custom/datastar
 cargo run -q -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
@@ -38,10 +38,13 @@ language with file-level and component `@css`.
 for the format. [`examples/rocdown/errors`](examples/rocdown/errors) is the 404 and parse-error
 preview: a working `/error-demo/` page plus a broken file that still opens in the window.
 
-`rocci run path/to/App.rocci` is a standalone app: compile that file, generate
-an HTTP dispatcher from `@context` / `@init` / `@method:role` routes, and start it. `rocci run`
-on a directory or `main.roc` compiles sibling `.rocci` modules and starts the
-authored Roc app. Both paths stage `Html.roc` / `Datastar.roc` from the CLI
+`rocci run path/to/app` is a standalone app directory: resolve a unique
+entry, generate an HTTP dispatcher from `@context` / `@init` /
+`@method:role` routes, and start it. `rocci run path/to/App.rocci` names
+the entry file and still loads sibling modules. At most one process
+`@init` is allowed. `rocci run` on a directory that contains `main.roc`
+compiles sibling `.rocci` modules and starts the authored Roc app. Both
+paths stage `Html.roc` / `Datastar.roc` from the CLI
 runtime and a pinned Datastar JS file in `assets/` (downloaded into
 `~/.rocci/cache` on first use). The preview window listens on a free local
 TCP port and prints the URL so you (or an agent) can inspect the same HTTP

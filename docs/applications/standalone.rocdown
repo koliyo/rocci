@@ -2,14 +2,18 @@
     layout: "docs",
     meta: {
         title: "Standalone applications",
-        description: "Author @context, @init, and @get:view. rocci run generates the server. Counter is the first app.",
+        description: "A standalone app is a directory of modules. rocci run generates the server. Counter is the first app.",
     },
 }
 
 # Standalone applications
 
-A standalone module declares `@context`, `@init`, `@get:view`, and optional
-mutations. `rocci run` generates dispatch. You do not write `main`.
+A standalone **app** is a directory of `.rocci` **modules**. Process
+`@context` / `@init` occur at most once in that tree (or not at all).
+`rocci run <dir>` picks the unique entry; `rocci run File.rocci` still
+names the primary and loads siblings. `rocci.toml` may set `[app].entry`.
+You do not write `main`. `apps.toml` is the site catalog, not a run
+manifest.
 
 Canonical source: [Counter](/examples/counter/) ·
 [Counter.rocci](/examples/counter/source/Counter-rocci/).
@@ -60,6 +64,8 @@ The card uses `id="counter"` so the later patch has a morph target.
 logging from `@component`.
 
 ```sh
+cargo run -q -p rocci-cli -- run \
+  examples/rocci/standalone/counter --no-window --log-handlers
 cargo run -q -p rocci-cli -- run \
   examples/rocci/standalone/counter/Counter.rocci --no-window --log-handlers
 ```
