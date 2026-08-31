@@ -62,7 +62,7 @@ five_minutes_route = "/docs/five-minutes/"
 
 # Directory-plus-index sidebar contract
 # (knowledge/plans/rocdown/docs-directory-semantics.md Phase 0).
-# Planner still title-matches peel until Phase 1. Public pages unchanged.
+# Phase 1 shipped peel-by-id. Phase 2 added Contributor and Appendix landings.
 
 [directory_semantics]
 plan = "knowledge/plans/rocdown/docs-directory-semantics.md"
@@ -75,10 +75,7 @@ cluster_warning = "RD2205"
 cluster_warning_severity = "warning"
 explicit_nav = true
 visible_depth = 2
-indexless_clusters = [
-    "docs/reference/contributor",
-    "docs/appendix",
-]
+indexless_clusters = []
 
 [vocabulary]
 component = "A PascalCase @component that lowers to a pure Roc Html function."
@@ -206,6 +203,11 @@ disposition = "keep"
 notes = "Composition; two app depths; Rocdown experimental."
 
 [[page]]
+path = "docs/appendix/index.rocdown"
+disposition = "keep"
+notes = "Appendix subsection landing."
+
+[[page]]
 path = "docs/appendix/roc-for-rocci.rocdown"
 disposition = "keep"
 notes = "Also aliases /docs/appendix/why-roc/."
@@ -318,6 +320,11 @@ disposition = "keep"
 [[page]]
 path = "docs/reference/diagnostics.rocdown"
 disposition = "keep"
+
+[[page]]
+path = "docs/reference/contributor/index.rocdown"
+disposition = "keep"
+notes = "Contributor subsection landing."
 
 [[page]]
 path = "docs/reference/contributor/rocci-tree.rocdown"
