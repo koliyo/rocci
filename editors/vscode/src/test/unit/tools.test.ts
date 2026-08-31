@@ -104,7 +104,10 @@ suite('Rocci tools release contract (offline)', () => {
     })
     assert.ok(fs.existsSync(path.join(storage, 'releases', 'v0.1.0', 'rocci-language-server')))
     assert.ok(fs.existsSync(path.join(storage, 'manifest.json')))
-    assert.ok(logs.some(line => line.includes('Installed')))
+    assert.ok(logs.some(line => line.includes('Current installed: none')))
+    assert.ok(logs.some(line => line.includes('Remote found: v0.1.0')))
+    assert.ok(logs.some(line => line.includes('Install: none -> v0.1.0')))
+    assert.ok(logs.some(line => line.includes('Installed binaries: rocci-language-server')))
   })
 
   test('installs the rolling GitHub tag dev archive (dev-<sha> assets)', async () => {
@@ -150,5 +153,59 @@ suite('Rocci tools release contract (offline)', () => {
       JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8'))
     )
     assert.strictEqual(manifest.tagName, 'dev')
+  })
+
+  test('logs current and remote versions when already up to date', async () => {
+    const archive = Buffer.from('fixture-archive-bytes')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-current-'))
+    const payload = {
+      id: 9,
+      name: 'v0.1.0',
+      tagName: 'v0.1.0',
+      publishedAt: '2026-08-25T00:00:00Z',
+      assets: [
+        {
+          name: 'rocci-v0.1.0-aarch64-apple-darwin.tar.gz',
+          downloadUrl: 'https://example.test/archive'
+        },
+        {
+          name: 'rocci-v0.1.0-aarch64-apple-darwin.tar.gz.sha256',
+          downloadUrl: 'https://example.test/sha'
+        }
+      ]
+    }
+    const client = {
+      getJson: async () => payload,
+      getBuffer: async (url: string) =>
+        url.endsWith('/sha') ? Buffer.from(`${digest}  rocci-v0.1.0-aarch64-apple-darwin.tar.gz\n`) : archive
+    }
+    const extract = async (buffer: Buffer, dest: string) => {
+      fs.writeFileSync(path.join(dest, 'rocci-language-server'), buffer)
+    }
+    await installTools({
+      storageRoot: storage,
+      channel: 'stable',
+      overwriteDev: false,
+      platform: 'darwin',
+      arch: 'arm64',
+      client,
+      extract,
+      log: () => undefined
+    })
+    const logs: string[] = []
+    await installTools({
+      storageRoot: storage,
+      channel: 'stable',
+      overwriteDev: false,
+      platform: 'darwin',
+      arch: 'arm64',
+      client,
+      extract,
+      log: message => logs.push(message)
+    })
+    assert.ok(logs.some(line => line.includes('Current installed: v0.1.0')))
+    assert.ok(logs.some(line => line.includes('Remote found: v0.1.0')))
+    assert.ok(logs.some(line => line.includes('Skip install: already at v0.1.0')))
   })
 })
