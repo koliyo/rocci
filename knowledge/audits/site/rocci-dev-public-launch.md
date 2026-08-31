@@ -4,7 +4,7 @@ title: rocci.dev public-launch checklist
 description: After the 2026-08-23 Should pass, live example hostnames are not advertised as serving, a public support matrix and one GitHub-issues feedback URL are published; remaining gates are a signed-out staging smoke, a tagged clean install, the known repository-visibility flip, and production DNS.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ux, concern/navigation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-23T00:30:00Z }
+generated: { by: process:cursor, at: 2026-08-31T07:37:00Z }
 stale_after: 2026-11-22
 authority: descriptive
 owners: [human:nils]
@@ -33,7 +33,7 @@ sources:
     resource: ../../../site/project/contributing.rocdown
     title: Current public contributing page
     author: process:cursor
-    last_modified: 2026-08-23
+    last_modified: 2026-08-31
   - id: contributing-md
     resource: ../../../CONTRIBUTING.md
     title: Root contributor contract
@@ -189,9 +189,9 @@ staging browser walk.[^publish-plan][^inventory][^contributing-md]
 - Root README, ROADMAP, the VS Code extension README, and the Rocdown CLI
   README no longer teach `@on` as current. Public language and diagnostics
   pages still name `@on` only as a removed form.[^root-readme][^roadmap][^vscode-readme][^project-status]
-- Root community-health files exist: `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`,
+- Root community-health files exist: `CONTRIBUTING.md`,
   `SECURITY.md`, `SUPPORT.md`, `GOVERNANCE.md`, and focused
-  `.github/ISSUE_TEMPLATE` forms. Enforcement and vulnerability mail is
+  `.github/ISSUE_TEMPLATE` forms. Vulnerability mail is
   `oss@rocci.dev`; `security@rocci.dev` is still a later mailbox.[^contributing-md][^github-health][^publish-plan]
 - The in-site Contributing page matches AGENTS ownership layers and points at
   root `CONTRIBUTING.md`.[^contributing-page][^contributing-md]
@@ -324,7 +324,7 @@ island. GitHub must open without authentication after the known flip.
 [^faq]: Current FAQ questions and canonical follow-up links.
 [^project-status]: Current shipped inventory uses verb-first handlers; `@island` is reserved.
 [^contributing-page]: In-site Contributing page lists AGENTS layers and links to root CONTRIBUTING.md.
-[^contributing-md]: Root CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, SUPPORT.md, GOVERNANCE.md, and focused issue forms.
+[^contributing-md]: Root CONTRIBUTING.md, SECURITY.md, SUPPORT.md, GOVERNANCE.md, and focused issue forms.
 [^playground]: Playground copy states lower-only; no HTML preview without Roc WASM.
 [^install]: Public clone URL, source-build path, and experimental GitHub archives.
 [^inventory]: First-use path is retired; academy and `/rocdown/` routes stay 404.

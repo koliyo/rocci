@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-08-31
+
+- Removed root `CODE_OF_CONDUCT.md` and live links from CONTRIBUTING, GOVERNANCE, and the in-site Contributing page. Too early to publish those terms. Revised the [public-launch checklist](audits/site/rocci-dev-public-launch.md) list of community-health files. Historical archive reports and the 2026-08-23 log line are unchanged.
+
 ## 2026-08-30
 
 - Recorded [workspace test-suite](plans/ops/workspace-test-suite.md) Phase 7 docs: AGENTS/CONTRIBUTING/README describe the offline workspace vs `ROCCI_REQUIRE_ROC=1` Roc lane; devops skill lists the hosted `roc` job. Phases 1–6 are in this branch; hosted `/ci` for the new job is not yet run. Exploratory; do not log complete until CI and Knowledge succeed.

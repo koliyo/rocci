@@ -72,9 +72,8 @@ Knowledge on the PR head. Dependabot PRs need the same `/ci` comment.
 `/ci-local` and `/cl-local` currently queue the same hosted jobs. Self-hosted
 CI runners are disabled.
 
-## Conduct, security, and support
+## Security and support
 
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - [SECURITY.md](SECURITY.md) for vulnerability reports
 - [SUPPORT.md](SUPPORT.md) for usage questions
 - Public feedback: [https://github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues)
