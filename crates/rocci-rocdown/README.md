@@ -294,6 +294,10 @@ registered to the same handler so `rocdown view` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
 
+Static apply chrome data is `Views.Page` / `Views.NavGroupView` from the staged
+runtime. Nested sidebar groups always include `children` (use `[]` when a
+group has no nested folds).
+
 A missing `children` field on `Views.NavGroupView` is an opt-in Roc smoke
 (skipped unless `ROCCI_REQUIRE_ROC=1`):
 
