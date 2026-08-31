@@ -41,6 +41,10 @@ pub(crate) fn staged_fingerprints(
         "RocdownBuild.roc",
         staged_build_roc(plan, is_wasm).as_bytes(),
     ));
+    fps.push(rocci_roc_host::InputFingerprint::from_bytes(
+        "Views.roc",
+        runtime::VIEWS.as_bytes(),
+    ));
     fps
 }
 
@@ -59,6 +63,7 @@ pub(crate) fn roc_source_hash(
 ) -> String {
     let mut hasher = Sha256::new();
     hasher.update(runtime::HTML.as_bytes());
+    hasher.update(runtime::VIEWS.as_bytes());
     hasher.update(build_roc.as_bytes());
     hasher.update(pages_roc.as_bytes());
     for m in theme_modules {
