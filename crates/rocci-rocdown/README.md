@@ -386,39 +386,30 @@ not a substitute for the syntax above.
 there. New site-planning code goes in the owning subdirectory, not a new
 flat `src/*.rs` file and not a second public planner API.
 
-Current `src/*.rs` roles (host-only modules are `cfg(not(target_arch = "wasm32"))`
-at the `mod` line):
+Host-only modules are `cfg(not(target_arch = "wasm32"))` at the `mod` line.
 
-| File | Role |
+| Path | Role |
 | --- | --- |
 | `lib.rs` | Product facade |
 | `scan.rs` / `parse.rs` / `ast.rs` / `markdown.rs` / `pprint.rs` | Language front-end and inspect walkers |
 | `*.generated.rs` | Ungram-owned AST and inspect mappings |
-| `lower.rs` | Document lowering to Roc (target: `src/lower/`) |
-| `docs.rs` | Article fields, tree, registry validation, HTML/search, includes, `:example` runner (target: `src/docs/`) |
-| `plan.rs` | Site planner: theme compile, nav projection, hashed assets, playground, discovery/`Pages.roc` (target: `src/plan/`) |
-| `catalog.rs` | Identity, graph, and navigation *data* |
-| `build.rs` | Session, staging, Roc invoke, output commit |
+| `src/plan/` | `plan` / `plan_preview`, theme, nav forest, hashed assets, playground, discovery/`Pages.roc` |
+| `src/docs/` | Field helpers, article tree, registry validation, HTML/search, includes, `:example` runner |
+| `src/lower/` | `lower` / `lower_islands`, emitter, Markdown, docs-kind, islands |
+| `src/catalog/` | Identity, graph, and navigation *data* |
+| `src/build/` | Session, staging, Roc invoke, output commit |
 | `article.rs` / `registry.rs` / `params.rs` / `img.rs` / `page.rs` | Article kinds, images, and page metadata |
 | `links.rs` / `imports.rs` | Page-link index and `@use` kinds |
 | `site.rs` / `config.rs` / `package.rs` | Site load, `rocdown.toml`, publish package |
 | `service.rs` / `islands.rs` / `standalone.rs` / `static_preview.rs` / `dev.rs` | Island service, standalone preview, live reload |
 | `highlight.rs` / `lsp.rs` / `inspect_snapshot.rs` / `theme.rs` / `runtime.rs` | Highlight, analysis, theme options, staged runtime bytes |
 
-Target planner / article / lower directories (see the
-[implementation-structure plan](../../knowledge/plans/rocci/implementation-structure.md)
-and the
-[structure audit](../../knowledge/audits/rocci/implementation-structure.md)):
-
-| Directory | Owns |
-| --- | --- |
-| `src/plan/` | `plan` / `plan_preview`, theme, nav forest, assets, playground, emit |
-| `src/docs/` | Field helpers, article tree, registry validation, HTML/search, includes, example runner |
-| `src/lower/` | `lower` / `lower_islands`, emitter, Markdown, docs-kind, islands |
-
 Catalog still owns identity and nav data; the planner owns `NavGroupView`
 projection. Do not add commands, diagnostic codes, or a second crate to
-make a file smaller.
+make a file smaller. The split sequence is in the
+[implementation-structure plan](../../knowledge/plans/rocci/implementation-structure.md)
+and the
+[structure audit](../../knowledge/audits/rocci/implementation-structure.md).
 
 ## Implemented vs deferred
 

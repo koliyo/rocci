@@ -137,34 +137,32 @@ there is no editor and no WASM compile.
 
 ## Internal modules
 
-`lib.rs` is the library surface used by the `rocci` binary and by Rocdown
+`lib.rs` is the product barrel used by the `rocci` binary and by Rocdown
 for shared host pieces. New orchestration belongs in the owning file or
 subdirectory below, not a second public driver crate.
 
-Current `src/*.rs` roles:
-
-| File | Role |
+| Path | Role |
 | --- | --- |
 | `lib.rs` | Library barrel |
 | `main.rs` | `rocci` clap dispatch |
-| `run.rs` | `rocci run` orchestration (target: `src/run/` after visibility is tight) |
-| `dev_server.rs` | Shared preview and live-reload server used by Rocdown (target: `src/dev_server/`) |
-| `browse.rs` | Gallery compiler; stays CLI-private, not a Rocdown dependency (target: `src/browse/`) |
-| `dispatch.rs` | Generated HTTP dispatcher (target: `src/dispatch/`) |
+| `src/run/` | `rocci run` orchestration and standalone plans |
+| `src/dev_server/` | Shared preview and live-reload server used by Rocdown |
+| `src/browse/` | Gallery compiler; not a Rocdown dependency |
+| `src/dispatch/` | Generated HTTP dispatcher |
 | `driver.rs` / `serve.rs` / `view.rs` / `inspect.rs` / `inspector.rs` | Compile driver, static serve, component preview, inspect, Dev overlay |
 | `playground.rs` / `playground_html.rs` / `playground_compile.rs` | Playground host, HTML, local compile |
 | `bundle.rs` / `http_module.rs` / `datastar_asset.rs` | macOS bundle, WASI HTTP module, Datastar pin |
 | `rocci_test.rs` / `logs.rs` / `profile.rs` / `error_page.rs` / `path_hint.rs` | `rocci test`, log tee, metrics fixture, failed-rebuild dialog, `okmate` hint |
 | `style.rs` / `native_target.rs` / `runtime_assets.rs` / `roc_module.rs` | Highlight CSS, host triple, staged assets, Roc module helpers |
 
-`rocci_cli::` stays `pub` only for modules Rocdown or tests already import
-(`driver`, `serve`, `dev_server`, `logs`, `inspect`, `profile`, `path_hint`,
-`error_page`, `playground`, and any other current external import). The rest
-tighten to `pub(crate)`. Do not add CLI flags.
+`rocci_cli::` stays `pub` for modules the `rocci` binary, Rocdown, or
+integration tests import. `dispatch`, `inspector`, `playground_compile`,
+`playground_html`, `roc_module`, and `runtime_assets` are `pub(crate)`
+(`render_file` is re-exported). Do not add CLI flags.
 
 The split sequence and no-feature contract are in the
 [implementation-structure plan](../../knowledge/plans/rocci/implementation-structure.md)
 and the
 [structure audit](../../knowledge/audits/rocci/implementation-structure.md).
 Site-planning code still belongs in `rocci-rocdown` (`src/plan/`, `src/docs/`,
-`src/lower/`), not here.
+`src/lower/`, `src/catalog/`, `src/build/`), not here.
