@@ -2,12 +2,11 @@
 type: Implementation Plan
 title: Name Rocdown page and nav view types
 description: >-
-  Add stable Roc aliases for PageView and NavGroupView, annotate
-  RocdownBuild, and ascribe generated pages so apply mismatches name
-  the missing field.
+  First cut landed in b3129a9a (Views.Page(_), nominal NavGroupView).
+  Leftover nightly idiom is idiomatic-roc-nightly-types.
 tags: [domain/rocdown, integration/roc, concern/developer-experience, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T13:25:00Z }
+generated: { by: process:cursor, at: 2026-08-31T16:10:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -47,18 +46,32 @@ sources:
     title: Rocdown documentation generator architecture
     author: process:cursor
     last_modified: 2026-08-31
+  - id: landed
+    resource: https://github.com/koliyo/rocci/commit/b3129a9a355441755fab28f1c446b35b2c677278
+    title: typecheck named Views against nightly Roc
+    author: process:git
+    last_modified: 2026-08-31
+  - id: follow-on
+    resource: ./idiomatic-roc-nightly-types.md
+    title: Align apply Roc with nightly type idiom
+    author: process:cursor
+    last_modified: 2026-08-31
 ---
 
 # Name Rocdown page and nav view types
 
 ## Purpose and authority
 
-This plan executes the [anonymous page-view research](/research/rocdown/named-roc-view-types.md).
-Rust already owns `PageView` / `NavGroupView`. Generated Roc and
-`RocdownBuild.roc` share those shapes only by inference, so a missing
-nested field reprints the entire apply page type.[^research][^view-rs][^build-roc]
+This plan executed the [anonymous page-view research](/research/rocdown/named-roc-view-types.md).
+Rust already owns `PageView` / `NavGroupView`. Before `b3129a9a`,
+generated Roc and `RocdownBuild.roc` shared those shapes only by
+inference, so a missing nested field reprinted the entire apply page
+type.[^research][^view-rs][^build-roc]
 
-The record is exploratory. Writing it does not start a phase.
+The record is exploratory. Phases 1–5 are in `b3129a9a` (with
+nightly-required `Page(a)` / `Page(_)` / `NavGroupView :=`, not the
+alias-first sketch below). Leftover idiom:
+[align apply Roc with nightly type idiom](/plans/rocdown/idiomatic-roc-nightly-types.md).[^landed][^follow-on]
 
 ## Goal
 
@@ -80,7 +93,8 @@ Give the static apply path one named Roc contract for chrome data:
 - Moving catalog, routing, or sidebar forest planning into Roc.
 - Renaming or splitting Rust `PageView` fields.
 - Restructuring `SiteShell` / `NavList` to shrink errors.
-- Opaque wrappers in the first cut (`NavGroup := { … }.{}`).
+- Opaque wrappers (`NavGroup :: { … }.{ }`). Nominal `:=` for recursive
+  nav is required on this nightly and is already landed.
 - `OkfPages.roc` / OKF apply hash work.
 - Pulling `PageView` values out of `RocdownPages.roc` (apply-data /
   compile-cache plan, not this type contract).
@@ -185,7 +199,8 @@ if this plan or the research is edited in the same change.
 
 ## Follow-on (not scheduled)
 
-- Opaque `NavGroup` if Phase 4 still dumps the full page type.
+- [Align apply Roc with nightly type idiom](/plans/rocdown/idiomatic-roc-nightly-types.md)
+  (`=> Try`, wasm ascription, inspector `Some(Str)`).
 - The same aliases for `OkfPages.roc`.
 - Moving `PageView` *values* out of `RocdownPages.roc` for compile-cache
   (existing component-generation / OKF cost plans).
@@ -197,3 +212,5 @@ if this plan or the research is edited in the same change.
 [^nav-list]: Nested groups must expose `children` for `is_leaf_group`.
 [^catalog-shell]: Named types describe the hand-off; they do not discover pages.
 [^compiler-arch]: Planner and catalog stay in Rust.
+[^landed]: First cut typechecks on nightly-2026-08-23-fb208ba.
+[^follow-on]: Remaining Try / wasm / inspector payload work.

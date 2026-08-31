@@ -18,8 +18,9 @@ languages themselves; that is `$rocci-language-dev`. If the task is choosing
 how Roc, Datastar, Markdown, HTML, and CSS fit together, that is `$rocci-stack`.
 
 Keep facts in the public references. This skill is the authoring workflow,
-gotchas, and style. For match vs if/else, naming, purity, and worked examples,
-read [idioms.md](idioms.md) before writing non-trivial control flow.
+gotchas, and style. For match vs if/else, naming, types on the pinned Roc
+nightly, purity, and worked examples, read [idioms.md](idioms.md) before
+writing non-trivial control flow or type annotations.
 
 ## Choose the file and location
 
@@ -62,8 +63,10 @@ path until island splicing lands.
    - `docs/tutorials/first-component.rocdown`, `site/rocdown/pages.rocdown`,
      `site/rocdown/article-blocks.rocdown`, `docs/tutorials/first-app.rocdown`
 4. Treat `test/AllSyntax.rocci` as a compiler fixture, not as a style guide.
-   Prefer `examples/`, `site/theme/`, and current Roc nightly snake_case
-   (`List.is_empty`, `to_str()`, `split_on`).
+   Prefer `examples/`, `site/theme/`, `crates/rocci-rocdown/runtime/Views.roc`,
+   and the pinned Roc nightly (`nightly-2026-08-23-fb208ba`): snake_case
+   (`List.is_empty`, `to_str()`, `split_on`) and parenthesized type
+   applications (`List(Str)`, `Page(_)`, `Some(Str)`).
 
 ## Rocci essentials
 
@@ -150,8 +153,20 @@ auto-inject does not see the backend live route. Author
 ## Roc used from Rocci
 
 - Helpers and fields: `snake_case`. Types and tags: `PascalCase`.
-- Effectful functions end in `!`. Pure helpers do not. `?` unwraps `Result`.
-- Model absence with tags (`[Some a, None]`, `[Ok a, Err e]`), not null.
+- Effectful functions end in `!` and use `=>` in annotations. Pure helpers
+  use `->`. `?` unwraps `Try`.
+- Type applications take parentheses: `List(Str)`, `Try({}, [..])`,
+  `Page(a)`, `Page(_)`, `[Some(Str), None]`. Juxtaposition (`List Str`,
+  `Page _`, `[Some Str, None]`) does not parse on the pinned nightly.
+- Alias (`Foo : { … }`) for non-recursive records. Nominal (`Foo := { … }`)
+  when the type refers to itself (`NavGroupView`). Opaque (`::`) only to
+  hide fields. See [idioms.md](idioms.md#types-on-the-pinned-nightly).
+- Annotate module edges and generated values. Leave local chrome helpers
+  inferred (`NavList`, `SiteShell`). Do not re-declare `Views.PageView` on
+  every `|group|`.
+- Effects that return `Ok({})` are `=> Try({}, [..])` (or `Try({}, _)`),
+  not `=> {}` and not a bare `=> _` at an export.
+- Model absence with tags (`[Some(a), None]`, `[Ok(a), Err(e)]`), not null.
 - Prefer `match` over chained `if` / `else if` whenever the input is a tag
   union, a small closed set of strings, or several discrete cases. Use `if` /
   `@if` only for a true/false condition (empty list, missing string, flag).
@@ -163,7 +178,8 @@ auto-inject does not see the backend live route. Author
 1. Match the surrounding module: imports, `@css` placement, handler names,
    fixture style.
 2. Put types and pure helpers in ordinary Roc. Keep `@component` bodies as
-   markup plus structural directives.
+   markup plus structural directives. New type annotations follow the
+   pinned-nightly table in [idioms.md](idioms.md#types-on-the-pinned-nightly).
 3. Reach for `@match` / `match` before adding another `@else if` / `else if`.
 4. Colocate isolated CSS. Authors keep writing `class="card"`; lowering scopes
    it. Document chrome belongs on `body` or `:scope`, not `html { ... }`.
