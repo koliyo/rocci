@@ -2,6 +2,7 @@
 
 Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 
+* [Rocci template diagnostics should use stable RCxxxx IDs](diagnostic-ids.md) - Template diagnostics are message-only; Rocdown and OKF already ship codes. Recommend `RCxxxx`, rustc-style frames, and pass-through instead of `RD1001`/`RD1002`. Implementation: [add RCxxxx IDs](/plans/rocci/diagnostic-ids.md). Exploratory.
 * [A Roc-native template parser and lowerer](roc-native-template-compiler.md) - Exploratory proof of concept: parallel Roc port aiming at emit parity with `crates/rocci-template`. Rust stays the product compiler. Template subset only; not a cutover. Implementation: [Roc-native template compiler](/plans/rocci/roc-native-template-compiler.md). Not shipped.
 * [Rocci application structure and run entry](application-structure-and-entry.md) - A directory is a bag of modules; `rocci run <dir>` still needs `main.roc`. At most one process `@init` (or none); optional `rocci.toml` entry; do not reuse `apps.toml`. Implementation: [directory-as-app entry](/plans/rocci/application-structure-and-entry.md). Exploratory.
 * [Roc hosting API versus Component Model lazy ABI](roc-hosting-lazy-abi.md) - Native Roc already gets lazy-ABI outcomes (seamless slices, body/resource handles, native plans). `canon value.lower` would help only if Roc were a separate-memory WIT component; that ABI is unshipped and out of bound for `--http-module` object-link. Do not block the app link or make Roc async. Pair: [WASI HTTP gaps](basic-webserver-wasi.md). Exploratory.
