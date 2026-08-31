@@ -26,7 +26,7 @@ Views := [].{
         class_name : Str,
     }
 
-    NavGroupView : {
+    NavGroupView := {
         title : Str,
         href : Str,
         open : Bool,
@@ -87,7 +87,7 @@ Views := [].{
         resources : ResourceView,
     }
 
-    Page a : {
+    Page(a) : {
         article_path : Str,
         output_path : Str,
         segments : List(a),

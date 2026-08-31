@@ -8,15 +8,15 @@ use std::{env, fs, path::PathBuf, process::Command};
 fn views_roc_is_staged_with_the_runtime() {
     let views = include_str!("../../runtime/Views.roc");
     assert!(
-        views.contains("NavGroupView : {"),
-        "Views.roc must name NavGroupView"
+        views.contains("NavGroupView := {"),
+        "Views.roc must name NavGroupView as a nominal type"
     );
     assert!(
         views.contains("children : List(NavGroupView)"),
         "NavGroupView.children must be recursive"
     );
     assert!(
-        views.contains("Page a : {"),
+        views.contains("Page(a) : {"),
         "Page must stay parametric over segments"
     );
     assert!(
@@ -84,6 +84,12 @@ main! = |_| {{
     assert!(
         !output.status.success(),
         "expected a type error, got success:\n{text}"
+    );
+    assert!(
+        !text.contains("malformed type")
+            && !text.contains("undeclared type")
+            && !text.contains("expected function arrow"),
+        "Views.roc and the fixture must parse; got:\n{text}"
     );
     let named = text.contains("children") || text.contains("NavGroup");
     assert!(
@@ -1041,7 +1047,15 @@ fn pages_roc_emits_typed_widget_tags_not_segment_bag() {
     let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
     let roc = planned.pages_roc();
     assert!(roc.contains("import Views"), "{roc}");
-    assert!(roc.contains("pages : List(Views.Page _)"), "{roc}");
+    assert!(roc.contains("pages : List(Views.Page(_))"), "{roc}");
+    let after_previous = roc
+        .split_once("previous: {")
+        .map(|(_, rest)| rest)
+        .unwrap_or("");
+    assert!(
+        after_previous.contains("class_name:"),
+        "previous/next must emit NavItemView.class_name\n{roc}"
+    );
     assert!(roc.contains("HtmlFile({ path:"), "{roc}");
     assert!(roc.contains("Note({"), "{roc}");
     assert!(roc.contains("title: \"Watch\""), "{roc}");

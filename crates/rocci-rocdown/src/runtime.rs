@@ -96,8 +96,8 @@ mod tests {
         assert!(DATASTAR.contains("requestCancellation: 'disabled'"));
         assert!(dir.join("RocdownBuild.roc").is_file());
         assert!(dir.join("Views.roc").is_file());
-        assert!(VIEWS.contains("NavGroupView : {"));
-        assert!(VIEWS.contains("Page a : {"));
+        assert!(VIEWS.contains("NavGroupView := {"));
+        assert!(VIEWS.contains("Page(a) : {"));
         assert!(VIEWS.contains("Views := [].{"));
         assert!(!dir.join("RocdownModel.roc").exists());
         assert!(!dir.join("RocdownRoute.roc").exists());
