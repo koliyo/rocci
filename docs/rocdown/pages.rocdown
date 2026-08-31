@@ -33,8 +33,8 @@ Rocdown can derive routes from file paths, so documentation sites usually omit
 `route`. Use an explicit route when an existing URL must stay stable.
 
 On a catalog site, `index.rocdown` is the section landing for its directory
-(`guides/index` → `/guides/`). The sidebar heading links there; do not also
-expect an Overview child unless you author a separate page. A nested
+(`guides/index` → `/guides/`). The sidebar heading may link there; the first
+child is a reserved Overview row (not a second authored file). A nested
 directory needs its own index to become a named subsection. See
 [Rocdown site configuration](/docs/rocdown/sites/).
 

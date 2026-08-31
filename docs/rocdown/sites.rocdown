@@ -275,14 +275,16 @@ Navigation order is explicit. Unknown IDs and duplicate items fail the build.
 Published authored pages omitted from navigation emit `RD2202`. Generated
 detail mounts may opt into the explicit `linked-detail` policy above.
 
-A directory with `index.rocdown` is a **section**. The sidebar heading links
-to that landing (peel-by-id: the first listed `…/index` becomes the heading
-href even when the page title is Overview and the group label is Start). The
-index is not also a child row. A nested `dir/nested/index.rocdown` is a named
-subsection titled from that page. A directory without an index is not a
+A directory with `index.rocdown` is a **section**. The sidebar heading may
+link to that landing (peel-by-id: the first listed `…/index` becomes the
+heading href even when the page title is Overview and the group label is
+Start). The first child is a reserved **Overview** row to the same URL. Do
+not print `INDEX` or repeat the section title as that row. A nested
+`dir/nested/index.rocdown` is a named subsection titled from that page, with
+the same Overview-first child. A directory without an index is not a
 section; its pages stay flat in the parent. Two or more listed pages in an
 indexless directory warn `RD2205` (warning, not an error). Visible nesting
-stops at group → subsection → pages.
+stops at group → subsection → pages. Same-level members share one indent.
 
 Use `[[nav.groups]]` under a top-level `[[nav]]` for curated lanes (Docs →
 Start, Templates, …): one header link, left rail folds per group. Do not add

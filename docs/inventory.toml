@@ -62,12 +62,12 @@ five_minutes_route = "/docs/five-minutes/"
 
 # Directory-plus-index sidebar contract
 # (knowledge/plans/rocdown/docs-directory-semantics.md Phase 0).
-# Phase 1 shipped peel-by-id. Phase 2 added Contributor and Appendix landings.
+# Phase 5 shipped Overview first child. peel_by stays id.
 
 [directory_semantics]
 plan = "knowledge/plans/rocdown/docs-directory-semantics.md"
 directory_plus_index = true
-heading_as_landing = true
+overview_first_child = true
 peel_by = "id"
 nested_index_fold = true
 no_index_stays_flat = true
