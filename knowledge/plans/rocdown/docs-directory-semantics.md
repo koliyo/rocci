@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Make directory plus index the Rocdown site section
-description: Peel section landings by id, fold nested index.rocdown into named subsections, warn on indexless page clusters, and teach that contract in the docs tree and public Rocdown site pages.
+description: Phases 0-4 shipped peel-by-id heading-as-landing, RD2205, and Contributor/Appendix indexes. Remaining work inserts a reserved first child Overview and equal sibling indent in NavList, then teaches that contract.
 tags: [domain/rocdown, concern/publication, concern/developer-experience, concern/navigation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T08:50:00Z }
+generated: { by: process:cursor, at: 2026-08-31T09:20:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -16,19 +16,29 @@ sources:
     last_modified: 2026-08-31
   - id: plan-rs
     resource: ../../../crates/rocci-rocdown/src/plan.rs
-    title: Sidebar forest, title-matching peel, and nested fold
+    title: Sidebar forest, peel-by-id, and nested fold
     author: process:git
     last_modified: 2026-08-31
   - id: catalog
     resource: ../../../crates/rocci-rocdown/src/catalog.rs
-    title: Explicit navigation resolve and RD2202
+    title: Explicit navigation resolve, RD2202, and RD2205
     author: process:git
-    last_modified: 2026-08-23
+    last_modified: 2026-08-31
+  - id: nav-list
+    resource: ../../../crates/rocci-ui/templates/chrome/NavList.rocci
+    title: Shared expandable sidebar renderer
+    author: process:git
+    last_modified: 2026-08-31
+  - id: inventory
+    resource: ../../../docs/inventory.toml
+    title: Docs inventory including directory_semantics
+    author: process:git
+    last_modified: 2026-08-31
   - id: sites-ref
     resource: ../../../docs/rocdown/sites.rocdown
     title: Published Rocdown site configuration reference
     author: process:git
-    last_modified: 2026-08-30
+    last_modified: 2026-08-31
   - id: docs-nav
     resource: ../../../docs/rocdown.toml
     title: Standalone documentation navigation
@@ -58,7 +68,7 @@ sources:
     resource: ../../architecture/rocdown-documentation-compiler.md
     title: Rocdown documentation generator architecture
     author: process:cursor
-    last_modified: 2026-08-26
+    last_modified: 2026-08-31
   - id: catalog-shell
     resource: ../../decisions/rust-catalog-rocci-shell.md
     title: Rust catalog and Rocci documentation shell
