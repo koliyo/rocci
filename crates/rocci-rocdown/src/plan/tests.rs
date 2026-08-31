@@ -4,6 +4,29 @@ use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
 use std::{env, fs, path::PathBuf};
 
 #[test]
+fn views_roc_is_staged_with_the_runtime() {
+    let views = include_str!("../../runtime/Views.roc");
+    assert!(
+        views.contains("NavGroupView : {"),
+        "Views.roc must name NavGroupView"
+    );
+    assert!(
+        views.contains("children : List(NavGroupView)"),
+        "NavGroupView.children must be recursive"
+    );
+    assert!(
+        views.contains("Page a : {"),
+        "Page must stay parametric over segments"
+    );
+    let staged = env::temp_dir().join(format!("rocdown-views-stage-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&staged);
+    crate::runtime::stage_into(&staged).unwrap();
+    assert!(staged.join("Views.roc").is_file());
+    assert!(staged.join("RocdownBuild.roc").is_file());
+    let _ = fs::remove_dir_all(&staged);
+}
+
+#[test]
 fn document_title_adds_the_brand_exactly_once() {
     assert_eq!(document_title("Guide", "Rocci"), "Guide · Rocci");
     assert_eq!(
