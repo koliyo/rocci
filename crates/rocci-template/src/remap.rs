@@ -42,6 +42,7 @@ pub fn remap_roc_output(output: &str, modules: &[MappedModule]) -> Vec<Diagnosti
             span: source_span,
             severity: Severity::Error,
             message: format!("generated {}.roc:{line}", module.type_name),
+            code: None,
         };
         frames.push(DiagnosticFrame::from_source(
             SourceFile::new(&module.source_name, &module.source_src),

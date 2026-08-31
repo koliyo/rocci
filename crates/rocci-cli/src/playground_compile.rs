@@ -75,6 +75,7 @@ fn compile_rocci_request(
             json!({
                 "severity": severity,
                 "message": d.message,
+                "code": d.code,
                 "start_byte": start_byte,
                 "end_byte": end_byte,
                 "from": from,
@@ -200,4 +201,27 @@ fn convert_spans(src: &str, spans: Vec<HighlightSpan>) -> Vec<Value> {
         }
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compile_json_includes_diagnostic_code() {
+        let body = serde_json::to_vec(&json!({
+            "filename": "App.rocci",
+            "source": "@init { {} }\n",
+        }))
+        .unwrap();
+        let out = compile_rocci(&body, None);
+        let value: Value = serde_json::from_slice(&out).unwrap();
+        let codes: Vec<_> = value["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|diagnostic| diagnostic["code"].as_str())
+            .collect();
+        assert!(codes.contains(&"RC2003"), "expected RC2003 in {value}");
+    }
 }
