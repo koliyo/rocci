@@ -12,7 +12,7 @@ use crate::{CompileOptions, Document, Item, MdNode, PageRef, compile, page_ref_f
 use crate::article::{PageKind, classify_document, render_document, roc_imports_datastar};
 use crate::catalog::{
     self, CatalogDiagnostic, Edge, NavSection, PageHeading, ResolveOptions, ResolvedPage,
-    ResolvedSite, RouteHint, Severity, SourcePage,
+    ResolvedSite, RouteHint, SourcePage,
 };
 use crate::config::{SiteConfig, load_config};
 use crate::docs::{self, IncludeOptions};
@@ -212,22 +212,11 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
             },
         );
         for diagnostic in &compiled.diagnostics {
-            let code = if diagnostic.is_error() {
-                "RD1001"
-            } else {
-                "RD1002"
-            };
-            let severity = if diagnostic.is_error() {
-                Severity::Error
-            } else {
-                Severity::Warning
-            };
-            diagnostics.push(CatalogDiagnostic {
-                code,
-                severity,
-                path: relative_name.clone(),
-                message: diagnostic.message.clone(),
-            });
+            diagnostics.push(CatalogDiagnostic::wrap_template(
+                diagnostic,
+                relative_name.clone(),
+                diagnostic.message.clone(),
+            ));
             if std::env::var_os("ROCDOWN_QUIET").is_none() {
                 eprintln!(
                     "{}",
@@ -1173,6 +1162,55 @@ debug = true
         assert_eq!(
             fs::canonicalize(&found).unwrap(),
             fs::canonicalize(&root).unwrap()
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_passes_through_template_validate_code() {
+        let root = temp("rc-pass");
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        fs::write(
+            root.join("app.rocdown"),
+            "@context { count : I64 }\n@init { { count: 0 } }\n@context { other : I64 }\n\n# App\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        assert!(
+            loaded
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "RC2001"
+                    && diagnostic.message.contains("duplicate `@context`")),
+            "{:?}",
+            loaded.diagnostics
+        );
+        assert!(
+            !loaded.diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "RD1001" && diagnostic.message.contains("duplicate `@context`")
+            }),
+            "{:?}",
+            loaded.diagnostics
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_keeps_uncoded_page_parse_as_rd1001() {
+        let root = temp("rd1001-page");
+        fs::write(root.join("index.rocdown"), "# Home\n").unwrap();
+        fs::write(
+            root.join("guide.rocdown"),
+            "@page {\n    title\n}\n\n# Guide\n",
+        )
+        .unwrap();
+        let loaded = load_site(&root).unwrap();
+        assert!(
+            loaded.diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "RD1001" && !diagnostic.message.contains("RC")
+            }),
+            "{:?}",
+            loaded.diagnostics
         );
         let _ = fs::remove_dir_all(root);
     }
