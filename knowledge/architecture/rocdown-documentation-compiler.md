@@ -4,7 +4,7 @@ title: Rocdown documentation generator
 description: Rocdown resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocdown, concern/rendering, concern/validation, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-08-26T12:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T09:20:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -45,7 +45,7 @@ sources:
     resource: ../../crates/rocci-rocdown/src/plan.rs
     title: Rocdown build planner
     author: process:git
-    last_modified: 2026-08-19
+    last_modified: 2026-08-31
   - id: rocdown-reference
     resource: ../../docs/reference/rocdown-site.rocdown
     title: Published Rocdown site reference
@@ -63,6 +63,8 @@ sources:
 ## Current contract
 
 Rocdown discovers `.rocdown` pages, derives or reads stable identity and routes, resolves links, headings, assets, aliases, drafts, and explicit navigation, and reports catalog diagnostics before rendering.[^catalog][^site]
+
+The sidebar forest is derived from those listed ids plus `index.rocdown` files, not from title equality. A group's first listed root index becomes the heading href (peel-by-id). A nested `*/index` is a named subsection. Two or more listed pages in a directory with no listed index warn `RD2205`. Visible depth is group, optional subsection, then pages.[^plan][^catalog]
 
 Static article bodies are rendered in Rust from Rocdown's semantic Markdown nodes. Line-start `:kind` article blocks become a typed article tree: includes and examples are catalog data, Markdown runs become fragment files, and documentation components are Rocci-rendered from scalar segment records. A structured page view plus composed article Html is passed to a Rocci-authored theme compiled once for the build; Roc is not asked to parse or type-check ordinary prose.[^refactor-plan]
 

@@ -9,7 +9,6 @@ stale_after: 2026-09-15
 authority: descriptive
 owners: [human:nils]
 sources: []
-    last_modified: 2026-08-16
 ---
 
 # Priority-1 knowledge review checklist
