@@ -1,7 +1,8 @@
 use super::theme::roc_fn_name;
 use super::*;
+use crate::build::tests::{ROC_LOCK, skip_without_roc};
 use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
-use std::{env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf, process::Command};
 
 #[test]
 fn views_roc_is_staged_with_the_runtime() {
@@ -28,6 +29,67 @@ fn views_roc_is_staged_with_the_runtime() {
     assert!(staged.join("Views.roc").is_file());
     assert!(staged.join("RocdownBuild.roc").is_file());
     let _ = fs::remove_dir_all(&staged);
+}
+
+#[test]
+fn missing_nav_group_children_names_the_field() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = ROC_LOCK.lock().unwrap();
+    let dir = env::temp_dir().join(format!("rocdown-nav-group-missing-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("Views.roc"),
+        include_str!("../../runtime/Views.roc"),
+    )
+    .unwrap();
+    fs::write(
+        dir.join("main.roc"),
+        format!(
+            "\
+app [main!] {{ pf: platform \"{}\" }}
+
+import Views
+
+main! = |_| {{
+    group : Views.NavGroupView
+    group = {{
+        title: \"Lang\",
+        href: \"/l/\",
+        open: False,
+        items: [],
+    }}
+    _ = group
+    Ok({{}})
+}}
+",
+            crate::BASIC_CLI_PLATFORM
+        ),
+    )
+    .unwrap();
+    let output = Command::new("roc")
+        .arg("check")
+        .arg("main.roc")
+        .current_dir(&dir)
+        .output()
+        .expect("roc check");
+    let _ = fs::remove_dir_all(&dir);
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        !output.status.success(),
+        "expected a type error, got success:\n{text}"
+    );
+    let named = text.contains("children") || text.contains("NavGroup");
+    assert!(
+        named,
+        "diagnostic must name children or NavGroup, not only List.iter:\n{text}"
+    );
 }
 
 #[test]

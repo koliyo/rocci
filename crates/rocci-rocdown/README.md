@@ -294,6 +294,13 @@ registered to the same handler so `rocdown view` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
 
+A missing `children` field on `Views.NavGroupView` is an opt-in Roc smoke
+(skipped unless `ROCCI_REQUIRE_ROC=1`):
+
+```sh
+ROCCI_REQUIRE_ROC=1 cargo test -p rocci-rocdown plan::tests::missing_nav_group_children_names_the_field
+```
+
 ## Project themes
 
 A `theme/` directory, or `build.theme` in `rocdown.toml`, of `.rocci` files owns
