@@ -25,7 +25,7 @@ sources:
     author: process:git
     last_modified: 2026-08-26
   - id: ci-py
-    resource: ../../../tools/rocci-ops/src/rocci_ops/ci.py
+    resource: ../../../rocci-ops/src/rocci_ops/ci.py
     title: Canonical CI job bodies
     author: process:git
     last_modified: 2026-08-29
@@ -35,7 +35,7 @@ sources:
     author: process:git
     last_modified: 2026-08-30
   - id: test-ci
-    resource: ../../../tools/rocci-ops/tests/test_ci.py
+    resource: ../../../rocci-ops/tests/test_ci.py
     title: JOB_NAMES and fixtures-and-docs step asserts
     author: process:git
     last_modified: 2026-08-29
@@ -207,7 +207,7 @@ pytest.[^ci-py][^ci-yml][^python-uv-plan]
 | Lane | Command | Roc | What it proves |
 | --- | --- | --- | --- |
 | Default / hosted `test` | `cargo test --workspace` and `--doc` | Off | In-process crates, playground loopback HTTP, serve-without-roc, RD2302 |
-| Hosted `lint` | current lint steps plus `uv run --group dev pytest` under `tools/rocci-ops` | Off | Operator job shapes and deploy-client units |
+| Hosted `lint` | current lint steps plus `uv run --group dev pytest` under `rocci-ops` | Off | Operator job shapes and deploy-client units |
 | Hosted `fixtures-and-docs` | `check docs`, `check site`, example-docs stage; no workspace re-test, no inspect AST | Off | Product CLI on the docs tree |
 | Hosted `roc` (new, Linux) | `ROCCI_REQUIRE_ROC=1` cargo test on the gated packages | Pinned nightly | Generated-app HTTP, islands, `rocci-rocdown` `roc build` |
 | On demand | `cargo test -p rocci-lsp --test fuzz_invariants -- --ignored` | Off | Exhaustive stride-1 and 5000-iteration fuzz |
@@ -288,7 +288,7 @@ is gone. `cargo fmt --all -- --check`.
 ## Phase 5 — Pytest in lint; drop CI overlap
 
 **Bound:** Add `uv run --group dev pytest` with cwd
-`tools/rocci-ops` to the `lint` job in `ci.py`. Do not put pytest on
+`rocci-ops` to the `lint` job in `ci.py`. Do not put pytest on
 `--no-dev`. Remove from `fixtures-and-docs`: the four `inspect ast`
 CLI steps and `cargo test -p rocci-docs`. Keep `check docs`,
 `check site`, `rocci-ops check docs`, and the example-docs stage.
@@ -296,7 +296,7 @@ CLI steps and `cargo test -p rocci-docs`. Keep `check docs`,
 Update `test_ci.py` so `JOB_NAMES` is unchanged and the fixtures
 asserts no longer require `cargo test -p rocci-docs` or inspect AST.[^test-ci]
 
-**Exit:** `uv run --group dev pytest` under `tools/rocci-ops`.
+**Exit:** `uv run --group dev pytest` under `rocci-ops`.
 `uv run --no-dev rocci-ops ci --list` still prints the five current
 job names. `cargo fmt` is not required unless Rust changed.
 
@@ -318,7 +318,7 @@ Gated HTTP tests must kill the child server and wait; a leftover
 
 **Exit:** `test_ci.py` lists `roc` and asserts the install script plus
 `ROCCI_REQUIRE_ROC=1`.[^test-ci] `uv run --group dev pytest` under
-`tools/rocci-ops`. Hosted `/ci` on this revision runs the new job (do
+`rocci-ops`. Hosted `/ci` on this revision runs the new job (do
 not log the phase complete until that CI run is green).
 
 ## Phase 7 — Document the two lanes

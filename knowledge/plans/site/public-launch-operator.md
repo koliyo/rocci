@@ -109,7 +109,7 @@ Writing this plan does not flip visibility or route apex DNS.
 
 **Bound:** `.github/workflows/ci.yml`, `.github/workflows/knowledge.yml`,
 `.github/workflows/site.yml` (read-only unless a branch list is wrong),
-`tools/rocci-ops` promote command, root `README.md`, and
+`rocci-ops` promote command, root `README.md`, and
 `docker/prod/README.md`. Do not push `production`.
 
 **Exit:** Push branch lists are `main`/`staging`/`production` for CI and

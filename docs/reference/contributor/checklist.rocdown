@@ -42,6 +42,12 @@ lives at `/docs/rocdown/`.
 Nav groups stay Start, Templates, Applications, Rocdown, Reference,
 Troubleshooting.
 
+A new directory of listed pages needs `index.rocdown` in the same change, and
+that id must appear in `docs/rocdown.toml` and `site/rocdown.toml` immediately
+before the members. The sidebar landing row is Overview; do not add a second
+`overview.rocdown` unless it is a distinct page. Two or more listed pages
+without an index warn `RD2205`.
+
 ## Examples
 
 Staging does not compile Roc. Cataloged standalone apps have `rocci-cli` build

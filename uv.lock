@@ -78,12 +78,12 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rocci-ops", editable = "tools/rocci-ops" }]
+requires-dist = [{ name = "rocci-ops", editable = "rocci-ops" }]
 
 [[package]]
 name = "rocci-ops"
 version = "0.1.0"
-source = { editable = "tools/rocci-ops" }
+source = { editable = "rocci-ops" }
 
 [package.dev-dependencies]
 dev = [

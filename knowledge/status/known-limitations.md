@@ -4,18 +4,13 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T12:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
 authority: descriptive
 owners: [human:nils]
 sources:
-  - id: roadmap
-    resource: ../../ROADMAP.md
-    title: Implementation roadmap
-    author: human:nils
-    last_modified: 2026-08-17
   - id: status-doc
     resource: ../../docs/project/status.rocdown
     title: Published project status
@@ -77,21 +72,20 @@ Cmd/Ctrl-K fuzzy page navigation ships on Rocdown sites, rocci.dev, OKF review H
 
 ## Runtime and desktop delivery
 
-Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed macOS `.app`. Production signing, notarization, update delivery, Windows and Linux installers, tray and deep-link integration, and full platform CI remain absent.[^roadmap]
+Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed macOS `.app`. Production signing, notarization, update delivery, Windows and Linux installers, tray and deep-link integration, and full platform CI remain absent.[^status-doc]
 
-The desktop host exposes the current window/webview boundary but not general native capabilities such as dialogs, filesystem access, or notifications. Multi-window application lifecycle is also not connected to authored Roc apps.[^roadmap]
+The desktop host exposes the current window/webview boundary but not general native capabilities such as dialogs, filesystem access, or notifications. Multi-window application lifecycle is also not connected to authored Roc apps.[^status-doc]
 
 Pinned **basic-webserver 0.16** still logs opaque HTTP/1.1 Body-stream errors on client abort of an open SSE, and plaintext `rocci run` stays on HTTP/1.1 (browsers do not use cleartext HTTP/2). Generated `@get:live` keepalives and empty-SSE `@method:command` responses work around the 30s silent-`Wait` idle timeout and Safari 204 Preview noise; ordinary command callers receive 204 instead of JSON. Rocci does not fork the platform. Details: [basic-webserver SSE and HTTP](/research/rocci/basic-webserver-sse-http.md).[^bws-sse]
 
 ## Language and client behavior
 
-There is no implemented `@island` construct. Rich browser-owned behavior therefore remains an explicit future boundary rather than a capability authors can rely on today. Documentation tabs ship as stacked no-JS sections; tab persistence JavaScript is not shipped. The tabs parent painter receives concatenated Html even though the dispatcher builds typed child records; a site cannot yet compose a `tablist` from labels as data. Custom static kinds inferred from a theme pack cannot declare exclusive child policy (`accepts`); `@block` is not shipped, so helpers must not live in the block pack.[^roadmap][^site-ref]
+There is no implemented `@island` construct. Rich browser-owned behavior therefore remains an explicit future boundary rather than a capability authors can rely on today. Documentation tabs ship as stacked no-JS sections; tab persistence JavaScript is not shipped. The tabs parent painter receives concatenated Html even though the dispatcher builds typed child records; a site cannot yet compose a `tablist` from labels as data. Custom static kinds inferred from a theme pack cannot declare exclusive child policy (`accepts`); `@block` is not shipped, so helpers must not live in the block pack.[^status-doc][^site-ref]
 
 ## Validation
 
 Review this record when a cited source changes or on its `stale_after` date. The published status page is supporting evidence, not final authority where current code or the active implementation plan differs.
 
-[^roadmap]: Current deliberate limitations and unchecked roadmap items.
 [^status-doc]: Published audience-facing limitations after the Phase 6 stale-status correction.
 [^rocdown-site]: Static-page feature rejection in the current site loader.
 [^rocdown-article]: Exact static-item allowlist and Rocci-template rejection.

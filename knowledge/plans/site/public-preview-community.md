@@ -4,16 +4,11 @@ title: Rocci public-preview branding and community plan
 description: Prepare a reversible Rocci public preview for a near-term open-source repository, collect Roc and Datastar feedback, and turn the results into explicit naming, visual, and governance decisions.
 tags: [domain/rocci, domain/rocdown, domain/rocs, concern/branding, concern/community, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T00:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
 sources:
-  - id: branding-report
-    resource: ../../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
-    title: Rocci branding and community foundation report
-    author: process:codex
-    last_modified: 2026-08-18
   - id: branding-research
     resource: ../../research/site/branding-community-foundation.md
     title: Rocci branding and community foundation research
@@ -41,15 +36,6 @@ sources:
     resource: https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/creating-a-default-community-health-file
     title: GitHub community health files
     author: organization:github
-  - id: community-launch-kit
-    resource: ../../../archive/reports/branding/COMMUNITY_LAUNCH_KIT.md
-    title: Rocci public-preview community launch kit
-    author: process:codex
-    last_modified: 2026-08-18
-  - id: landing-prototype
-    resource: ../../../archive/reports/branding/LANDING_PAGE_PROTOTYPE.md
-    title: Rocci landing-page prototype brief
-    author: process:codex
     last_modified: 2026-08-17
 ---
 
@@ -61,7 +47,7 @@ Make Rocci safe and understandable to evaluate publicly, collect structured
 feedback from the Roc community and then the Datastar community, and decide the
 name, hierarchy, and first visual identity from evidence. This plan does not
 authorize publication by itself and does not treat the preview recommendations
-as permanent brand decisions.[^branding-report][^branding-research]
+as permanent brand decisions.[^branding-research]
 
 ## Working position
 
@@ -86,7 +72,7 @@ compatibility during the feedback period.[^branding-research]
   editor state, packaging state, and known limitations.
 - Prove one clean installation and five-minute example from a tagged revision.
 - Distinguish working, experimental, proposed, and historical behavior in the
-  launch copy.[^root-readme][^branding-report]
+  launch copy.[^root-readme]
 
 Exit when an unfamiliar developer can install, render the first component,
 identify current limitations, find help, and understand the license without
@@ -106,7 +92,7 @@ private instructions.
 - Add focused discovery pages for Rocdown, Rocci Docs, and Datastar integration.
 
 Exit when the site explains the project, relationship, maturity, and first task
-within one screen at mobile and laptop widths.[^branding-report]
+within one screen at mobile and laptop widths.
 
 ## Phase 2: Roc community feedback
 
@@ -115,7 +101,7 @@ community gathering place. Confirm the current appropriate projects or
 show-and-tell location with community regulars. Share a short demo, architecture
 view, public feedback link, and independent-project disclaimer. Adapt the
 reviewed Roc-first draft rather than composing the announcement at posting
-time.[^roc-community][^community-launch-kit]
+time.[^roc-community]
 
 Ask separately about name pronunciation and recall, brand hierarchy,
 “Roc-native” wording, most valuable next workflow, and whether the folded visual
@@ -146,13 +132,13 @@ branding feedback.
 - Publish the next narrow milestone and bounded contributor issues.
 - Track clean installs, time to first render, independent examples, repeat
   contributors, support response, unresolved feedback themes, and failed site
-  searches rather than optimizing for stars alone.[^branding-report]
+  searches rather than optimizing for stars alone.
 
 ## Execution assets and deferred work
 
 The preliminary exact-name registry/domain screen, announcement and feedback
 templates, and a responsive landing-page direction are complete as exploratory
-work.[^branding-report][^community-launch-kit][^landing-prototype] They still
+work. They still
 require current fact and link checks before publication.
 
 Trademark and full namespace clearance, 8–12 naming interviews, zero-based
@@ -161,14 +147,11 @@ audit, first-impression and message testing, production landing-page
 implementation, and durable governance design remain separate investigations.
 A legal foundation, separate subbrand communities, broad crate renames, and
 merchandise are out of scope until those investigations and the preview are
-complete.[^branding-report]
+complete.
 
-[^branding-report]: Detailed recommendation, evidence, launch blockers, four-week sequence, measures, and investigation backlog.
 [^branding-research]: Canonical exploratory hierarchy, naming, SEO, design, and community synthesis.
 [^root-readme]: Current shipped and planned workspace behavior used to bound public claims.
 [^cargo-workspace]: Workspace package metadata makes the root `LICENSE` available to every crate; that file contains the Apache License 2.0 text.
 [^roc-community]: Current Roc participation and community-venue guidance.
 [^datastar-community]: Current Datastar community-support venue and ecosystem framing.
 [^github-health]: Supported GitHub community-health artifacts and their purpose.
-[^community-launch-kit]: Draft Roc and Datastar messages, feedback form, response protocol, and synthesis template.
-[^landing-prototype]: Proposed first-screen information architecture, responsive behavior, and launch acceptance checks.

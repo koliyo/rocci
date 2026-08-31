@@ -4,16 +4,11 @@ title: Rocci branding and community foundation
 description: Exploratory naming, brand architecture, searchability, visual identity, and public-preview community research for Rocci.
 tags: [domain/rocci, domain/rocdown, domain/rocs, domain/design-system, concern/branding, concern/community, concern/publication]
 status: draft
-generated: { by: process:codex, at: 2026-08-18T12:04:47Z }
+generated: { by: process:codex, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
 sources:
-  - id: branding-report
-    resource: ../../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown
-    title: Rocci branding and community foundation report
-    author: process:codex
-    last_modified: 2026-08-18
   - id: root-readme
     resource: ../../../README.md
     title: Rocci workspace overview
@@ -69,15 +64,6 @@ sources:
     resource: https://indigo-dc.gitbook.io/rocci
     title: rOCCI cloud interoperability project
     author: organization:indigo-data-cloud
-  - id: community-launch-kit
-    resource: ../../../archive/reports/branding/COMMUNITY_LAUNCH_KIT.md
-    title: Rocci public-preview community launch kit
-    author: process:codex
-    last_modified: 2026-08-18
-  - id: landing-prototype
-    resource: ../../../archive/reports/branding/LANDING_PAGE_PROTOTYPE.md
-    title: Rocci landing-page prototype brief
-    author: process:codex
     last_modified: 2026-08-17
 ---
 
@@ -88,7 +74,7 @@ sources:
 This record is exploratory research for a public preview. It does not approve a
 permanent project name, create a legal foundation, authorize Roc-logo use, or
 provide trademark clearance. The detailed evidence, alternatives, generated
-visual probes, and implementation backlog live in the branding report.[^branding-report]
+visual probes, and implementation backlog live in the branding report.
 
 ## Existing product hierarchy
 
@@ -105,7 +91,7 @@ The recommended public-preview hierarchy is therefore a masterbrand:
 - **Rocdown** is “Rocci's Markdown-first document format.”
 - **Rocci Docs** is the public product name for the existing Rocs engine and
   `rocs` command.
-- Roc and Datastar are ecosystem relationships, not Rocci subbrands.[^branding-report]
+- Roc and Datastar are ecosystem relationships, not Rocci subbrands.
 
 This structure avoids a costly implementation rename while reducing the public
 impression that Rocci, Rocdown, and Rocs are three peer projects.
@@ -123,7 +109,7 @@ pair first mentions with **“Composable authoring for applications and
 content,”** and ask the community explicitly about pronunciation, recall, and
 perceived official status. The report's basic search screen found no fresh name
 with enough benefit to offset the existing domain, syntax, and migration
-cost.[^branding-report]
+cost.
 
 A 17 August 2026 exact-name snapshot found no crates.io or npm package record
 for Rocci but confirmed that PyPI is occupied and that GitHub's
@@ -131,12 +117,12 @@ case-insensitive name search is crowded by the existing rOCCI family. Rocdown
 returned no exact crates.io, npm, PyPI, or GitHub repository-name result.
 Rocweave returned no exact result on those package and repository screens, and
 RDAP returned no record for its `.dev`, `.org`, or `.com` domains. These are
-volatile discovery signals, not reservations or legal clearance.[^branding-report]
+volatile discovery signals, not reservations or legal clearance.
 
 Rocdown remains a bounded endorsed name. Rocs is not recommended as a public
 peer brand because its plural/acronym form produces crowded and unrelated
 search results. Implementation names can remain while public prose moves to
-Rocci Docs.[^branding-report]
+Rocci Docs.
 
 ## Search and message direction
 
@@ -150,13 +136,13 @@ Open Graph fields, a social image, a sitemap, robots policy, and static semantic
 content. Priority gaps are a shorter descriptive home title and H1, structured
 site identity, favicon assets, consistent typography between site and social
 card, and intent-focused landing pages for Rocdown, Rocci Docs, and Datastar
-integration.[^site-config][^site-theme][^branding-report]
+integration.[^site-config][^site-theme]
 
 The selected preview descriptor is **“Rocci — Composable authoring for
 applications and content.”** Supporting copy should still explain concretely
 that Rocci builds web and desktop interfaces, documents, and sites in Roc. The
 current “without the framework tax” line is better treated as optional supporting
-copy than the primary explanation.[^branding-report]
+copy than the primary explanation.
 
 ## Visual direction
 
@@ -167,19 +153,19 @@ are individually coherent but do not yet form one recognizable family.[^site-the
 Keep the warm neutral/coral foundation, reserve a restrained violet for rare
 Roc-ecosystem references, and make Paper a neutral, useful default without
 product chrome. The branded Rocdown theme can converge on coral and violet only
-through a separately reviewed compatibility-preserving change.[^branding-report]
+through a separately reviewed compatibility-preserving change.
 
 Spot checks found two contrast risks: small white text on the current coral
 button fill and the light-scheme green link in the branded Rocdown theme. These
 findings require a complete accessibility audit rather than an isolated color
-replacement.[^site-theme][^rocci-theme][^branding-report]
+replacement.[^site-theme][^rocci-theme]
 
 The existing single-letter `r` is a placeholder and must not constrain the
 identity search. An `r` is not disqualified, but it must compete with non-letter
 and wordmark-only directions. The maintainer likes the first orange folded-R
 generation; that makes it a valid candidate, not an inherited default. Because
 that generation saw the current social card, any production version must be
-redrawn from first principles rather than traced.[^branding-report]
+redrawn from first principles rather than traced.
 
 Roc describes its logo as an origami bird constructed from triangles, with an
 Elm homage and computer-graphics rationale. Rocci may explore folds,
@@ -190,7 +176,7 @@ The reset adds open-aperture, modular-commons, signal-bridge, and wordmark-only
 probes. The aperture is too camera-like and the bridge too literal. The next
 comparison should use three black-and-white vector routes: a fresh folded-letter
 mark, a simplified non-letter modular mark, and a wordmark with no emblem. The
-orange folded R is the current subjective favorite; no final route is approved.[^branding-report]
+orange folded R is the current subjective favorite; no final route is approved.
 
 ## Community foundation
 
@@ -204,27 +190,26 @@ no root license texts or standard root community health files. License text,
 conduct, contribution, security, support, governance, issue forms, compatibility
 policy, and a reproducible first-run path are public-preview blockers. GitHub
 documents these files as infrastructure for transparent and healthy
-contribution.[^root-readme][^github-health][^branding-report]
+contribution.[^root-readme][^github-health]
 
 Begin with maintainer-led open development and call the effort the Rocci Project,
 not a foundation. Formal nonprofit or fiscal-host work belongs after multiple
-maintainers, funding, or durable shared assets create a real governance need.[^branding-report]
+maintainers, funding, or durable shared assets create a real governance need.
 
 ## Execution progress
 
 The launch recommendation now has two working execution drafts. The community
 kit contains Roc-first and Datastar-focused announcement copy, structured
 feedback questions, consent and moderation rules, and a two-week synthesis
-template.[^community-launch-kit] The landing brief defines the first-screen
+template. The landing brief defines the first-screen
 information hierarchy, neutral wordmark-only identity posture, responsive
 behavior, content rules, and acceptance checks for a dedicated home-page
-surface.[^landing-prototype]
+surface.
 
 These drafts do not clear the publication gate. Placeholders, venue choice,
 support ownership, compatibility claims, and public links require verification
 immediately before use.
 
-[^branding-report]: Full exploratory synthesis, naming matrix, SEO and visual audit, concept images, launch gates, and deferred investigations.
 [^root-readme]: Current workspace, source formats, CLI, runtime, and documentation-generator description.
 [^site-config]: Current public site name, descriptor, URL, repository, social image, output, and navigation.
 [^site-theme]: Current Rocs shell structure, palette, responsive behavior, metadata, and accessibility CSS.
@@ -237,5 +222,3 @@ immediately before use.
 [^github-health]: Supported contribution, conduct, governance, security, support, and issue-template files.
 [^pypi-rocci]: Current independent Python package occupying the `rocci` name on PyPI.
 [^rocci-cloud]: Existing rOCCI suite using the similar name for cloud interoperability tooling.
-[^community-launch-kit]: Draft external messages, feedback form, response protocol, synthesis format, and publishing order.
-[^landing-prototype]: Proposed landing-page structure, visual direction, responsive behavior, and launch acceptance checks.

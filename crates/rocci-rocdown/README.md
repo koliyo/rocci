@@ -20,9 +20,9 @@ cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 
 Library entry points are `parse`, `compile`, and `format_ast` in `rocci_rocdown`.
 
-The original language design lives in
-[`ROCDOWN_FORMAT_REPORT.md`](../../archive/reports/ROCDOWN_FORMAT_REPORT.md). This README is
-what the compiler actually does.
+The language overview is
+[`knowledge/architecture/rocdown-format.md`](../../knowledge/architecture/rocdown-format.md).
+This README is what the compiler actually does.
 
 ## File shape
 
@@ -378,6 +378,38 @@ and the public
 appendix.
 This README remains the language contract; the ungram is the developer tree spec,
 not a substitute for the syntax above.
+
+## Internal modules
+
+`lib.rs` is the product barrel. Public names (`parse`, `compile`, `plan`,
+`BuildPlan`, `PublishReport`, `DEFAULT_CSP`, and the other `pub use`s) stay
+there. New site-planning code goes in the owning subdirectory, not a new
+flat `src/*.rs` file and not a second public planner API.
+
+Host-only modules are `cfg(not(target_arch = "wasm32"))` at the `mod` line.
+
+| Path | Role |
+| --- | --- |
+| `lib.rs` | Product facade |
+| `scan.rs` / `parse.rs` / `ast.rs` / `markdown.rs` / `pprint.rs` | Language front-end and inspect walkers |
+| `*.generated.rs` | Ungram-owned AST and inspect mappings |
+| `src/plan/` | `plan` / `plan_preview`, theme, nav forest, hashed assets, playground, discovery/`Pages.roc` |
+| `src/docs/` | Field helpers, article tree, registry validation, HTML/search, includes, `:example` runner |
+| `src/lower/` | `lower` / `lower_islands`, emitter, Markdown, docs-kind, islands |
+| `src/catalog/` | Identity, graph, and navigation *data* |
+| `src/build/` | Session, staging, Roc invoke, output commit |
+| `article.rs` / `registry.rs` / `params.rs` / `img.rs` / `page.rs` | Article kinds, images, and page metadata |
+| `links.rs` / `imports.rs` | Page-link index and `@use` kinds |
+| `site.rs` / `config.rs` / `package.rs` | Site load, `rocdown.toml`, publish package |
+| `service.rs` / `islands.rs` / `standalone.rs` / `static_preview.rs` / `dev.rs` | Island service, standalone preview, live reload |
+| `highlight.rs` / `lsp.rs` / `inspect_snapshot.rs` / `theme.rs` / `runtime.rs` | Highlight, analysis, theme options, staged runtime bytes |
+
+Catalog still owns identity and nav data; the planner owns `NavGroupView`
+projection. Do not add commands, diagnostic codes, or a second crate to
+make a file smaller. The split sequence is in the
+[implementation-structure plan](../../knowledge/plans/rocci/implementation-structure.md)
+and the
+[structure audit](../../knowledge/audits/rocci/implementation-structure.md).
 
 ## Implemented vs deferred
 

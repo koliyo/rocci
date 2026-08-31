@@ -4,7 +4,7 @@ title: Rocci design-system knowledge
 description: Rocci currently has a portable Rocdown article surface and a separate Rocdown documentation shell; this draft records their design intent, public hooks, and review expectations without claiming a shared token implementation.
 tags: [domain/design-system, domain/rocdown, concern/theming, concern/accessibility]
 status: draft
-generated: { by: process:okf-phase-4, at: 2026-08-17T23:00:00Z }
+generated: { by: process:okf-phase-4, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-09-15
 authority: descriptive
 owners: [human:nils]
@@ -34,15 +34,6 @@ sources:
     title: Rocdown documentation shell
     author: process:git
     last_modified: 2026-08-17
-  - id: theming-report
-    resource: ../../archive/reports/ROCDOWN_THEMING_REPORT.md
-    title: Rocdown theming investigation
-    author: human:nils
-    last_modified: 2026-08-16
-  - id: okf-plan
-    resource: ../../archive/reports/OKF_PLAN.md
-    title: Open Knowledge Format plan for Rocci
-    author: human:nils
     last_modified: 2026-08-16
 ---
 
@@ -52,11 +43,11 @@ sources:
 
 Rocci's public visual surface is deliberately plain and document-first. The default typographic system uses neutral system fonts, readable measure, explicit hierarchy, visible component states, and dark-scheme support without layout shifts.[^design-reference]
 
-The design standard is intended for human authoring and review. It is not an assertion that a shared cross-crate design token system exists.[^theming-report][^okf-plan]
+The design standard is intended for human authoring and review. It is not an assertion that a shared cross-crate design token system exists.
 
 ## Two current surfaces
 
-Rocci has two distinct styling surfaces today. They do not share a token pipeline or CSS variables.[^theming-report]
+Rocci has two distinct styling surfaces today. They do not share a token pipeline or CSS variables.
 
 ### Standalone Rocdown article
 
@@ -68,18 +59,18 @@ The stable authoring boundary is CSS: a theme assigns `--rd-*` custom properties
 
 Rocdown owns a separate Rocci-authored shell. It controls header, navigation, article, outline, responsive transitions, a light/dark palette, and documentation-specific presentation. Its current custom properties and literals are not resolved through the standalone Rocdown theme package.[^rocs-theme]
 
-Header dimensions, columns, breakpoints, sticky positioning, responsive navigation, and article measure are layout behavior. They should not be described as though a portable value format could own the whole shell.[^rocs-theme][^theming-report]
+Header dimensions, columns, breakpoints, sticky positioning, responsive navigation, and article measure are layout behavior. They should not be described as though a portable value format could own the whole shell.[^rocs-theme]
 
 ## Contributor guidance
 
 - Preserve `.rd-*` classes and the documented `--rd-*` properties when changing portable Rocdown styling.[^theme-readme][^theme-chrome]
 - Preserve readable measure, fluid sizing, media containment, and horizontal overflow for code and tables.[^theme-chrome][^design-reference]
 - Keep links and component states recognizable without depending on color or hover alone; add explicit focus, disabled, loading, error, and empty treatment where relevant.[^design-reference]
-- Treat presentation renderers, app UI, and the documentation shell as distinct surfaces until an approved integration contract says otherwise.[^theming-report][^okf-plan]
+- Treat presentation renderers, app UI, and the documentation shell as distinct surfaces until an approved integration contract says otherwise.
 
 ## Research and proposals
 
-The theming report contains useful research about package formats, adapters, and presentation renderers, but those proposals are not shipped contracts.[^theming-report]
+The theming report contains useful research about package formats, adapters, and presentation renderers, but those proposals are not shipped contracts.
 
 ## Verification triggers
 
@@ -90,5 +81,3 @@ Review this record and `DESIGN.md` when supported theme names, scheme semantics,
 [^theme-chrome]: Base typography, responsive layout, element classes, and media query definitions.
 [^theme-resolver]: Current resolution logic for built-in and external theme assets.
 [^rocs-theme]: Current independent Rocdown shell, palette, and responsive layout.
-[^theming-report]: Research exploring packages, adapters, and presentation renderers.
-[^okf-plan]: Knowledge boundary and rejection of synthetic design tokens.

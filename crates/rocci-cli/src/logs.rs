@@ -177,7 +177,7 @@ pub fn run_module_detail(path: &str, parse_ms: u128, generate_ms: u128) -> Strin
 }
 
 pub fn emit(message: impl AsRef<str>) {
-    eprintln!("{}", message.as_ref());
+    eprintln!("{}", crate::style::cli_line(message.as_ref()));
     let _ = io::stderr().flush();
 }
 

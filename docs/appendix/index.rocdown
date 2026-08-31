@@ -1,0 +1,16 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Appendix",
+        description: "Optional primers and the glossary. Not part of the main Start path.",
+    },
+}
+
+# Appendix
+
+Background pages you can skip if you already write Roc and HTML. Canonical
+behavior stays in [reference](/docs/reference/).
+
+- [Roc for Rocci](/docs/appendix/roc-for-rocci/) — Roc names and types used from templates
+- [Web foundations](/docs/appendix/web-foundations/) — HTML, HTTP, and Datastar at the level this manual assumes
+- [Glossary](/docs/appendix/glossary/) — terms that appear on more than one path

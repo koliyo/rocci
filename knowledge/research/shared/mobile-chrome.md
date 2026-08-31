@@ -4,7 +4,7 @@ title: Mobile chrome for OKF, Rocdown, and rocci.dev
 description: Code-backed inventory of narrow-viewport navigation, article overflow, and review-table behavior across the OKF review site, default Rocdown shells, and the project site theme. Recommends no-JS details menus, separating global nav from TOC, and aligning breakpoints without a shared token system.
 tags: [domain/okf, domain/rocci-okf, domain/rocdown, domain/rocci, concern/rendering, concern/accessibility, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T15:10:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -109,11 +109,6 @@ sources:
     title: rocci-okf usage contract
     author: process:git
     last_modified: 2026-08-19
-  - id: generator-report
-    resource: ../../../archive/reports/ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md
-    title: Historical Rocdown documentation-generator research
-    author: human:nils
-    last_modified: 2026-08-16
   - id: known-limitations
     resource: ../../status/known-limitations.md
     title: Known Rocci limitations
@@ -176,7 +171,7 @@ Default pages should remain usable with JavaScript disabled. Documentation
 tabs already ship as stacked no-JS sections.[^site-plan][^known-limitations]
 Historical generator research asked for a 320 CSS-pixel layout without
 page-level horizontal scrolling, a keyboard-usable mobile menu and TOC, and
-a no-JS site. That report is evidence, not a shipped checklist.[^generator-report]
+a no-JS site. That report is evidence, not a shipped checklist.
 
 The rocci.dev plan already names mobile as a Phase 2 exit condition for the
 full route tree. That exit is not met for documentation navigation.[^site-plan]
@@ -206,7 +201,7 @@ header. Native `<details>` keeps this working without JavaScript.[^rocdown-theme
 The mobile panel does not include the page outline. Heading navigation on a
 phone therefore depends on in-article headings. The Menu `summary` padding is
 `.38rem .7rem` at `.82rem` type, below the 24 CSS-pixel target the historical
-report treated as a minimum.[^rocdown-theme][^generator-report]
+report treated as a minimum.[^rocdown-theme]
 
 ### rocci.dev site theme
 
@@ -279,7 +274,7 @@ TOC control.[^rocdown-readme][^theme-chrome]
 6. **Tap targets and iOS chrome are untested in-repo.** DESIGN.md records
    that no repository-wide contrast, focus, zoom, or print audit exists.
    Safe-area insets, `100dvh` versus `100vh`, and 24px targets are not
-   implemented as a policy.[^design-ref][^generator-report]
+   implemented as a policy.[^design-ref]
 7. **Shared extraction is not the first patch.** Copying the details pattern
    into the site and splitting OKF nav from TOC does not require a new
    `rocci-ui` widget. Extract `MobileNav` only after RocdownTheme and
@@ -342,7 +337,6 @@ Human approval is required before treating these as normative:
 [^theme-chrome]: Standalone `.rd-toc` hidden at `48rem`; image max-width and code overflow.
 [^rocdown-readme]: Documented hiding of the left navigator on narrow viewports.
 [^okf-readme]: Preview is an HTTP origin; git provenance off by default for `run`.
-[^generator-report]: Historical 320px, mobile menu/TOC, and no-JS acceptance language.
 [^known-limitations]: No `@island`; tabs are stacked no-JS sections.
 [^static-okf]: Canonical knowledge remains inert Markdown; presentation is `rocci-okf`.
 [^compile-research]: Apply output versus Rust write fallback duplication.

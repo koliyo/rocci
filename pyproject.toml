@@ -9,7 +9,7 @@ dependencies = ["rocci-ops"]
 package = false
 
 [tool.uv.workspace]
-members = ["tools/rocci-ops"]
+members = ["rocci-ops"]
 
 [tool.uv.sources]
 rocci-ops = { workspace = true }

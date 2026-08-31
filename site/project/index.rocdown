@@ -2,7 +2,7 @@
     layout: "section",
     meta: {
         title: "Project",
-        description: "Overview of the Rocci project, including status, roadmap, architecture principles, and contribution guidelines.",
+        description: "Overview of the Rocci project, including status, architecture principles, and contribution guidelines.",
     },
 }
 
@@ -13,6 +13,5 @@ Rocci is an open experiment to bring functional ergonomics and typed purity to w
 ## Sections
 
 - [Project status](/project/status/) — Current implementation status, working subsystems, and deliberate boundaries.
-- [Roadmap](/project/roadmap/) — Planned capabilities, collections, search, and cross-platform releases.
 - [Contributing](/project/contributing/) — Development setup, testing guidelines, and repository conventions.
 - [Documentation](/docs/) — Technical guides, architecture concepts, and API reference.

@@ -52,6 +52,8 @@ pub struct NavGroupView {
     pub href: String,
     pub open: bool,
     pub items: Vec<NavItemView>,
+    #[serde(default)]
+    pub children: Vec<NavGroupView>,
 }
 
 impl NavGroupView {
@@ -66,11 +68,21 @@ impl NavGroupView {
             href: href.into(),
             open,
             items,
+            children: Vec::new(),
         }
     }
 
     pub fn covers_href(&self, href: &str) -> bool {
-        self.href == href || self.items.iter().any(|item| item.covers_href(href))
+        self.href == href
+            || self.items.iter().any(|item| item.covers_href(href))
+            || self.children.iter().any(|child| child.covers_href(href))
+    }
+
+    pub fn marks_current(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| item.class_name.contains("is-current"))
+            || self.children.iter().any(Self::marks_current)
     }
 }
 

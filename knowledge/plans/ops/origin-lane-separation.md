@@ -10,17 +10,17 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: lanes
-    resource: ../../../tools/rocci-ops/src/rocci_ops/lanes.py
+    resource: ../../../rocci-ops/src/rocci_ops/lanes.py
     title: ROCCI_LANE presets and publish-live flag
     author: process:cursor
     last_modified: 2026-08-30
   - id: origin-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin publish, compose, and health
     author: process:git
     last_modified: 2026-08-30
   - id: deploy-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/deploy.py
+    resource: ../../../rocci-ops/src/rocci_ops/deploy.py
     title: SSH bootstrap and origin_publish_cmd
     author: process:git
     last_modified: 2026-08-30
@@ -107,7 +107,7 @@ and the VPS/Tunnel steps are done.
 
 ## Exit
 
-From `tools/rocci-ops`, `uv run --group dev pytest` on the origin, deploy,
+From `rocci-ops`, `uv run --group dev pytest` on the origin, deploy,
 example-origins, and workflow-branches tests. `okmate check knowledge --profile base`.
 
 [^lanes]: `ROCCI_LANE` table: production `/srv/rocci/prod` `:8080` no live apps; staging `/srv/rocci/staging` `:8081` with live apps.

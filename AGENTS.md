@@ -52,7 +52,7 @@
 - Treat `dist/` and other generated output as derived artifacts, not sources of
   truth.
 - When adding a workspace member in the root `Cargo.toml`, classify it in the
-  same change in `tools/rocci-ops/src/rocci_ops/workspace_deps.py` under the matching
+  same change in `rocci-ops/src/rocci_ops/workspace_deps.py` under the matching
   `CLASSES` set. CI runs that checker in the lint job.
 
 ## Validate proportionally

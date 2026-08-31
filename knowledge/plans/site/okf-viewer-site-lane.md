@@ -100,7 +100,7 @@ sources:
     author: process:git
     last_modified: 2026-08-24
   - id: ops-package
-    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
+    resource: ../../../rocci-ops/src/rocci_ops/site.py
     title: rocci-ops package site pipeline
     author: process:git
     last_modified: 2026-08-24

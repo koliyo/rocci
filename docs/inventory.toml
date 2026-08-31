@@ -60,6 +60,23 @@ platform_documented_unverified = ["windows"]
 new_rocdown_features = false
 five_minutes_route = "/docs/five-minutes/"
 
+# Directory-plus-index sidebar contract
+# (knowledge/plans/rocdown/docs-directory-semantics.md Phase 0).
+# Phase 5 shipped Overview first child. peel_by stays id.
+
+[directory_semantics]
+plan = "knowledge/plans/rocdown/docs-directory-semantics.md"
+directory_plus_index = true
+overview_first_child = true
+peel_by = "id"
+nested_index_fold = true
+no_index_stays_flat = true
+cluster_warning = "RD2205"
+cluster_warning_severity = "warning"
+explicit_nav = true
+visible_depth = 2
+indexless_clusters = []
+
 [vocabulary]
 component = "A PascalCase @component that lowers to a pure Roc Html function."
 standalone_app = "A directory of .rocci modules with at most one process @init / @context, run by rocci run <dir> or rocci run File.rocci."
@@ -186,6 +203,11 @@ disposition = "keep"
 notes = "Composition; two app depths; Rocdown experimental."
 
 [[page]]
+path = "docs/appendix/index.rocdown"
+disposition = "keep"
+notes = "Appendix subsection landing."
+
+[[page]]
 path = "docs/appendix/roc-for-rocci.rocdown"
 disposition = "keep"
 notes = "Also aliases /docs/appendix/why-roc/."
@@ -298,6 +320,11 @@ disposition = "keep"
 [[page]]
 path = "docs/reference/diagnostics.rocdown"
 disposition = "keep"
+
+[[page]]
+path = "docs/reference/contributor/index.rocdown"
+disposition = "keep"
+notes = "Contributor subsection landing."
 
 [[page]]
 path = "docs/reference/contributor/rocci-tree.rocdown"

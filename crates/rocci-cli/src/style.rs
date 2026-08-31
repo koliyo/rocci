@@ -59,6 +59,37 @@ pub fn note(message: &str) -> String {
     labeled(stderr_color(), "1;33", "note:", message)
 }
 
+pub fn human_bytes(bytes: u64) -> String {
+    const KIB: f64 = 1024.0;
+    let n = bytes as f64;
+    if n < KIB {
+        format!("{bytes} B")
+    } else if n < KIB * KIB {
+        format!("{:.1} KiB", n / KIB)
+    } else if n < KIB * KIB * KIB {
+        format!("{:.1} MiB", n / (KIB * KIB))
+    } else {
+        format!("{:.1} GiB", n / (KIB * KIB * KIB))
+    }
+}
+
+pub fn cli_line(text: &str) -> String {
+    if text.contains('\u{1b}') {
+        return text.to_string();
+    }
+    let color = stderr_color();
+    if let Some(rest) = text.strip_prefix("rocdown: ") {
+        return format!("{} {rest}", paint(color, "1;36", "rocdown:"));
+    }
+    if let Some(rest) = text.strip_prefix("[rocci run] ") {
+        let rest = rest
+            .replace("status=done", &paint(color, "1;32", "status=done"))
+            .replace("status=start", &paint(color, "1;36", "status=start"));
+        return format!("{} {rest}", paint(color, "36", "[rocci run]"));
+    }
+    text.to_string()
+}
+
 fn labeled(color: bool, codes: &str, label: &str, message: &str) -> String {
     format!("{} {message}", paint(color, codes, label))
 }
@@ -165,6 +196,26 @@ mod tests {
         let line = serving("Guide", "http://127.0.0.1:8000/guide/");
         assert!(line.contains("Serving Guide at "));
         assert!(line.contains("http://127.0.0.1:8000/guide/"));
+    }
+
+    #[test]
+    fn human_bytes_uses_binary_units() {
+        assert_eq!(human_bytes(0), "0 B");
+        assert_eq!(human_bytes(1023), "1023 B");
+        assert_eq!(human_bytes(1024), "1.0 KiB");
+        assert_eq!(human_bytes(1_057_849), "1.0 MiB");
+    }
+
+    #[test]
+    fn cli_line_keeps_plain_text() {
+        assert_eq!(
+            strip_ansi(&cli_line("rocdown: loading site")),
+            "rocdown: loading site"
+        );
+        assert_eq!(
+            strip_ansi(&cli_line("[rocci run] phase=roc status=done elapsed_ms=12")),
+            "[rocci run] phase=roc status=done elapsed_ms=12"
+        );
     }
 
     #[test]

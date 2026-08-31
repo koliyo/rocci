@@ -57,8 +57,8 @@ executable declarations to canonical knowledge records.
 - Add tests at the lowest owning boundary. Parser tests should not require a
   server; catalog tests should not require Roc.
 - Run `cargo fmt --all -- --check` before committing on a maintainer branch.
-- Prefer crate READMEs and `docs/` for public contracts. `archive/reports/` is
-  historical evidence, not shipped behavior.
+- Prefer crate READMEs and `docs/` for public contracts. `knowledge/` is
+  local architecture and plan evidence, not shipped behavior.
 
 ## Pull requests and CI
 
@@ -72,9 +72,8 @@ Knowledge on the PR head. Dependabot PRs need the same `/ci` comment.
 `/ci-local` and `/cl-local` currently queue the same hosted jobs. Self-hosted
 CI runners are disabled.
 
-## Conduct, security, and support
+## Security and support
 
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - [SECURITY.md](SECURITY.md) for vulnerability reports
 - [SUPPORT.md](SUPPORT.md) for usage questions
 - Public feedback: [https://github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues)

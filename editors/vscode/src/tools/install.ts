@@ -26,6 +26,12 @@ export type GithubClient = {
 
 export type InstallLog = (message: string) => void
 
+const TOOL_BINARIES = ['rocci', 'rocdown', 'rocci-language-server', 'rocci-okf'] as const
+
+function describeManifest(manifest: ReleaseManifest): string {
+  return `${manifest.tagName} (${manifest.name}, id ${manifest.id}, published ${manifest.publishedAt})`
+}
+
 export async function installTools(options: {
   storageRoot: string
   channel: 'stable' | 'dev'
@@ -37,7 +43,10 @@ export async function installTools(options: {
   log: InstallLog
 }): Promise<ReleaseManifest | undefined> {
   const api = githubReleaseApiUrl(options.channel)
-  options.log(`Check for tools: ${api}`)
+  options.log(
+    `Update tools: channel=${options.channel} overwriteDev=${options.overwriteDev} platform=${options.platform} arch=${options.arch}`
+  )
+  options.log(`Check remote release: ${api}`)
   const payload = await options.client.getJson(api)
   const latest = parseReleaseManifest(payload)
   const assets = parseReleaseAssets(payload)
@@ -46,13 +55,24 @@ export async function installTools(options: {
     ? parseReleaseManifest(JSON.parse(fs.readFileSync(manifestPath, 'utf8')))
     : undefined
 
+  options.log(local ? `Current installed: ${describeManifest(local)}` : 'Current installed: none')
+  options.log(`Remote found: ${describeManifest(latest)}`)
+
   if (options.channel !== 'dev' && !options.overwriteDev && local && isDevRelease(local)) {
-    options.log(`Dev version detected: ${local.tagName}`)
+    options.log(
+      `Skip install: keeping local ${local.tagName} on channel=${options.channel} (overwriteDev=false)`
+    )
     return local
   }
   if (manifestsEqual(local, latest)) {
-    options.log(`Installed tools are up to date: ${latest.tagName}`)
+    options.log(`Skip install: already at ${latest.tagName}`)
     return latest
+  }
+
+  if (local) {
+    options.log(`Install: ${local.tagName} -> ${latest.tagName}`)
+  } else {
+    options.log(`Install: none -> ${latest.tagName}`)
   }
 
   const triple = rustTriple(options.platform, options.arch)
@@ -68,23 +88,34 @@ export async function installTools(options: {
     throw new Error(`Could not find release assets ${names.archive} and ${names.checksum}`)
   }
 
+  options.log(`Download ${names.archive} (${triple})`)
   const archive = await options.client.getBuffer(asset.downloadUrl)
+  options.log(`Downloaded ${names.archive} (${archive.length} bytes)`)
   const digestText = (await options.client.getBuffer(checksum.downloadUrl)).toString('utf8')
-  verifySha256(archive, parseSha256Line(digestText))
+  const expectedSha = parseSha256Line(digestText)
+  verifySha256(archive, expectedSha)
+  options.log(`Checksum ok: ${expectedSha}`)
 
   const dest = releaseExtractDir(options.storageRoot, latest.tagName)
   fs.rmSync(dest, { recursive: true, force: true })
   fs.mkdirSync(dest, { recursive: true })
   await options.extract(archive, dest)
-  for (const name of ['rocci', 'rocdown', 'rocci-language-server', 'rocci-okf']) {
+  const installed: string[] = []
+  for (const name of TOOL_BINARIES) {
     const found = findExtracted(dest, name)
     if (found) {
       fs.chmodSync(found, 0o755)
+      installed.push(name)
     }
   }
   fs.mkdirSync(options.storageRoot, { recursive: true })
   fs.writeFileSync(manifestPath, JSON.stringify(latest, null, 2))
-  options.log(`Installed ${latest.name} into ${dest}`)
+  options.log(`Installed ${describeManifest(latest)} into ${dest}`)
+  options.log(
+    installed.length > 0
+      ? `Installed binaries: ${installed.join(', ')}`
+      : `Installed binaries: none of ${TOOL_BINARIES.join(', ')} found in archive`
+  )
   return latest
 }
 

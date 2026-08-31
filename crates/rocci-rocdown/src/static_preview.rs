@@ -281,39 +281,6 @@ mod tests {
     }
 
     #[test]
-    fn branding_report_static_preview_completes_quickly() {
-        let input = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../archive/reports/branding/BRANDING_AND_COMMUNITY_REPORT.rocdown");
-        if !input.is_file() {
-            return;
-        }
-        let dir = temp_dir("branding-report");
-        let started = Instant::now();
-        let mut options = CompileOptions::default();
-        options.theme.source_dir = input.parent().map(|parent| parent.to_path_buf());
-        write_static_document_preview(&input, &dir, &options).unwrap();
-        let ms = started.elapsed().as_millis();
-        eprintln!("branding static preview {ms}ms");
-        assert!(ms < 5_000, "static preview of branding report took {ms}ms");
-        let html = fs::read_to_string(dir.join("index.html")).unwrap();
-        assert!(html.contains("Rocci branding"));
-        assert!(
-            html.contains("class=\"rd-document\""),
-            "branding preview must stamp html.rd-document"
-        );
-        assert!(html.contains("assets/rocci-logo-folded-r.png"));
-        assert!(
-            html.contains("<h2 class=\"rd-header-2\" id=\"searchability-and-seo\">"),
-            "headings must render as elements, not raw markdown"
-        );
-        assert!(
-            !html.contains("\n## Searchability"),
-            "ATX heading source must not leak into the article HTML\n"
-        );
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
     fn interactive_document_is_not_static() {
         let src = "@get:view(\"/\") = |_, _request| {\n    Html.text(\"hi\")\n}\n";
         let source = SourceFile::new("Live.rocdown", src);

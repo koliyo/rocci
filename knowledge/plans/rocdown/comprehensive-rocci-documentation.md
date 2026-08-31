@@ -105,12 +105,12 @@ sources:
     author: process:git
     last_modified: 2026-08-21
   - id: ops-ci
-    resource: ../../../tools/rocci-ops/src/rocci_ops/ci.py
+    resource: ../../../rocci-ops/src/rocci_ops/ci.py
     title: Local CI sequence for application docs and site checks
     author: process:git
     last_modified: 2026-08-21
   - id: ops-site-package
-    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
+    resource: ../../../rocci-ops/src/rocci_ops/site.py
     title: Local site packaging driven by the catalog live-app projection
     author: process:git
     last_modified: 2026-08-21

@@ -154,7 +154,7 @@ After News removal, global navigation is:
 | Docs | `/docs/` | Start, Templates, Applications, Rocdown, Reference, Troubleshooting |
 | Examples | `/examples/` | Example catalog and the current example context |
 | FAQ | `/faq/` | FAQ lane; responsive question outline |
-| Project | `/project/` | Overview, Status, Roadmap, Contributing |
+| Project | `/project/` | Overview, Status, Contributing |
 
 Home remains reachable through the brand, skip-link target, breadcrumbs, and
 page finder. It is not duplicated as a global lane.
@@ -443,7 +443,7 @@ approved response; and generic Rocdown collection tests still pass.
 - Rework FAQ into concise answers with a responsive question outline and canonical
   links.
 - Fix document-title composition so the brand appears once.
-- Reconcile Project Status and Roadmap with current code, README, and canonical
+- Reconcile Project Status with current code, README, and canonical
   knowledge; remove stale handler and phase language.
 - Verify every quantified or cross-platform claim or replace it with bounded
   wording.
@@ -459,8 +459,8 @@ owners, and public status terms match current implementation evidence.
 **Phase 4 exit recorded 2026-08-22:** Home now presents task paths before proof
 and maturity, FAQ exposes six deep-linkable questions with canonical follow-up
 pages, the planned view carries an explicitly composed document title, and all
-141 rendered page titles contain the brand exactly once. Project Status and
-Roadmap now distinguish the shipped hybrid path from reserved `@island` syntax
+141 rendered page titles contain the brand exactly once. Project Status
+distinguishes the shipped hybrid path from reserved `@island` syntax
 and bound desktop and cross-platform claims to the verified repository state.
 
 ### Phase 5 — reduce authoring noise and unify the local workflow

@@ -65,7 +65,7 @@ sources:
     author: process:git
     last_modified: 2026-08-22
   - id: origin
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin publish health and compose without Blocks
     author: process:git
     last_modified: 2026-08-22

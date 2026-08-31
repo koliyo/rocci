@@ -4,28 +4,18 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-26T12:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
 authority: descriptive
 owners: [human:nils]
 sources:
-  - id: roadmap
-    resource: ../../ROADMAP.md
-    title: Implementation roadmap
-    author: human:nils
-    last_modified: 2026-08-17
   - id: refactor-plan
     resource: ../plans/rocdown/rocdown-boundary-refactor.md
     title: Rocdown product-boundary refactor plan
     author: process:codex
     last_modified: 2026-08-17
-  - id: okf-plan
-    resource: ../../archive/reports/OKF_PLAN.md
-    title: Open Knowledge Format plan for Rocci
-    author: human:nils
-    last_modified: 2026-08-16
   - id: design-system
     resource: ../design/design-system.md
     title: Rocci design-system knowledge
@@ -81,7 +71,7 @@ sources:
 
 ## Shipped
 
-The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the inert `knowledge/` bundle in this repository, and the Rust-catalog/Rocci-shell Rocdown documentation generator. Portable OKF parsing and the knowledge CLI live in [okmate](https://github.com/koliyo/okmate).[^roadmap]
+The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the inert `knowledge/` bundle in this repository, and the Rust-catalog/Rocci-shell Rocdown documentation generator. Portable OKF parsing and the knowledge CLI live in [okmate](https://github.com/koliyo/okmate).
 
 Ordinary `.rocci` routes are mandatory verb-first `@method:role(path)` headers with a closed view/fragment/command/live matrix. Commands return `{}` and have no success representation (empty SSE for Datastar, 204 otherwise). Live routes are plural path-addressed `@get:live` streams with module-local singleton injection. That cutover lives on `verb-first-handler-declarations` and is not logged complete until CI and Knowledge succeed on the revision. Historical role-first research remains labeled historical.[^verb-first]
 
@@ -95,7 +85,7 @@ Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark 
 
 ## Missing
 
-Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `:api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
+Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `:api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.
 
 The editor adapters and host-language LSP with Rocdown composition exist, but workspace-wide language intelligence and compiler-backed Roc semantics remain proposed work.[^lsp-plan]
 
@@ -103,15 +93,15 @@ The editor adapters and host-language LSP with Rocdown composition exist, but wo
 
 Current implementation and accepted project direction keep render components as ordinary Roc functions, durable application state on the server, Rocdown Markdown-first with visible executable regions, and the Rocdown catalog in Rust with its visible shell in Rocci. These choices are recorded separately so their lifecycle does not depend on this status snapshot.
 
-The OKF compatibility boundary, bundle location, metadata vocabulary, ownership convention, and local-first publication are approved implementation contracts. DTCG is approved only as research evidence for design knowledge, not as implementation authority.[^okf-plan]
+The OKF compatibility boundary, bundle location, metadata vocabulary, ownership convention, and local-first publication are approved implementation contracts. DTCG is approved only as research evidence for design knowledge, not as implementation authority.
 
 ## Design-system knowledge phase
 
-The root `DESIGN.md` and two design knowledge records now document the current CSS theme surfaces and DTCG-informed research.[^design-system][^design-tokens] Rocci still has no DTCG token sources, checked compatibility CSS, per-theme token resolvers, generator, or token validation, and Phase 4 does not approve those artifacts.[^okf-plan]
+The root `DESIGN.md` and two design knowledge records now document the current CSS theme surfaces and DTCG-informed research.[^design-system][^design-tokens] Rocci still has no DTCG token sources, checked compatibility CSS, per-theme token resolvers, generator, or token validation, and Phase 4 does not approve those artifacts.
 
 ## Publication
 
-Knowledge output remains local and repository-visible. CI validates and compares temporary builds, but no public deployment or verbatim bundle archive is configured pending an explicit source-and-license review.[^publication][^okf-plan]
+Knowledge output remains local and repository-visible. CI validates and compares temporary builds, but no public deployment or verbatim bundle archive is configured pending an explicit source-and-license review.[^publication]
 
 ## Proposed, not approved
 
@@ -121,9 +111,7 @@ Typed client-behavior islands, their syntax, generated JavaScript artifact model
 
 This record must be reviewed when its `stale_after` date is reached or when either cited implementation plan changes.
 
-[^roadmap]: Current shipped focus and deliberate remaining limitations.
 [^refactor-plan]: Active ownership rule, implementation phases, testing, and remaining work.
-[^okf-plan]: Approved OKF contract and amended knowledge-only DTCG boundary.
 [^design-system]: Draft Phase 4 record of current design intent and shipped surfaces.
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
 [^okf]: Portable OKF engine and okmate knowledge application.

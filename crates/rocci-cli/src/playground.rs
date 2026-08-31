@@ -513,15 +513,20 @@ pub fn run_playground_cli(
         }
     };
     eprintln!(
-        "Rocci Playground ({}) running at {}\n{compiler_note}\nNote: Edits in the playground are in-memory and will not modify {}.",
-        mode.as_str(),
-        server.url,
-        input.display()
+        "{}\n{compiler_note}\n{}",
+        crate::style::serving(
+            &format!("Rocci Playground ({})", mode.as_str()),
+            &server.url
+        ),
+        crate::style::note(&format!(
+            "Edits in the playground are in-memory and will not modify {}.",
+            input.display()
+        )),
     );
 
     crate::serve::note_live_reload_paused(serve.live_reload());
     if serve.no_window {
-        eprintln!("Serving at {} (press Ctrl+C to stop)...", server.url);
+        eprintln!("{}", crate::style::serving("playground", &server.url));
         while server.is_running() {
             thread::sleep(Duration::from_millis(100));
         }

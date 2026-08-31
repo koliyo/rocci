@@ -85,7 +85,7 @@ sources:
     author: process:git
     last_modified: 2026-08-21
   - id: workspace-deps
-    resource: ../../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
+    resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace package classes and dependency direction
     author: process:git
     last_modified: 2026-08-21

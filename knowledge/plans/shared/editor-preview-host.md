@@ -95,7 +95,7 @@ sources:
     author: process:git
     last_modified: 2026-08-25
   - id: vscode-package-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/package.py
+    resource: ../../../rocci-ops/src/rocci_ops/package.py
     title: package vscode copies language-server into the VSIX
     author: process:git
     last_modified: 2026-08-25
@@ -120,7 +120,7 @@ sources:
     author: process:git
     last_modified: 2026-08-25
   - id: release-py
-    resource: ../../../tools/rocci-ops/src/rocci_ops/release.py
+    resource: ../../../rocci-ops/src/rocci_ops/release.py
     title: Release archive names and bundled binaries
     author: process:git
     last_modified: 2026-08-21
@@ -315,7 +315,7 @@ Exit: `cd editors/vscode && npm test` covers triple map, refuse-unknown-target, 
 
 ### Phase 5 — VS Code installer and unbundled VSIX
 
-Bound: `editors/vscode` + `tools/rocci-ops` `package_vscode`. On non-debug activate, if `autoUpdate`, fetch latest (or `dev`) and install into `globalStorageUri`. `rocci.updateTools` forces it. Resolve LSP and preview binaries with the new order. Remove `dist/bin` copy from `package_vscode`. README: no packaged binaries; first launch needs network once; path settings still win; debug uses `target/debug`. Mock GitHub in unit tests (fixture JSON + fixture archive bytes). Do not hit live GitHub in CI.[^vscode-package-ops][^hylo-download][^vscode-readme]
+Bound: `editors/vscode` + `rocci-ops` `package_vscode`. On non-debug activate, if `autoUpdate`, fetch latest (or `dev`) and install into `globalStorageUri`. `rocci.updateTools` forces it. Resolve LSP and preview binaries with the new order. Remove `dist/bin` copy from `package_vscode`. README: no packaged binaries; first launch needs network once; path settings still win; debug uses `target/debug`. Mock GitHub in unit tests (fixture JSON + fixture archive bytes). Do not hit live GitHub in CI.[^vscode-package-ops][^hylo-download][^vscode-readme]
 
 Exit: `cd editors/vscode && npm test`. `uv run rocci-ops` packaging tests assert the VSIX build is **not** preceded by a language-server copy (or that `dist/bin` is absent). `cargo fmt --all -- --check` if Rust unchanged.
 

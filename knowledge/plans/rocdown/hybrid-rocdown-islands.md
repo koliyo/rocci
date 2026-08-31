@@ -4,7 +4,7 @@ title: Hybrid Rocdown islands for CDN-static sites
 description: "Phased delivery of CDN-static Rocdown HTML with dynamic Rocci components backed by a rocci or rocdown HTTP service. Phases 1–10 shipped on main (dual apply, preview-as-site, one-origin islands, public contract on :name[params]). Follow-ons remain exploratory."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T14:20:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -73,11 +73,6 @@ sources:
     resource: ../../../crates/rocci-cli/src/datastar_asset.rs
     title: Datastar.js staging for Rocci apps
     author: process:git
-    last_modified: 2026-08-16
-  - id: format-report
-    resource: ../../../archive/reports/ROCDOWN_FORMAT_REPORT.md
-    title: Hybrid axes and island stages
-    author: human:nils
     last_modified: 2026-08-16
   - id: interactive
     resource: ../../../examples/rocdown/pages/Interactive.rocdown
@@ -197,7 +192,7 @@ Ship a Rocdown site in which:
 
 v1 uses existing `@component`, document-root tags, `@render`, `@css`,
 `@roc` values, `@context`, `@init`, and `@on`. It does not add
-`@island` grammar.[^research][^interactive][^server-actions][^format-report]
+`@island` grammar.[^research][^interactive][^server-actions]
 
 ## Constraints that do not move
 
@@ -448,7 +443,7 @@ longer a blanket site-build error for `live` pages.
 - Optional `islands.json` (or `pages.json` fields) with service routes
   for operators.
 - Failed builds leave the previous CDN tree. Byte-stable rebuild when
-  inputs are unchanged.[^build-rs][^format-report]
+  inputs are unchanged.[^build-rs]
 - Flag for CDN-only publish that errors on `live` pages (no silent
   dead buttons in production without a service).
 
@@ -632,7 +627,6 @@ that revision.
 [^wasm-host]: Staging preopen.
 [^wasm-platform]: No Path on wasm32 platform.
 [^datastar-asset]: App Datastar staging; site must hash its own copy for `live`.
-[^format-report]: Hybrid axes; JS only when referenced.
 [^interactive]: Colocated `@component` + `@on` fixture.
 [^server-actions]: Handler and patch contract.
 [^markdown-first]: Explicit executable regions.

@@ -350,7 +350,7 @@ enum InspectTarget {
 
 fn main() {
     if let Err(err) = try_main() {
-        eprintln!("{err:#}");
+        rocci_cli::style::print_anyhow(&err);
         std::process::exit(1);
     }
 }

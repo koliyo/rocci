@@ -4,7 +4,7 @@ title: Rocci components inside the content generation pipeline
 description: Evidence for replacing Rust-authored HTML chrome with Rocci components, including native subprocess versus Wasmtime hosts, two-tier generated-Roc and compiled-artifact caching, and native glue as a later host.
 tags: [domain/rocci, domain/rocdown, domain/rocci-okf, integration/roc, concern/rendering, concern/performance, concern/architecture, concern/caching]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T18:55:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-18
 authority: exploratory
 owners: [human:nils]
@@ -105,7 +105,7 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: deps-check
-    resource: ../../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
+    resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace dependency-direction check
     author: process:git
     last_modified: 2026-08-18
@@ -118,11 +118,6 @@ sources:
     resource: ../../../crates/rocci-cli/src/datastar_asset.rs
     title: Existing ~/.rocci/cache directory and SHA-256 integrity check
     author: process:git
-    last_modified: 2026-08-16
-  - id: runtime-report
-    resource: ../../../archive/reports/ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md
-    title: Roc and Datastar component architecture report
-    author: human:nils
     last_modified: 2026-08-16
   - id: roc-glue
     resource: https://github.com/roc-lang/roc/blob/main/src/glue/README.md
@@ -269,7 +264,7 @@ Rust; Roc type-checking and codegen stay in the `roc` binary.[^template-readme]
 Zig, or C can call compiled Roc and exchange `Str`, `List`, records, and tag
 unions with compiler-committed layout and refcounting. Rust is a first-class
 glue target. Glue does not embed the compiler; it embeds the *compiled
-application* inside a host that owns `main`.[^roc-glue][^roc-platform-rs][^roc-faq][^runtime-report]
+application* inside a host that owns `main`.[^roc-glue][^roc-platform-rs][^roc-faq]
 
 That shape is a later native host (`roc build --lib` plus `dlopen`), not part
 of the current delivery. The in-scope in-process host is Wasmtime loading a
@@ -450,7 +445,6 @@ glue documented as future potential.
 [^deps-check]: `rocci-okf` must not depend on Rocdown packages.
 [^template-readme]: Template crate does not invoke `roc`.
 [^datastar-cache]: Existing `~/.rocci/cache` root, `ROCCI_CACHE`, and SHA-256 sidecar.
-[^runtime-report]: Historical component and platform exploration.
 [^roc-glue]: Glue generates ABI bindings; it is not a compiler-embedding API.
 [^roc-platform-rs]: Rust hosts call compiled Roc through regenerated glue.
 [^roc-faq]: The platform host owns `main` and when Roc code runs; the compiler stays outside Roc.

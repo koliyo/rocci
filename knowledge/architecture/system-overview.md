@@ -4,7 +4,7 @@ title: Rocci system overview
 description: Rocci separates template compilation, Markdown-first content, static documentation cataloging, runtime hosting, and desktop presentation.
 tags: [domain/rocci, domain/rocdown, domain/runtime, domain/desktop, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-26T12:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -14,11 +14,6 @@ sources:
   - id: readme
     resource: ../../README.md
     title: Rocci README
-    author: human:nils
-    last_modified: 2026-08-17
-  - id: roadmap
-    resource: ../../ROADMAP.md
-    title: Implementation roadmap
     author: human:nils
     last_modified: 2026-08-17
   - id: workspace
@@ -43,7 +38,7 @@ The workspace separates compiler, template, theme, runtime, desktop host, Rocdow
 
 ## Boundaries
 
-Rocdown owns static catalog, route, navigation, graph, artifact, and build planning in Rust, while `RocdownTheme.rocci` owns the visible documentation shell compiled once per build.[^roadmap]
+Rocdown owns static catalog, route, navigation, graph, artifact, and build planning in Rust, while `RocdownTheme.rocci` owns the visible documentation shell compiled once per build.[^readme]
 
 Knowledge records follow the [static OKF boundary](/decisions/static-okf-boundary.md) and remain inert Markdown in `knowledge/`, checked and previewed with [okmate](https://github.com/koliyo/okmate).
 
@@ -53,9 +48,8 @@ The preview window is the native shell opened by `rocci run`, `rocdown run`, `ok
 
 ## Not yet implemented
 
-Dynamic Rocdown islands, production desktop signing and installers, and native capabilities beyond the current window/webview boundary remain planned work.[^roadmap]
+Dynamic Rocdown islands, production desktop signing and installers, and native capabilities beyond the current window/webview boundary remain planned work.
 
 [^readme]: Current repository overview and supported workflows.
-[^roadmap]: Current architectural direction and remaining limitations.
 [^workspace]: Current workspace membership and crate boundaries.
 [^preview-window]: Canonical names for the preview window, preview chrome, webview, and dev panel.

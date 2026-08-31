@@ -22,6 +22,4 @@ product contract unless a fact is also published on rocci.dev.
 ## Contributions
 
 This preview does not accept pull requests. That may change in the near
-future; see [CONTRIBUTING.md](CONTRIBUTING.md). Community conduct still
-applies in issues and other project spaces under the
-[Code of Conduct](CODE_OF_CONDUCT.md).
+future; see [CONTRIBUTING.md](CONTRIBUTING.md).

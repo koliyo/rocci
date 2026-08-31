@@ -10,17 +10,17 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: cli
-    resource: ../../../tools/rocci-ops/src/rocci_ops/cli.py
+    resource: ../../../rocci-ops/src/rocci_ops/cli.py
     title: rocci-ops command list
     author: process:cursor
     last_modified: 2026-08-30
   - id: release
-    resource: ../../../tools/rocci-ops/src/rocci_ops/release.py
+    resource: ../../../rocci-ops/src/rocci_ops/release.py
     title: operator release after version commit
     author: process:cursor
     last_modified: 2026-08-30
   - id: archive
-    resource: ../../../tools/rocci-ops/src/rocci_ops/archive.py
+    resource: ../../../rocci-ops/src/rocci_ops/archive.py
     title: hosted archive helpers
     author: process:cursor
     last_modified: 2026-08-30
@@ -79,7 +79,7 @@ force-fetch all git tags.
 
 **Bound:** dispatch, help, split of `local.py`, lazy h35. `promote tag`
 still worked.
-**Exit:** `uv run --directory tools/rocci-ops --group dev pytest`;
+**Exit:** `uv run --directory rocci-ops --group dev pytest`;
 `uv run --no-dev rocci-ops -h` lists the new tree.
 
 ## Phase 2 — Free the `release` name
@@ -100,7 +100,7 @@ staging/production only.
 **Exit:** `okmate check knowledge --profile base`; README documents
 `release patch` as the only `v*` path.[^readme][^cut]
 
-[^cli]: Console script `rocci-ops` in `tools/rocci-ops`.
+[^cli]: Console script `rocci-ops` in `rocci-ops`.
 [^release]: Version commit on the target branch, then annotated `v*` or force-moved `dev`.
 [^archive]: Archive naming and GitHub release publish stay on the tag workflow.
 [^cut]: `workflow_dispatch` inputs `spec`, `from`, `force`, `dry_run`.

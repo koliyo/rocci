@@ -386,6 +386,21 @@ pub fn goto_definition(
     {
         return Some(response);
     }
+    if let Some(link) = compiled
+        .links
+        .iter()
+        .find(|link| link.span.contains(offset))
+        && let Some(page) = page_for_resolved_link(name, &link.url)
+        && let Some(target) = uri_from_path(&page.path)
+    {
+        return Some(GotoDefinitionResponse::Scalar(Location {
+            uri: target,
+            range: Range::new(
+                lsp_types::Position::new(0, 0),
+                lsp_types::Position::new(0, 0),
+            ),
+        }));
+    }
     if let Some((expr, _span)) = interpolation_at(text, &compiled.document.items, offset) {
         let source = SourceFile::new(name, text);
         if let Some(target) = interpolation_binding(text, &compiled.document.items, expr) {
@@ -1085,4 +1100,25 @@ fn img_hover(source: SourceFile<'_>, call: &BlockCall, encoding: PositionEncodin
         }),
         range: Some(lsp_range(source, call.span, encoding)),
     }
+}
+
+fn page_for_resolved_link(name: &str, url: &str) -> Option<crate::PageRef> {
+    let (path, _) = crate::links::split_fragment(url);
+    if let Some(page) = crate::site::workspace_page_for_route(name, path) {
+        return Some(page);
+    }
+    let dir = filesystem_path(name)
+        .and_then(|path| path.parent().map(Path::to_path_buf))
+        .filter(|dir| dir.is_dir())?;
+    index_pages_in_dir(&dir)
+        .into_iter()
+        .find(|page| crate::links::routes_match(&page.route, path))
+}
+
+fn uri_from_path(path: &Path) -> Option<Uri> {
+    if path.as_os_str().is_empty() {
+        return None;
+    }
+    let path = path.canonicalize().ok()?;
+    format!("file://{}", path.display()).parse().ok()
 }

@@ -90,17 +90,17 @@ sources:
     author: process:git
     last_modified: 2026-08-23
   - id: local-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
+    resource: ../../../rocci-ops/src/rocci_ops/site.py
     title: package site stages docs and builds live apps
     author: process:git
     last_modified: 2026-08-23
   - id: deploy-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/deploy.py
+    resource: ../../../rocci-ops/src/rocci_ops/deploy.py
     title: Deploy push of site.tgz and islands only
     author: process:git
     last_modified: 2026-08-22
   - id: origin-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin unpack and hybrid compose publish
     author: process:git
     last_modified: 2026-08-22

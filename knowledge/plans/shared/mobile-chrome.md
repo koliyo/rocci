@@ -4,7 +4,7 @@ title: Mobile chrome for OKF, Rocdown, and rocci.dev
 description: "Phased no-JS narrow-viewport work: split OKF global nav from TOC, restore a details menu on rocci.dev, harden the default Rocdown mobile menu, and contain wide tables. Layout stays in product shells; rocci-ui extraction is gated on matching markup."
 tags: [domain/okf, domain/rocci-okf, domain/rocdown, domain/rocci, concern/rendering, concern/accessibility, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T16:30:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -104,11 +104,6 @@ sources:
     title: Rocci design reference
     author: process:okf-phase-4
     last_modified: 2026-08-18
-  - id: generator-report
-    resource: ../../../archive/reports/ROCDOWN_DOCUMENTATION_GENERATOR_REPORT.md
-    title: Historical Rocdown documentation-generator research
-    author: human:nils
-    last_modified: 2026-08-16
   - id: known-limitations
     resource: ../../status/known-limitations.md
     title: Known Rocci limitations
@@ -133,7 +128,7 @@ sources:
 Make the OKF review site, default Rocdown documentation chrome, and rocci.dev
 usable on a phone-width browser: reachable navigation, a readable article,
 no page-level horizontal scrolling from chrome or tables, and no JavaScript
-requirement for moving between pages.[^research][^site-plan][^generator-report]
+requirement for moving between pages.[^research][^site-plan]
 
 This plan covers HTML structure and CSS in the three product shells, the
 standalone Rocdown TOC rule, tests at the owning crate boundary, and a
@@ -185,7 +180,7 @@ breakpoint pixels stay local until Phase 0 names them:
 6. **Targets.** New or changed isolated controls meet 24 CSS-pixel minimum
    targets; prefer ~44px for the Menu summary. Sticky chrome must not cover
    heading targets (`scroll-margin-top` already exists in several
-   sheets).[^generator-report][^design-ref][^theme-chrome]
+   sheets).[^design-ref][^theme-chrome]
 
 Ownership:
 
@@ -395,7 +390,6 @@ normative:
 [^rocdown-readme]: Documented narrow TOC hiding.
 [^okf-readme]: HTTP preview origin.
 [^design-ref]: Accessibility review expectations; no recorded repository-wide audit.
-[^generator-report]: Historical 320px, menu/TOC, and no-JS language.
 [^known-limitations]: No `@island`; stacked no-JS tabs.
 [^compile-research]: Apply versus Rust write fallback.
 [^static-okf]: Knowledge records stay inert Markdown.

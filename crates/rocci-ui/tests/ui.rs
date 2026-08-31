@@ -78,6 +78,31 @@ fn test_view_constructors_and_serialization() {
     let json = serde_json::to_string(&page).unwrap();
     let deserialized: PageView = serde_json::from_str(&json).unwrap();
     assert_eq!(page, deserialized);
+
+    let mut language = NavGroupView::new(
+        "Rocci language reference",
+        "/docs/reference/language/",
+        true,
+        vec![NavItemView::new(
+            "File structure",
+            "/docs/reference/language/file-structure/",
+            "nav-link nav-child",
+        )],
+    );
+    language.children = Vec::new();
+    let mut reference = NavGroupView::new(
+        "Reference",
+        "",
+        true,
+        vec![NavItemView::new(
+            "Reference",
+            "/docs/reference/",
+            "nav-link nav-child",
+        )],
+    );
+    reference.children = vec![language];
+    assert!(reference.covers_href("/docs/reference/language/file-structure/"));
+    assert!(reference.covers_href("/docs/reference/"));
 }
 
 #[test]
@@ -118,9 +143,8 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-open"));
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-shortcut"));
     assert!(GOTO_SCRIPT.contains("window.__rocciNavSections"));
-    assert!(GOTO_SCRIPT.contains("details.nav-section > summary"));
-    assert!(GOTO_SCRIPT.contains("animation.finished"));
-    assert!(GOTO_SCRIPT.contains("prefers-reduced-motion: reduce"));
+    assert!(GOTO_SCRIPT.contains("details.nav-section"));
+    assert!(GOTO_SCRIPT.contains("\"toggle\""));
     assert!(GOTO_SCRIPT.contains("rocci-nav-sections"));
     assert!(GOTO_SCRIPT.contains("rocci-nav-scroll-positions"));
     assert!(GOTO_SCRIPT.contains("data-rocci-nav-section"));
@@ -132,6 +156,7 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("#okf-main, #main-content"));
     assert!(GOTO_SCRIPT.contains("#okf-toc, .layout-navigated > .outline, .site-grid > .outline"));
     assert!(GOTO_SCRIPT.contains("keepNav"));
+    assert!(GOTO_SCRIPT.contains("navSectionKeys"));
     assert!(GOTO_SCRIPT.contains(".mobile-panel"));
     assert!(GOTO_SCRIPT.contains("__rocciResize.enhance"));
     assert!(GOTO_SCRIPT.contains("__rocciToc.enhance"));

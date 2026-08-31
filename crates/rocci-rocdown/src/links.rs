@@ -213,7 +213,7 @@ fn resolve_url(
         return Ok(decoded);
     }
     if path.starts_with('/') {
-        return resolve_absolute(path, fragment, span, &decoded, options);
+        return resolve_absolute(path, fragment, span, &decoded, source.name, options);
     }
     if let Some(page) = page_for_relative(source, path, options) {
         return page_destination(page, fragment, span);
@@ -229,10 +229,15 @@ fn resolve_absolute(
     fragment: Option<&str>,
     span: Span,
     decoded: &str,
+    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))] source_name: &str,
     options: &CompileOptions,
 ) -> Result<String, Diagnostic> {
-    if let Some(page) = options.pages.iter().find(|page| page.route == path) {
+    if let Some(page) = page_for_route(path, &options.pages) {
         return page_destination(page, fragment, span);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(page) = crate::site::workspace_page_for_route(source_name, path) {
+        return page_destination(&page, fragment, span);
     }
     if is_document_href(path) {
         if let Some(page) = page_for_absolute_document(path, options) {
@@ -247,6 +252,25 @@ fn resolve_absolute(
         ));
     }
     Ok(with_fragment(path, fragment))
+}
+
+fn page_for_route<'a>(path: &str, pages: &'a [PageRef]) -> Option<&'a PageRef> {
+    pages.iter().find(|page| routes_match(&page.route, path))
+}
+
+pub(crate) fn routes_match(left: &str, right: &str) -> bool {
+    let left = crate::catalog::with_trailing_slash(left);
+    let right = crate::catalog::with_trailing_slash(right);
+    if left == right {
+        return true;
+    }
+    if let Some(stripped) = left.strip_prefix("/docs") {
+        return stripped == right || (left == "/docs/" && right == "/");
+    }
+    if let Some(stripped) = right.strip_prefix("/docs") {
+        return stripped == left || (right == "/docs/" && left == "/");
+    }
+    false
 }
 
 fn page_for_relative<'a>(

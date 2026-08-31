@@ -214,6 +214,12 @@ import PageOutline
         border-radius: 0 .45rem .45rem 0;
         font-size: .82rem;
     }
+    .nav-fold > .nav-items > .nav-section {
+        margin: 0;
+    }
+    .nav-fold .nav-fold > .nav-items > .nav-link {
+        margin-left: 1.4rem;
+    }
 
     .content-column { min-width: 0; padding: 3.4rem clamp(1.5rem, 5vw, 5rem) 5rem; }
 
@@ -349,6 +355,16 @@ import PageOutline
             border-bottom: 1px solid var(--line);
             background: var(--canvas);
             box-shadow: 0 1rem 2.5rem rgba(35, 25, 20, .12);
+        }
+        .mobile-panel .nav-link {
+            min-height: 2.75rem;
+            display: flex;
+            align-items: center;
+        }
+        .mobile-panel .nav-section summary {
+            min-height: 2.75rem;
+            display: flex;
+            align-items: center;
         }
         .mobile-panel .outline {
             display: block;

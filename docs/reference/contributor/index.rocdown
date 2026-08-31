@@ -1,0 +1,16 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Contributor",
+        description: "Tree specs and the local documentation checklist for Rocci and Rocdown contributors.",
+    },
+}
+
+# Contributor
+
+Maintainer-facing lookup for the two language trees and the docs-PR
+checklist. Not a first-read path.
+
+- [Rocci tree appendix](/docs/reference/contributor/rocci-tree/) — owned AST productions and inspect tags for `.rocci`
+- [Rocdown tree appendix](/docs/reference/contributor/rocdown-tree/) — owned AST productions and inspect tags for `.rocdown`
+- [Documentation contributor checklist](/docs/reference/contributor/checklist/) — local commands that match CI `fixtures-and-docs`

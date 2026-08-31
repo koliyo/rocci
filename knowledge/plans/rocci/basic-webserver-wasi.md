@@ -50,7 +50,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: workspace-deps
-    resource: ../../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
+    resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: New workspace crate must be classified in BASE_ROCCI or ROCDOWN
     author: process:git
     last_modified: 2026-08-26

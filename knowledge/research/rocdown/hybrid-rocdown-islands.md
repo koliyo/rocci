@@ -4,7 +4,7 @@ title: Hybrid Rocdown islands for CDN-static sites
 description: Exploratory research for static CDN HTML that embeds dynamic Rocci components backed by a rocci or rocdown HTTP service. Article documentation widgets are out of scope. Not shipped.
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/rendering, concern/security, concern/packaging, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-28T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -69,21 +69,6 @@ sources:
     title: Datastar.js pin and cache staging for Rocci apps
     author: process:git
     last_modified: 2026-08-16
-  - id: format-report
-    resource: ../../../archive/reports/ROCDOWN_FORMAT_REPORT.md
-    title: Original Rocdown format investigation and hybrid axes
-    author: human:nils
-    last_modified: 2026-08-16
-  - id: rocket-report
-    resource: ../../../archive/reports/DATASTAR_ROCKET_IN_ROCCI_REPORT.md
-    title: Rocci-native client-behavior island investigation
-    author: human:nils
-    last_modified: 2026-08-16
-  - id: roadmap
-    resource: ../../../ROADMAP.md
-    title: Implementation roadmap
-    author: human:nils
-    last_modified: 2026-08-17
   - id: rendering-doc
     resource: ../../../docs/concepts/rendering-model.rocdown
     title: Published rendering model
@@ -213,7 +198,7 @@ sections below as design-era evidence, not the shipped contract.[^rocdown-readme
 
 ## Vocabulary
 
-Do not collapse these into one `dynamic` flag.[^format-report][^format-arch]
+Do not collapse these into one `dynamic` flag.[^format-arch]
 
 | Term | Meaning here |
 | --- | --- |
@@ -245,8 +230,8 @@ Rocdown has two working pipelines that do not combine:[^rocdown-readme][^archite
 
 The format report's **hybrid output** is exactly this missing combination:
 static page files on a CDN, plus an explicit server for handlers, plus
-client JS only where needed. Stage 2 (server/hybrid) did not ship. The
-roadmap still lists dynamic island splicing as unchecked.[^format-report][^roadmap]
+client JS only where needed. Stage 2 (server/hybrid) did not ship. Dynamic
+island splicing is still not implemented.
 
 Rust still owns catalog, routes, and Markdown HTML. Authored Rocci stays
 on the Roc path **only where used**. That ownership is unchanged.[^catalog-shell][^compiler-arch]
@@ -319,7 +304,7 @@ Rocci components or handlers.[^catalog-shell][^architecture-doc]
 5. If the page has `@on` / Datastar actions, hash Datastar.js, set
    per-page `script-src` / `connect-src`, and emit the island service
    module for those routes. Pages with no handlers keep the strict
-   CSP and no Datastar.js.[^plan-rs][^format-report][^site-rs]
+   CSP and no Datastar.js.[^plan-rs][^site-rs]
 6. Catalog/check of pages with no Rocci still does not require Roc.
 
 `examples/rocdown/pages/Interactive.rocdown` is the live fixture (toggles and
@@ -345,10 +330,10 @@ visible. A component without handlers is CDN-only.[^markdown-first]
 Default site CSP stays `script-src 'none'; connect-src 'none'`. Hybrid
 pages that talk to the service need Datastar.js (`unsafe-eval` is
 today's Datastar expression cost, same as `rocci run`) and `connect-src`
-for the service origin only — not site-wide `'self'`.[^plan-rs][^datastar-asset][^rocket-report]
+for the service origin only — not site-wide `'self'`.[^plan-rs][^datastar-asset]
 
 Pages without islands must not include Datastar.js (format-report
-acceptance test 11).[^format-report]
+acceptance test 11).
 
 ## Options considered
 
@@ -430,9 +415,6 @@ plan v1 answers or later revisions.
 [^wasm-host]: WASI apply preopens staging.
 [^wasm-platform]: wasm32 platform has no Path.
 [^datastar-asset]: `rocci run` stages pinned Datastar.js; site builds do not.
-[^format-report]: Hybrid axes; JS only when referenced; Stage 2 server/hybrid.
-[^rocket-report]: Datastar morph vs private DOM; do not bundle Rocket.
-[^roadmap]: Unchecked dynamic island splicing.
 [^rendering-doc]: GET documents vs mutation fragments; Datastar transports HTML.
 [^architecture-doc]: Compile authored dynamic islands only where used.
 [^server-actions]: `@context` / `@init` / `@on` and Datastar `@post` contract.

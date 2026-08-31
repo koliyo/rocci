@@ -164,6 +164,9 @@ function registerCommands(context: ExtensionContext) {
 async function updateTools(context: ExtensionContext, overwriteDev: boolean): Promise<void> {
   const config = workspace.getConfiguration('rocci')
   const channel = config.get<string>('tools.channel') === 'dev' ? 'dev' : 'stable'
+  wrappedOutput.appendLine(
+    overwriteDev ? 'Update tools (manual)' : 'Update tools (auto on activate)'
+  )
   try {
     fs.mkdirSync(context.globalStorageUri.fsPath, { recursive: true })
     await installTools({
