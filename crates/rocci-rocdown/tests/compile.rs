@@ -1116,6 +1116,17 @@ fn source_line_fragments_are_not_unknown_headings() {
 }
 
 #[test]
+fn absolute_site_route_accepts_missing_trailing_slash() {
+    let pages = vec![page("custom", "/docs/applications/custom/", &[])];
+    let out = compile_ok_pages("[go](/docs/applications/custom)\n", pages);
+    assert!(
+        out.roc.contains("\"/docs/applications/custom/\""),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
 fn unknown_route_and_collision_are_errors() {
     let pages = vec![page("Foo", "/guides/foo/", &[]), page("Bar", "/dup/", &[])];
     let route = compile_err_pages("[go](/nope/)\n", pages.clone());

@@ -117,16 +117,22 @@ fn build_loaded_with_host(
     let (apply_path, recompiled, compile_ms) =
         if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
             eprintln!(
-                "rocdown: using cached {} renderer for {}",
-                if is_wasm { "wasm" } else { "native" },
-                &staged.roc_hash[..8.min(staged.roc_hash.len())]
+                "{}",
+                rocci_cli::style::cli_line(&format!(
+                    "rocdown: using cached {} renderer for {}",
+                    if is_wasm { "wasm" } else { "native" },
+                    &staged.roc_hash[..8.min(staged.roc_hash.len())]
+                ))
             );
             (cached, false, 0)
         } else {
             eprintln!(
-                "rocdown: generated {} bytes of Roc, compiling ({}) with roc",
-                staged.generated_roc_bytes,
-                if is_wasm { "wasm32" } else { "native" }
+                "{}",
+                rocci_cli::style::cli_line(&format!(
+                    "rocdown: generated {} of Roc, compiling ({}) with roc",
+                    rocci_cli::style::human_bytes(staged.generated_roc_bytes as u64),
+                    if is_wasm { "wasm32" } else { "native" }
+                ))
             );
             let roc_started = Instant::now();
             let roc_output = if is_wasm {
@@ -137,7 +143,10 @@ fn build_loaded_with_host(
                     .with_context(|| format!("workspace {}", workspace.display()))?
             };
             let roc_ms = roc_started.elapsed().as_millis();
-            eprintln!("rocdown: roc finished in {roc_ms}ms");
+            eprintln!(
+                "{}",
+                rocci_cli::style::cli_line(&format!("rocdown: roc finished in {roc_ms}ms"))
+            );
             if !roc_output.is_empty() {
                 eprint!("{roc_output}");
             }
@@ -248,46 +257,59 @@ impl BuildSession {
         };
         let mut recompiled = false;
         let compile_ms;
-        let apply_bin =
-            if self.roc_hash.as_deref() == Some(&staged.roc_hash) && self.apply_bin.is_file() {
-                eprintln!("rocdown: content changed, applying without recompile");
-                compile_ms = 0;
-                self.apply_bin.clone()
-            } else if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
-                eprintln!(
+        let apply_bin = if self.roc_hash.as_deref() == Some(&staged.roc_hash)
+            && self.apply_bin.is_file()
+        {
+            eprintln!(
+                "{}",
+                rocci_cli::style::cli_line("rocdown: content changed, applying without recompile")
+            );
+            compile_ms = 0;
+            self.apply_bin.clone()
+        } else if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
+            eprintln!(
+                "{}",
+                rocci_cli::style::cli_line(&format!(
                     "rocdown: using cached {} renderer for {}",
                     if is_wasm { "wasm" } else { "native" },
                     &staged.roc_hash[..8.min(staged.roc_hash.len())]
-                );
-                self.roc_hash = Some(staged.roc_hash.clone());
-                compile_ms = 0;
-                cached
-            } else {
-                eprintln!(
-                    "rocdown: generated {} bytes of Roc, compiling ({}) with roc",
-                    staged.generated_roc_bytes,
+                ))
+            );
+            self.roc_hash = Some(staged.roc_hash.clone());
+            compile_ms = 0;
+            cached
+        } else {
+            eprintln!(
+                "{}",
+                rocci_cli::style::cli_line(&format!(
+                    "rocdown: generated {} of Roc, compiling ({}) with roc",
+                    rocci_cli::style::human_bytes(staged.generated_roc_bytes as u64),
                     if is_wasm { "wasm32" } else { "native" }
-                );
-                let roc_started = Instant::now();
-                let roc_output = if is_wasm {
-                    invoke_roc_wasm_build(&self.workspace, &self.apply_bin, &maps)
-                        .with_context(|| format!("workspace {}", self.workspace.display()))?
-                } else {
-                    invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
-                        .with_context(|| format!("workspace {}", self.workspace.display()))?
-                };
-                compile_ms = roc_started.elapsed().as_millis();
-                eprintln!("rocdown: roc finished in {compile_ms}ms");
-                if !roc_output.is_empty() {
-                    eprint!("{roc_output}");
-                }
-                self.roc_hash = Some(staged.roc_hash.clone());
-                let bytes = fs::read(&self.apply_bin)?;
-                let fp = staged_fingerprints(&plan, is_wasm);
-                let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
-                recompiled = true;
-                stored
+                ))
+            );
+            let roc_started = Instant::now();
+            let roc_output = if is_wasm {
+                invoke_roc_wasm_build(&self.workspace, &self.apply_bin, &maps)
+                    .with_context(|| format!("workspace {}", self.workspace.display()))?
+            } else {
+                invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
+                    .with_context(|| format!("workspace {}", self.workspace.display()))?
             };
+            compile_ms = roc_started.elapsed().as_millis();
+            eprintln!(
+                "{}",
+                rocci_cli::style::cli_line(&format!("rocdown: roc finished in {compile_ms}ms"))
+            );
+            if !roc_output.is_empty() {
+                eprint!("{roc_output}");
+            }
+            self.roc_hash = Some(staged.roc_hash.clone());
+            let bytes = fs::read(&self.apply_bin)?;
+            let fp = staged_fingerprints(&plan, is_wasm);
+            let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
+            recompiled = true;
+            stored
+        };
 
         let roc_started = Instant::now();
         let roc_output = apply_html(&self.workspace, &staging, &maps, is_wasm, &apply_bin, &plan)

@@ -861,3 +861,44 @@ fn interpolation_goto_without_binding_has_no_location() {
         "unbound hole must not be a definition target: {response:?}"
     );
 }
+
+#[test]
+fn compile_text_resolves_workspace_docs_link() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "docs-link"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("site")).unwrap();
+    fs::create_dir_all(root.join("docs/applications")).unwrap();
+    fs::create_dir_all(root.join("examples/snake")).unwrap();
+    fs::write(
+        root.join("site/rocdown.toml"),
+        "[site]\ntitle = \"Demo\"\n\n[[mount]]\nsource = \"../docs\"\nprefix = \"docs\"\n",
+    )
+    .unwrap();
+    fs::write(root.join("site/index.rocdown"), "# Home\n").unwrap();
+    fs::write(
+        root.join("docs/applications/custom.rocdown"),
+        "# Custom applications\n",
+    )
+    .unwrap();
+    let snake = root.join("examples/snake/index.rocdown");
+    let src = "See [custom applications](/docs/applications/custom).\n";
+    fs::write(&snake, src).unwrap();
+    let compiled = compile_text(snake.to_str().expect("utf8"), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compiled
+            .diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+    );
+    let _ = fs::remove_dir_all(root);
+}

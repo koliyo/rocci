@@ -1,11 +1,13 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::SystemTime;
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{SourceFile, format_diagnostic};
 use serde::Serialize;
 
-use crate::{CompileOptions, Document, Item, MdNode, compile};
+use crate::{CompileOptions, Document, Item, MdNode, PageRef, compile, page_ref_from_source};
 
 use crate::article::{PageKind, classify_document, render_document, roc_imports_datastar};
 use crate::catalog::{
@@ -828,6 +830,145 @@ fn walk_images(node: &MdNode, urls: &mut Vec<String>) {
     }
 }
 
+struct WorkspaceIndex {
+    root: PathBuf,
+    stamp: (SystemTime, u64),
+    pages: Vec<PageRef>,
+}
+
+static WORKSPACE_INDEX: Mutex<Option<WorkspaceIndex>> = Mutex::new(None);
+
+pub(crate) fn workspace_page_for_route(source_name: &str, route: &str) -> Option<PageRef> {
+    let pages = workspace_pages(Path::new(source_name))?;
+    pages
+        .into_iter()
+        .find(|page| crate::links::routes_match(&page.route, route))
+}
+
+fn find_nested_site(path: &Path) -> Option<PathBuf> {
+    let path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir().ok()?.join(path)
+    };
+    let mut dir = if path.is_dir() {
+        path
+    } else {
+        path.parent()?.to_path_buf()
+    };
+    loop {
+        if dir.join(crate::config::CONFIG_FILE).is_file() {
+            return Some(dir);
+        }
+        let nested = dir.join("site").join(crate::config::CONFIG_FILE);
+        if nested.is_file() {
+            return Some(dir.join("site"));
+        }
+        dir = dir.parent()?.to_path_buf();
+    }
+}
+
+fn workspace_pages(from: &Path) -> Option<Vec<PageRef>> {
+    if from.as_os_str().is_empty() {
+        return None;
+    }
+    if from.components().count() < 2 && !from.exists() {
+        return None;
+    }
+    let root = find_nested_site(from)?;
+    let stamp = workspace_stamp(&root)?;
+    {
+        let cache = WORKSPACE_INDEX
+            .lock()
+            .unwrap_or_else(|err| err.into_inner());
+        if let Some(cached) = cache.as_ref()
+            && cached.root == root
+            && cached.stamp == stamp
+        {
+            return Some(cached.pages.clone());
+        }
+    }
+    let pages = index_site_page_refs(&root).ok()?;
+    let mut cache = WORKSPACE_INDEX
+        .lock()
+        .unwrap_or_else(|err| err.into_inner());
+    *cache = Some(WorkspaceIndex {
+        root,
+        stamp,
+        pages: pages.clone(),
+    });
+    Some(pages)
+}
+
+fn workspace_stamp(root: &Path) -> Option<(SystemTime, u64)> {
+    let toml = root.join(crate::config::CONFIG_FILE);
+    let meta = std::fs::metadata(&toml).ok()?;
+    let mtime = meta.modified().ok()?;
+    let discovered = discover_site_page_paths(root).ok()?;
+    let count = discovered.len() as u64;
+    Some((mtime, count))
+}
+
+fn discover_site_page_paths(root: &Path) -> Result<Vec<(PathBuf, String)>> {
+    let config = load_config(root)?;
+    let mut pages = Vec::new();
+    let mut root_files = Vec::new();
+    crate::build::discover_in(root, &mut root_files)?;
+    for path in root_files {
+        let relative_name = path
+            .strip_prefix(root)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .replace('\\', "/");
+        pages.push((path, relative_name));
+    }
+    for mount in &config.mounts {
+        let mount_dir = root.join(&mount.source);
+        if !mount_dir.is_dir() {
+            continue;
+        }
+        let mut mount_files = Vec::new();
+        crate::build::discover_in(&mount_dir, &mut mount_files)?;
+        for path in mount_files {
+            let rel_in_mount = path
+                .strip_prefix(&mount_dir)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            let relative_name = if mount.prefix.is_empty() {
+                rel_in_mount
+            } else {
+                format!("{}/{}", mount.prefix, rel_in_mount)
+            };
+            pages.push((path, relative_name));
+        }
+    }
+    Ok(pages)
+}
+
+fn index_site_page_refs(root: &Path) -> Result<Vec<PageRef>> {
+    let mut pages = Vec::new();
+    for (path, relative_name) in discover_site_page_paths(root)? {
+        let src = match std::fs::read_to_string(&path) {
+            Ok(src) => src,
+            Err(_) => continue,
+        };
+        let mut page = page_ref_from_source(&path, &src);
+        if !page.explicit_route {
+            let id = relative_name
+                .strip_suffix(".rocdown")
+                .or_else(|| relative_name.strip_suffix(".markdown"))
+                .or_else(|| relative_name.strip_suffix(".md"))
+                .unwrap_or(&relative_name);
+            page.route = catalog::derived_route(id);
+        } else {
+            page.route = catalog::with_trailing_slash(&page.route);
+        }
+        pages.push(page);
+    }
+    Ok(pages)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1090,6 +1231,34 @@ debug = true
         let root = temp("no-toml");
         fs::write(root.join("Guide.rocdown"), "# Guide\n").unwrap();
         assert_eq!(find_site_root(&root.join("Guide.rocdown")), None);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn workspace_route_finds_mounted_docs_from_nested_site() {
+        let root = temp("workspace-docs");
+        fs::create_dir_all(root.join("site")).unwrap();
+        fs::create_dir_all(root.join("docs/applications")).unwrap();
+        fs::create_dir_all(root.join("examples/snake")).unwrap();
+        fs::write(
+            root.join("site/rocdown.toml"),
+            "[site]\ntitle = \"Demo\"\n\n[[mount]]\nsource = \"../docs\"\nprefix = \"docs\"\n",
+        )
+        .unwrap();
+        fs::write(root.join("site/index.rocdown"), "# Home\n").unwrap();
+        fs::write(
+            root.join("docs/applications/custom.rocdown"),
+            "# Custom applications\n",
+        )
+        .unwrap();
+        let page = workspace_page_for_route(
+            root.join("examples/snake/index.rocdown")
+                .to_str()
+                .expect("utf8"),
+            "/docs/applications/custom",
+        )
+        .expect("mounted docs page");
+        assert_eq!(page.route, "/docs/applications/custom/");
         let _ = fs::remove_dir_all(root);
     }
 

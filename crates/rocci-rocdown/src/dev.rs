@@ -193,7 +193,10 @@ fn sync_island_backend(
                     "rocdown: island actions available on this origin",
                 );
             } else {
-                eprintln!("rocdown: island actions available on this origin");
+                eprintln!(
+                    "{}",
+                    rocci_cli::style::cli_line("rocdown: island actions available on this origin")
+                );
             }
             *slot = Some(running);
             Ok(())

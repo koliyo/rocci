@@ -9,7 +9,6 @@
     if (window.__rocciNavSections) {
       return;
     }
-    let transition = Promise.resolve();
     const currentLane = () => {
       const lane = document.querySelector(".lane-link.is-current");
       return lane && lane.textContent ? lane.textContent.trim() : "";
@@ -18,8 +17,6 @@
       lane ? "rocci-nav-sections:" + lane : "rocci-nav-sections";
     const storageKey = () => storageKeyFor(currentLane());
     const scrollStorageKey = "rocci-nav-scroll-positions";
-    const reducedMotion = () =>
-      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const forgetOtherLanes = () => {
       const lane = currentLane();
@@ -150,65 +147,25 @@
       });
     };
 
-    const finishFold = (section, opening) => {
-      const fold = section.querySelector(":scope > .nav-fold");
-      if (!fold || reducedMotion() || typeof fold.animate !== "function") {
-        section.open = opening;
-        return Promise.resolve();
-      }
-      if (opening) {
-        section.open = true;
-      }
-      const height = fold.scrollHeight;
-      const frames = opening
-        ? [
-            { height: "0px", opacity: 0 },
-            { height: height + "px", opacity: 1 },
-          ]
-        : [
-            { height: height + "px", opacity: 1 },
-            { height: "0px", opacity: 0 },
-          ];
-      const animation = fold.animate(frames, {
-        duration: 180,
-        easing: "ease",
-        fill: "both",
-      });
-      return animation.finished
-        .catch(function () {})
-        .then(function () {
-          section.open = opening;
-          animation.cancel();
-        });
-    };
-
     document.addEventListener(
-      "click",
+      "toggle",
       function (event) {
-        const target = event.target && event.target.closest
-          ? event.target.closest("details.nav-section > summary")
-          : null;
-        if (!target || event.button !== 0) {
-          return;
-        }
-        event.preventDefault();
-        const section = target.parentElement;
-        if (sectionIsCurrent(section) && section.open) {
+        const section = event.target;
+        if (
+          !section ||
+          !section.matches ||
+          !section.matches("details.nav-section")
+        ) {
           return;
         }
         const key = section.getAttribute("data-rocci-nav-section");
-        transition = transition.then(function () {
-          const opening = !section.open;
-          return finishFold(section, opening).then(function () {
-            const copies = sectionsWithKey();
-            for (let i = 0; i < copies.length; i++) {
-              if (copies[i].getAttribute("data-rocci-nav-section") === key) {
-                copies[i].open = opening;
-              }
-            }
-            writeSectionState(key, sectionIsCurrent(section) || opening);
-          });
-        });
+        const copies = sectionsWithKey();
+        for (let i = 0; i < copies.length; i++) {
+          if (copies[i] !== section && copies[i].getAttribute("data-rocci-nav-section") === key) {
+            copies[i].open = section.open;
+          }
+        }
+        writeSectionState(key, sectionIsCurrent(section) || section.open);
       },
       true
     );
@@ -750,6 +707,17 @@
     });
   };
 
+  const navSectionKeys = (el) => {
+    const keys = [];
+    el.querySelectorAll("[data-rocci-nav-section]").forEach((section) => {
+      const key = section.getAttribute("data-rocci-nav-section");
+      if (key) {
+        keys.push(key);
+      }
+    });
+    return keys.join("\0");
+  };
+
   const applyDocument = (fromDoc) => {
     const nextBody = fromDoc.body;
     if (!nextBody || !document.body) {
@@ -760,7 +728,13 @@
     const nextNav = fromDoc.querySelector(NAV_KEEP);
     const keepMain = document.querySelector(MAIN_SWAP);
     const nextMain = fromDoc.querySelector(MAIN_SWAP);
-    if (keepNav && nextNav && keepMain && nextMain) {
+    if (
+      keepNav &&
+      nextNav &&
+      keepMain &&
+      nextMain &&
+      navSectionKeys(keepNav) === navSectionKeys(nextNav)
+    ) {
       keepMain.replaceWith(nextMain);
       const keepToc = document.querySelector(TOC_SWAP);
       const nextToc = fromDoc.querySelector(TOC_SWAP);

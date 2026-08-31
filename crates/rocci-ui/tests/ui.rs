@@ -118,9 +118,8 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-open"));
     assert!(GOTO_SCRIPT.contains("data-rocci-goto-shortcut"));
     assert!(GOTO_SCRIPT.contains("window.__rocciNavSections"));
-    assert!(GOTO_SCRIPT.contains("details.nav-section > summary"));
-    assert!(GOTO_SCRIPT.contains("animation.finished"));
-    assert!(GOTO_SCRIPT.contains("prefers-reduced-motion: reduce"));
+    assert!(GOTO_SCRIPT.contains("details.nav-section"));
+    assert!(GOTO_SCRIPT.contains("\"toggle\""));
     assert!(GOTO_SCRIPT.contains("rocci-nav-sections"));
     assert!(GOTO_SCRIPT.contains("rocci-nav-scroll-positions"));
     assert!(GOTO_SCRIPT.contains("data-rocci-nav-section"));
@@ -132,6 +131,7 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("#okf-main, #main-content"));
     assert!(GOTO_SCRIPT.contains("#okf-toc, .layout-navigated > .outline, .site-grid > .outline"));
     assert!(GOTO_SCRIPT.contains("keepNav"));
+    assert!(GOTO_SCRIPT.contains("navSectionKeys"));
     assert!(GOTO_SCRIPT.contains(".mobile-panel"));
     assert!(GOTO_SCRIPT.contains("__rocciResize.enhance"));
     assert!(GOTO_SCRIPT.contains("__rocciToc.enhance"));
