@@ -4,7 +4,7 @@ title: Split oversized Rocci modules without adding features
 description: Move mixed-concern code in rocci-rocdown, rocci-template, and rocci-cli into private directory modules with unchanged public APIs, diagnostics, and generated output.
 tags: [domain/rocci, domain/rocdown, concern/architecture, concern/tooling, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T09:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T11:30:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -30,27 +30,27 @@ sources:
     author: process:cursor
     last_modified: 2026-08-31
   - id: plan-rs
-    resource: ../../../crates/rocci-rocdown/src/plan.rs
+    resource: ../../../crates/rocci-rocdown/src/plan/mod.rs
     title: Rocdown build planner
     author: process:git
     last_modified: 2026-08-31
   - id: docs-rs
-    resource: ../../../crates/rocci-rocdown/src/docs.rs
+    resource: ../../../crates/rocci-rocdown/src/docs/mod.rs
     title: Rocdown article-block pipeline
     author: process:git
     last_modified: 2026-08-23
   - id: lower-rd
-    resource: ../../../crates/rocci-rocdown/src/lower.rs
+    resource: ../../../crates/rocci-rocdown/src/lower/mod.rs
     title: Rocdown document lowering
     author: process:git
     last_modified: 2026-08-25
   - id: build-rs
-    resource: ../../../crates/rocci-rocdown/src/build.rs
+    resource: ../../../crates/rocci-rocdown/src/build/mod.rs
     title: Rocdown site build
     author: process:git
     last_modified: 2026-08-31
   - id: catalog-rs
-    resource: ../../../crates/rocci-rocdown/src/catalog.rs
+    resource: ../../../crates/rocci-rocdown/src/catalog/mod.rs
     title: Rocdown catalog resolver
     author: process:git
     last_modified: 2026-08-31
@@ -65,7 +65,7 @@ sources:
     author: process:git
     last_modified: 2026-08-25
   - id: lower-tpl
-    resource: ../../../crates/rocci-template/src/lower.rs
+    resource: ../../../crates/rocci-template/src/lower/mod.rs
     title: Rocci template lowering
     author: process:git
     last_modified: 2026-08-30
@@ -75,22 +75,22 @@ sources:
     author: process:git
     last_modified: 2026-08-30
   - id: run-rs
-    resource: ../../../crates/rocci-cli/src/run.rs
+    resource: ../../../crates/rocci-cli/src/run/mod.rs
     title: rocci run orchestration
     author: process:git
     last_modified: 2026-08-30
   - id: dev-server
-    resource: ../../../crates/rocci-cli/src/dev_server.rs
+    resource: ../../../crates/rocci-cli/src/dev_server/mod.rs
     title: Shared preview and live-reload server
     author: process:git
     last_modified: 2026-08-25
   - id: browse-rs
-    resource: ../../../crates/rocci-cli/src/browse.rs
+    resource: ../../../crates/rocci-cli/src/browse/mod.rs
     title: rocci browse gallery
     author: process:git
     last_modified: 2026-08-25
   - id: dispatch-rs
-    resource: ../../../crates/rocci-cli/src/dispatch.rs
+    resource: ../../../crates/rocci-cli/src/dispatch/mod.rs
     title: Generated HTTP dispatcher
     author: process:git
     last_modified: 2026-08-30
@@ -108,7 +108,7 @@ sources:
     resource: ../../../crates/rocci-cli/README.md
     title: Rocci CLI README
     author: process:git
-    last_modified: 2026-08-30
+    last_modified: 2026-08-31
   - id: suite-audit
     resource: ../../audits/ops/workspace-test-suite.md
     title: Workspace test-suite review
@@ -129,6 +129,17 @@ Restore private module seams inside the existing product crates so a
 change to sidebar projection, theme painters, or live-reload does not
 require editing a multi-thousand-line file, while generated Roc, HTML,
 diagnostics, and public crate APIs stay the same.[^audit][^boundary-plan]
+
+## Status
+
+Phases 0–8 are in source on branch `implementation-structure` (one
+commit per phase). `lib.rs` remains the product barrel in each crate.
+Directory modules exist for `plan/`, `docs/`, `lower/`, `catalog/`,
+and `build/` in `rocci-rocdown`; `lower/` in `rocci-template`; and
+`run/`, `dev_server/`, `browse/`, and `dispatch/` in `rocci-cli`.
+`parser.rs` was left intact. Public crate names are unchanged. This
+record and the paired audit stay `draft`; no human verification
+event.[^audit][^rd-lib][^rd-readme]
 
 ## Out of bound
 

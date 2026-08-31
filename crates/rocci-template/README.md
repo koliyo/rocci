@@ -556,7 +556,9 @@ The owned parse-tree shape lives in [`Rocci.AST.ungram`](Rocci.AST.ungram).
 [`src/ast.generated.rs`](src/ast.generated.rs) and exhaustive inspect walkers in
 [`src/pprint.generated.rs`](src/pprint.generated.rs). The generator emits node types
 and `format_ast` matches only; it does not produce the scanner or parser. Those stay
-hand-written in this crate. `pprint.rs` owns `Writer` and atom policy. `cargo run -q -p rocci-ungram -- check` fails when the committed generated
+hand-written in this crate (`parser.rs` is one recursive-descent `Parser`).
+Lowering lives in `src/lower/` (emitter, HTML, routes). `pprint.rs` owns
+`Writer` and atom policy. `cargo run -q -p rocci-ungram -- check` fails when the committed generated
 file is stale or a generated production has no inspect mapping. Inspect tags live
 in [`Rocci.AST.toml`](Rocci.AST.toml) and the public
 [`docs/reference/contributor/rocci-tree.rocdown`](../../docs/reference/contributor/rocci-tree.rocdown)

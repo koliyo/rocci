@@ -1,10 +1,10 @@
 ---
 type: Audit
 title: Rocci implementation structure review
-description: Crate-level product boundaries are sound; internal modules have grown into mixed-concern files, with rocci-rocdown/src/plan.rs the largest example, without a feature gap.
+description: Crate-level product boundaries are sound; F-01 through F-04 mixed-concern files are now private directory modules. The parser was left intact. Draft disposition from source evidence; no human verification.
 tags: [domain/rocci, domain/rocdown, concern/architecture, concern/tooling, audience/maintainer]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T09:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T11:30:00Z }
 stale_after: 2026-11-30
 authority: descriptive
 owners: [human:nils]
@@ -60,27 +60,27 @@ sources:
     author: human:nils
     last_modified: 2026-08-31
   - id: plan-rs
-    resource: ../../../crates/rocci-rocdown/src/plan.rs
+    resource: ../../../crates/rocci-rocdown/src/plan/mod.rs
     title: Rocdown build planner
     author: process:git
     last_modified: 2026-08-31
   - id: docs-rs
-    resource: ../../../crates/rocci-rocdown/src/docs.rs
+    resource: ../../../crates/rocci-rocdown/src/docs/mod.rs
     title: Rocdown article-block pipeline
     author: process:git
     last_modified: 2026-08-23
   - id: lower-rd
-    resource: ../../../crates/rocci-rocdown/src/lower.rs
+    resource: ../../../crates/rocci-rocdown/src/lower/mod.rs
     title: Rocdown document lowering
     author: process:git
     last_modified: 2026-08-25
   - id: build-rs
-    resource: ../../../crates/rocci-rocdown/src/build.rs
+    resource: ../../../crates/rocci-rocdown/src/build/mod.rs
     title: Rocdown site build
     author: process:git
     last_modified: 2026-08-31
   - id: catalog-rs
-    resource: ../../../crates/rocci-rocdown/src/catalog.rs
+    resource: ../../../crates/rocci-rocdown/src/catalog/mod.rs
     title: Rocdown catalog resolver
     author: process:git
     last_modified: 2026-08-31
@@ -100,7 +100,7 @@ sources:
     author: process:git
     last_modified: 2026-08-25
   - id: lower-tpl
-    resource: ../../../crates/rocci-template/src/lower.rs
+    resource: ../../../crates/rocci-template/src/lower/mod.rs
     title: Rocci template lowering
     author: process:git
     last_modified: 2026-08-30
@@ -125,22 +125,22 @@ sources:
     author: process:git
     last_modified: 2026-08-23
   - id: run-rs
-    resource: ../../../crates/rocci-cli/src/run.rs
+    resource: ../../../crates/rocci-cli/src/run/mod.rs
     title: rocci run orchestration
     author: process:git
     last_modified: 2026-08-30
   - id: dev-server
-    resource: ../../../crates/rocci-cli/src/dev_server.rs
+    resource: ../../../crates/rocci-cli/src/dev_server/mod.rs
     title: Shared preview and live-reload server
     author: process:git
     last_modified: 2026-08-25
   - id: browse-rs
-    resource: ../../../crates/rocci-cli/src/browse.rs
+    resource: ../../../crates/rocci-cli/src/browse/mod.rs
     title: rocci browse gallery
     author: process:git
     last_modified: 2026-08-25
   - id: dispatch-rs
-    resource: ../../../crates/rocci-cli/src/dispatch.rs
+    resource: ../../../crates/rocci-cli/src/dispatch/mod.rs
     title: Generated HTTP dispatcher
     author: process:git
     last_modified: 2026-08-30
@@ -362,32 +362,54 @@ Best practice here is not "every file under 300 lines." It is:
 The structure is therefore **architecturally right at the workspace
 edge and locally overdue for directory modules**.
 
+## Disposition (source evidence, 2026-08-31)
+
+The paired plan's phases 0–8 are in the tree. This record stays
+`draft`; the findings above are the review snapshot, not a claim that
+a human closed the audit.[^plan]
+
+- **F-01 / F-02 / F-03.** `src/plan/`, `src/docs/`, `src/lower/`,
+  `src/catalog/`, and `src/build/` exist. Production files in those
+  directories are at or under the 800-line preference except the Rocdown
+  `lower/emitter.rs` leftover cluster (~834). `lib.rs` is still the
+  barrel.[^plan-rs][^docs-rs][^lower-rd][^catalog-rs][^build-rs][^rd-lib]
+- **F-04.** `src/run/`, `src/dev_server/`, `src/browse/`, and
+  `src/dispatch/` exist. `dispatch`, `inspector`, `playground_compile`,
+  `playground_html`, `roc_module`, and `runtime_assets` are
+  `pub(crate)`. Modules the `rocci` binary, Rocdown, or tests import
+  stay `pub`. `browse` is not imported by Rocdown.[^cli-lib][^run-rs]
+- **F-05.** `parser.rs` is still one `Parser` (~2897 lines). Template
+  lowering is `src/lower/`.[^parser-rs][^lower-tpl]
+- **F-06.** In-crate `too_many_arguments` allows on touched planner and
+  CLI helpers were replaced with context structs. Public `run()` still
+  allows the lint because Rocdown calls it across the crate edge.
+- **F-07.** Kitchen-sink `tests/compile.rs` files were not split.
+
+Crate README internal-module maps match those directories.
+
 ## Recommended sequence
 
-Follow [implementation-structure](/plans/rocci/implementation-structure.md):
-freeze the no-behavior contract; extract `plan.rs` tests and split that
-directory first; then `docs.rs`; then catalog/build test extraction;
-then Rocdown lowering; then template lowering (leave the parser unless
-a natural seam appears); then CLI visibility and file splits; then
-dedup helpers and README module maps. Stop if a split would change
-diagnostics, HTML, or generated Roc.
+The [implementation-structure](/plans/rocci/implementation-structure.md)
+sequence was followed. Further splits are out of this plan unless a
+later change re-mixes concerns into a new god file. Stop if a split
+would change diagnostics, HTML, or generated Roc.
 
 ## Validation record
 
-- Line inventory: Python walk of `crates/**/*.rs` on 2026-08-31.
+- Line inventory: Python walk of `crates/**/*.rs` on 2026-08-31 (audit)
+  and `wc -l` of the split directories after phases 0–8.
 - Public consumers of `rocci_cli::` grepped from the workspace.
-- `rewrite_urls` compared by reading both definitions.
-- No `cargo test` run for this audit; claims are from source shape, not
-  a behavior regression hunt.
+- `rewrite_urls` compared by reading both definitions; the shared
+  helper now lives in `docs` and `plan/assets` delegates to it.
+- Phase Exit commands were run as process evidence on the implementing
+  branch. That is not a human verification event.
 
 ## Closure criteria
 
-The audit closes when the paired plan's phases that cover F-01 through
-F-04 are done, public crate APIs are unchanged, and
-`cargo test -p rocci-rocdown`, `cargo test -p rocci-template`,
-`cargo test -p rocci-cli --no-default-features` (or the crate's default
-offline filter), and `cargo fmt --all -- --check` are green on the
-declaring revision.
+Human closure still requires a reviewer to confirm public crate APIs
+are unchanged and the listed crate tests plus
+`cargo fmt --all -- --check` are green on the declaring revision.
+This draft does not record that review.
 
 [^plan]: Paired no-feature module-split sequence.
 [^system]: Workspace product boundaries and crate count.

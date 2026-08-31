@@ -134,3 +134,35 @@ there is no editor and no WASM compile.
 ## Architectural Boundary
 
 `rocci-cli` owns execution and orchestration for `.rocci` templates and Roc applications. It does not parse or execute `.rocdown` documents (which are owned by `rocci-rocdown-cli` / `rocdown`) or OKF bundles. `rocci run` on an OKF-looking `.md` file or bundle directory hints at `okmate view` by extension and leading-byte inspection only.
+
+## Internal modules
+
+`lib.rs` is the product barrel used by the `rocci` binary and by Rocdown
+for shared host pieces. New orchestration belongs in the owning file or
+subdirectory below, not a second public driver crate.
+
+| Path | Role |
+| --- | --- |
+| `lib.rs` | Library barrel |
+| `main.rs` | `rocci` clap dispatch |
+| `src/run/` | `rocci run` orchestration and standalone plans |
+| `src/dev_server/` | Shared preview and live-reload server used by Rocdown |
+| `src/browse/` | Gallery compiler; not a Rocdown dependency |
+| `src/dispatch/` | Generated HTTP dispatcher |
+| `driver.rs` / `serve.rs` / `view.rs` / `inspect.rs` / `inspector.rs` | Compile driver, static serve, component preview, inspect, Dev overlay |
+| `playground.rs` / `playground_html.rs` / `playground_compile.rs` | Playground host, HTML, local compile |
+| `bundle.rs` / `http_module.rs` / `datastar_asset.rs` | macOS bundle, WASI HTTP module, Datastar pin |
+| `rocci_test.rs` / `logs.rs` / `profile.rs` / `error_page.rs` / `path_hint.rs` | `rocci test`, log tee, metrics fixture, failed-rebuild dialog, `okmate` hint |
+| `style.rs` / `native_target.rs` / `runtime_assets.rs` / `roc_module.rs` | Highlight CSS, host triple, staged assets, Roc module helpers |
+
+`rocci_cli::` stays `pub` for modules the `rocci` binary, Rocdown, or
+integration tests import. `dispatch`, `inspector`, `playground_compile`,
+`playground_html`, `roc_module`, and `runtime_assets` are `pub(crate)`
+(`render_file` is re-exported). Do not add CLI flags.
+
+The split sequence and no-feature contract are in the
+[implementation-structure plan](../../knowledge/plans/rocci/implementation-structure.md)
+and the
+[structure audit](../../knowledge/audits/rocci/implementation-structure.md).
+Site-planning code still belongs in `rocci-rocdown` (`src/plan/`, `src/docs/`,
+`src/lower/`, `src/catalog/`, `src/build/`), not here.
