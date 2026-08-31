@@ -261,11 +261,10 @@ fn language_index_nests_descendants_and_opens_ancestors() {
     assert_eq!(sidebar.len(), 1);
     assert!(sidebar[0].open);
     assert_eq!(sidebar[0].href, "/docs/reference/");
-    assert_eq!(sidebar[0].items.len(), 2);
+    assert_eq!(sidebar[0].items.len(), 1);
     assert_eq!(sidebar[0].items[0].title, "Overview");
     assert_eq!(sidebar[0].items[0].href, "/docs/reference/");
-    assert_eq!(sidebar[0].items[1].title, "Runtime and HTTP");
-    assert_eq!(sidebar[0].children.len(), 2);
+    assert_eq!(sidebar[0].children.len(), 3);
     assert_eq!(sidebar[0].children[0].title, "Rocci language reference");
     assert_eq!(sidebar[0].children[0].href, "/docs/reference/language/");
     assert!(sidebar[0].children[0].open);
@@ -283,14 +282,17 @@ fn language_index_nests_descendants_and_opens_ancestors() {
             .class_name
             .contains("is-current")
     );
-    assert_eq!(sidebar[0].children[1].title, "Contributor");
-    assert_eq!(sidebar[0].children[1].href, "/docs/reference/contributor/");
-    assert_eq!(sidebar[0].children[1].items[0].title, "Overview");
+    assert_eq!(sidebar[0].children[1].title, "Runtime and HTTP");
+    assert_eq!(sidebar[0].children[1].href, "/docs/reference/runtime/");
+    assert!(sidebar[0].children[1].items.is_empty());
+    assert_eq!(sidebar[0].children[2].title, "Contributor");
+    assert_eq!(sidebar[0].children[2].href, "/docs/reference/contributor/");
+    assert_eq!(sidebar[0].children[2].items[0].title, "Overview");
     assert_eq!(
-        sidebar[0].children[1].items[0].href,
+        sidebar[0].children[2].items[0].href,
         "/docs/reference/contributor/"
     );
-    assert_eq!(sidebar[0].children[1].items[1].title, "Rocci tree appendix");
+    assert_eq!(sidebar[0].children[2].items[1].title, "Rocci tree appendix");
     assert!(sidebar_has_current(
         &sidebar,
         "/docs/reference/language/file-structure/"

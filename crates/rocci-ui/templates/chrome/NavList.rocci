@@ -141,9 +141,9 @@ section_key = |prefix, title|
                 >{item.title}</a>
             }
             @for child in group.children {
-                @if List.is_empty(child.items) {
+                @if is_leaf_group(child) {
                     <a
-                        class={if child.href == route { "nav-link is-current" } else { "nav-link" }}
+                        class={if child.href == route { "nav-link nav-child is-current" } else { "nav-link nav-child" }}
                         href={child.href}
                         aria-current={if child.href == route { "page" } else { "false" }}
                     >{child.title}</a>
@@ -236,7 +236,6 @@ navListNested = {
             open: True,
             items: [
                 { title: "Overview", href: "/docs/reference/", class_name: "nav-link nav-child" },
-                { title: "Runtime and HTTP", href: "/docs/reference/runtime/", class_name: "nav-link nav-child" },
             ],
             children: [
                 {
@@ -247,6 +246,14 @@ navListNested = {
                         { title: "Overview", href: "/docs/reference/language/", class_name: "nav-link nav-child" },
                         { title: "File structure and Roc regions", href: "/docs/reference/language/file-structure/", class_name: "nav-link nav-child" },
                     ],
+                    children: [],
+                },
+                {
+                    title: "Runtime and HTTP",
+                    href: "/docs/reference/runtime/",
+                    open: False,
+                    items: [],
+                    children: [],
                 },
             ],
         },

@@ -290,7 +290,9 @@ Use `[[nav.groups]]` under a top-level `[[nav]]` for curated lanes (Docs →
 Start, Templates, …): one header link, left rail folds per group. Do not add
 a group merely to recreate a folder; add `index.rocdown` instead. Group items
 are the same page IDs. A section with only groups and no `items` is valid.
-List each subsection index immediately before its members. Sidebar groups
+List each subsection index immediately before its members. Folds and
+sibling pages keep that list order; the sidebar does not collect folds
+after leaves. Sidebar groups
 share the same expandable shape and open independently under user control.
 The short transition honors reduced-motion preferences, and explicit
 open/closed choices persist while the user navigates in the same browser tab.

@@ -596,7 +596,7 @@ fn emit_nav_group(out: &mut String, group: &NavGroupView, indent: &str, with_chi
         out.push_str(indent);
         out.push_str("] },\n");
     } else {
-        out.push_str("] },\n");
+        out.push_str("], children: [] },\n");
     }
 }
 
