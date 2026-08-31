@@ -275,7 +275,7 @@ fn flush_building(building: BuildingGroup, current_id: Option<&str>) -> ForestRo
 
 fn attach_row(
     row: ForestRow,
-    stack: &mut Vec<BuildingGroup>,
+    stack: &mut [BuildingGroup],
     rows: &mut Vec<ForestRow>,
     current_id: Option<&str>,
 ) {
