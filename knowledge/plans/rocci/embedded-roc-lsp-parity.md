@@ -4,7 +4,7 @@ title: Embedded Roc LSP parity with zed-roc
 description: "Give Rocci LSP compiler-backed Roc hover, diagnostics, completion, definition, and references inside .rocci and .rocdown by forwarding one optional roc experimental-lsp child against generated modules and mapping through source-map segments."
 tags: [domain/rocci, domain/rocdown, integration/roc, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T17:05:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -19,11 +19,6 @@ sources:
     title: Current Rocci language-tooling boundary
     author: process:cursor
     last_modified: 2026-08-25
-  - id: detailed-plan
-    resource: ../../../archive/reports/ROCCI_LANGUAGE_SERVER_IMPLEMENTATION_PLAN.md
-    title: Rocci language-server report and detailed implementation plan
-    author: process:codex
-    last_modified: 2026-08-17
   - id: source-map
     resource: ../../../crates/rocci-template/src/source_map.rs
     title: Generated-Roc source-map segment model
@@ -82,7 +77,7 @@ go-to-definition, and references, via one optional `roc experimental-lsp`
 child on generated modules, with results mapped to authored spans.[^language-server][^vscode-roc][^zed-roc]
 
 This is the executable sequence for language-server Phase 4 (Roc
-semantics). It does not replace that umbrella plan.[^language-server][^detailed-plan]
+semantics). It does not replace that umbrella plan.[^language-server]
 
 ## Out of bound
 
@@ -102,8 +97,8 @@ semantics). It does not replace that umbrella plan.[^language-server][^detailed-
 - Default `cargo test -p rocci-lsp` does not require Roc. Live child tests use
   `ROCCI_REQUIRE_ROC=1`.
 - Map only reversible authored Roc. Scaffolding, static markup, CSS, and
-  ambiguous hits are refused.[^source-map][^detailed-plan]
-- One child process per workspace, not per region.[^detailed-plan]
+  ambiguous hits are refused.[^source-map]
+- One child process per workspace, not per region.
 - Host wins on host constructs (component tag, handler, `@page`, `:kind`).
   Executable Roc regions prefer Roc results.
 
@@ -200,7 +195,6 @@ changes. `cargo run -q -p rocci-okf -- check knowledge --profile base --format t
 
 [^language-server]: Phase 4 child server, generated projection, mapped semantics, degraded mode.
 [^tooling-architecture]: Composed `rocci-language-server`; base Rocci free of Rocdown types.
-[^detailed-plan]: Child-server contract, mapping refusal, and open spike on in-memory modules.
 [^source-map]: `Segment` generated/source/origin; no offset lookup yet.
 [^wrap-module]: `rocci view` wraps generated Roc in `TypeName := [].{ … }` with four-space indent.
 [^remap]: Current remap is `roc check` line numbers, not hover offsets.

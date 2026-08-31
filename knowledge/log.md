@@ -9,6 +9,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 ## 2026-08-31
 
 - Removed root `CODE_OF_CONDUCT.md` and live links from CONTRIBUTING, GOVERNANCE, and the in-site Contributing page. Too early to publish those terms. Revised the [public-launch checklist](audits/site/rocci-dev-public-launch.md) list of community-health files. Historical archive reports and the 2026-08-23 log line are unchanged.
+- Dropped live `archive/reports/` citations after that tree was removed. Knowledge sources now point at remaining records, crate READMEs, and `docs/`. Revised [consolidation](reference/consolidation.md) and the [public-launch checklist](audits/site/rocci-dev-public-launch.md). The 2026-08-23 log line is unchanged.
 
 ## 2026-08-30
 

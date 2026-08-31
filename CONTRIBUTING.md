@@ -57,8 +57,8 @@ executable declarations to canonical knowledge records.
 - Add tests at the lowest owning boundary. Parser tests should not require a
   server; catalog tests should not require Roc.
 - Run `cargo fmt --all -- --check` before committing on a maintainer branch.
-- Prefer crate READMEs and `docs/` for public contracts. `archive/reports/` is
-  historical evidence, not shipped behavior.
+- Prefer crate READMEs and `docs/` for public contracts. `knowledge/` is
+  local architecture and plan evidence, not shipped behavior.
 
 ## Pull requests and CI
 

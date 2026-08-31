@@ -4,16 +4,11 @@ title: Full Rocci and Rocdown language tooling
 description: Build region-aware Rocci and Rocdown language tooling for VS Code and Zed and reuse language-neutral token spans for static Rocdown code highlighting.
 tags: [domain/rocci, domain/rocdown, domain/rocs, integration/roc, concern/tooling, concern/syntax]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T16:50:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-10-01
 authority: exploratory
 owners: [human:nils]
 sources:
-  - id: detailed-plan
-    resource: ../../../archive/reports/ROCCI_LANGUAGE_SERVER_IMPLEMENTATION_PLAN.md
-    title: Rocci language-server report and detailed implementation plan
-    author: process:codex
-    last_modified: 2026-08-17
   - id: tooling-architecture
     resource: ../../architecture/language-tooling.md
     title: Current Rocci language-tooling boundary
@@ -111,7 +106,7 @@ syntax highlighting for embedded Roc and CSS plus HTML-shaped Rocci templates
 and Rocdown Markdown; the full target adds workspace navigation, safe rename
 and formatting, and compiler-backed Roc semantics. The same language-neutral
 byte-span tokens should also drive static syntax-highlighting HTML in the
-documentation generator.[^detailed-plan]
+documentation generator.
 
 This record is a proposed implementation sequence, not an approved or shipped
 contract.
@@ -129,12 +124,12 @@ Use the Rocci and Rocdown parsers as the only authority for language
 boundaries. Model each region with a language, syntactic context, purpose, byte
 span, parent, and precedence. Purpose must distinguish executable regions from
 display-only fences so syntax highlighting never changes execution
-semantics.[^rocdown-boundary][^detailed-plan]
+semantics.[^rocdown-boundary]
 
 Use source-preserving projections for fast lexical features and the compiler's
 generated Roc plus an expanded bidirectional source map for later type-aware
 Roc features. Compose backend results once in source byte spans before
-converting to the client's position encoding.[^source-map][^detailed-plan]
+converting to the client's position encoding.[^source-map]
 
 Reuse the Roc Tree-sitter grammar and adapted highlight queries from the
 `zed-roc` dependency chain, with pinned revisions and license attribution. Do
@@ -147,7 +142,7 @@ overlap composition in a small shared Rust crate. Protocol position encoding
 and Rocci analysis remain reusable without a Rocdown dependency; escaped HTML
 and CSS theming stay in the current Rocs generator and move with it into
 Rocdown. The generator links the token library in-process and never launches an
-LSP, editor, Node process, or authored code to highlight a site.[^rocdown-compiler][^detailed-plan][^product-boundary]
+LSP, editor, Node process, or authored code to highlight a site.[^rocdown-compiler][^product-boundary]
 
 ## Prerequisites
 
@@ -188,7 +183,7 @@ malformed snippets, and hostile HTML text.[^rocs-article][^rocs-docs]
 Start with Roc, HTML, CSS, and composite Rocci/Rocdown snippets. Add shell,
 TOML, and Markdown from measured documentation demand. Theme the stable token
 classes in Rocci-owned CSS with light, dark, print, and forced-colors behavior;
-do not emit inline colors or require client-side JavaScript.[^detailed-plan]
+do not emit inline colors or require client-side JavaScript.
 
 Tree-sitter's Rust highlighter already exposes reusable configurations,
 highlight events, injections, and HTML rendering support. Normalize its events
@@ -264,9 +259,8 @@ child server's generated-workspace behavior, and decide whether display fences
 and static sites support only bundled lexical backends or a broader optional
 documentation pack. It must also decide when token CSS class names become a
 public theme API. These gates do not block the common semantic-token and static
-HTML demonstrators.[^detailed-plan]
+HTML demonstrators.
 
-[^detailed-plan]: Detailed baseline, alternatives, region/projection architecture, demonstrator tasks, feature roadmap, risks, and evidence.
 [^tooling-architecture]: Current shipped surface, client boundary, embedded-range gap, and article-block build regression.
 [^rocdown-boundary]: Implemented Markdown-first and explicit executable-region contract.
 [^source-map]: Current generated/source span and origin representation that requires richer bidirectional policies.

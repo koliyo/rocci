@@ -4,7 +4,7 @@ title: Inline interpolation in Rocdown Markdown
 description: "Settled Markdown hole is `@{expr}` (prefix around Rocci `{expr}`). `{@expr}` and `{{expr}}` remain rejected alternatives. Implementation: knowledge/plans/rocdown/rocdown-inline-interpolation.md. v1 gap-closing: knowledge/plans/rocdown/rocdown-inline-interpolation-follow-ons.md. Not shipped."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/authoring, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-23T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -64,11 +64,6 @@ sources:
     title: Use a Rust catalog and a Rocci documentation shell
     author: process:okf-migration
     last_modified: 2026-08-18
-  - id: format-report
-    resource: ../../../archive/reports/ROCDOWN_FORMAT_REPORT.md
-    title: Original Rocdown format investigation
-    author: human:nils
-    last_modified: 2026-08-16
   - id: lang-ref
     resource: ../../../docs/rocdown/language.rocdown
     title: Public Rocdown language reference
@@ -161,7 +156,7 @@ mid-paragraph, emphasis, link text, list items, table cells.
 
 It is **not** a proposal for inline component tags, MDX, raw HTML in
 paragraphs, or a second expression language in the Rust article
-renderer.[^format-report][^catalog-shell]
+renderer.[^catalog-shell]
 
 ## The gap
 
@@ -186,7 +181,7 @@ Published {date}.
 The format investigation deferred inline Roc in sentences for v1 and said
 to add a form only after demonstrated pain. The Markdown-first decision
 records the consequence: inline dynamic prose currently needs a small
-component or a whole paragraph built in `@render` / HTML.[^format-report][^markdown-first]
+component or a whole paragraph built in `@render` / HTML.[^markdown-first]
 
 ## Shipped workarounds
 
@@ -216,7 +211,7 @@ Markdown inlining for the whole run.
    mode.[^markdown-first][^rocdown-readme]
 2. **Do not adopt MDX.** Inline Roc plus JSX-like tags in arbitrary
    Markdown positions was considered and rejected for v1 because braces and
-   angle brackets in prose would become language-sensitive.[^format-report]
+   angle brackets in prose would become language-sensitive.
 3. **Rust does not evaluate Roc.** Static catalog HTML is a Rust article
    renderer. Roc expressions belong on the hydrate/live Roc path, compiled
    only for pages that need them.[^catalog-shell][^article-rs]
@@ -355,7 +350,7 @@ Keep interpolation inside Rocci regions. Mid-sentence values stay a
 component, `@render`, or a root HTML paragraph.
 
 **Fit:** highest with the Markdown-first decision and the v1 format
-report.[^markdown-first][^format-report]
+report.[^markdown-first]
 
 **Cost:** a one-word hole still costs a block island and loses Markdown
 inlining for that paragraph.
@@ -371,7 +366,7 @@ Copy Rocci text interpolation into Markdown Text nodes.
 
 **Fit with Rocdown:** poor. `{` is not a language-transition sigil in
 Markdown; the format report rejected this class of change so ordinary
-braces stay content.[^format-report] Shipped docs would become accidental
+braces stay content. Shipped docs would become accidental
 programs. Unterminated `{` and nested records are expensive to diagnose.
 
 Reject as a Markdown feature. Keep `{expr}` as the **template-mode** form.
@@ -670,7 +665,6 @@ Not shipped. Parent plan stays exploratory.[^impl-plan][^follow-ons]
 [^format-arch]: Document-root HTML islands versus disabled Markdown raw HTML.
 [^markdown-first]: Markdown-first; transitions only at reserved document-root declarations or root HTML islands; inline dynamic prose may need a component.
 [^catalog-shell]: Rust owns static article HTML; authored dynamic regions stay on the Roc path.
-[^format-report]: v1 non-goal: inline Roc expressions in Markdown sentences; MDX-style tags rejected; `@render` block-only; future inline form only after pain.
 [^lang-ref]: Public declaration table, `{id}#heading` rewrite example, static/hydrate/live matrix, block-body island errors.
 [^text-ref]: Rocci `{expr}` must be `Str`; no markup inside.
 [^markup-guide]: Same interpolation contract in the template-layer guide.

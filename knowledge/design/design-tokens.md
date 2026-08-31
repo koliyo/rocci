@@ -4,7 +4,7 @@ title: Rocci design-token research
 description: Rocci ships CSS custom-property theme surfaces but no DTCG token system; this draft inventories current roles and records DTCG-informed future options as research only.
 tags: [domain/design-system, domain/rocdown, concern/theming, integration/dtcg]
 status: draft
-generated: { by: process:okf-phase-4, at: 2026-08-17T23:00:00Z }
+generated: { by: process:okf-phase-4, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-09-15
 authority: exploratory
 owners: [human:nils]
@@ -44,10 +44,6 @@ sources:
     title: Design Tokens Color Module 2025.10
     author: organization:design-tokens-community-group
     last_modified: 2025-10-28
-  - id: okf-plan
-    resource: ../../archive/reports/OKF_PLAN.md
-    title: Open Knowledge Format plan for Rocci
-    author: human:nils
     last_modified: 2026-08-16
 ---
 
@@ -55,7 +51,7 @@ sources:
 
 ## Current implementation
 
-Rocci does not have DTCG token files, a token generator, a resolver configuration, checked generated CSS, or token validation. Its current value-sharing mechanism is CSS custom properties in two separate surfaces.[^okf-plan][^paper-theme][^rocs-theme]
+Rocci does not have DTCG token files, a token generator, a resolver configuration, checked generated CSS, or token validation. Its current value-sharing mechanism is CSS custom properties in two separate surfaces.[^paper-theme][^rocs-theme]
 
 | Surface | Current roles | Resolution |
 | --- | --- | --- |
@@ -83,11 +79,11 @@ The following is a research outline, not an approved schema:
 - theme and light/dark variants could be modeled as explicitly ordered contexts;
 - compatibility output could preserve existing `--rd-*` names while a migration is evaluated.
 
-Before adoption, a separate proposal must define ownership, naming, types, alias policy, color gamut and fallback rules, modifier precedence, generated-file policy, CSS compatibility checks, and treatment of shell-only layout values.[^dtcg-format][^dtcg-resolver][^dtcg-color][^okf-plan]
+Before adoption, a separate proposal must define ownership, naming, types, alias policy, color gamut and fallback rules, modifier precedence, generated-file policy, CSS compatibility checks, and treatment of shell-only layout values.[^dtcg-format][^dtcg-resolver][^dtcg-color]
 
 ## Explicit non-claims
 
-The DTCG reports are external research sources. This record does not make them Rocci's implementation authority, does not claim the present CSS variables conform to DTCG, and does not approve token artifacts or migration work.[^okf-plan]
+The DTCG reports are external research sources. This record does not make them Rocci's implementation authority, does not claim the present CSS variables conform to DTCG, and does not approve token artifacts or migration work.
 
 [^paper-theme]: Current Paper font, foundation-color, and content-alias values.
 [^rocci-theme]: Current Rocci font, foundation-color, and content-alias values.
@@ -96,4 +92,3 @@ The DTCG reports are external research sources. This record does not make them R
 [^dtcg-format]: External format, naming, typing, alias, group, metadata, and extension vocabulary.
 [^dtcg-resolver]: External ordered-set and contextual-modifier resolution model.
 [^dtcg-color]: External structured color representation.
-[^okf-plan]: Approved boundary: DTCG is knowledge evidence only and implementation requires a separate proposal.

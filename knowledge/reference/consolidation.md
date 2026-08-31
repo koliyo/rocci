@@ -1,23 +1,13 @@
 ---
 type: Reference
 title: OKF consolidation disposition
-description: Phase 6 preserved seven dated reports in an archive and recorded that no concepts are superseded. A later public-repo sweep archived remaining root plans and the reports tree; lexical retrieval remains the baseline before any larger retrieval stack.
+description: Phase 6 recorded that no concepts are superseded. Dated root reports and the later archive tree are gone; lexical retrieval remains the baseline before any larger retrieval stack.
 tags: [domain/rocci, integration/okf, concern/validation, audience/maintainer]
 status: draft
-generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
+generated: { by: process:okf-phase-6, at: 2026-08-31T08:00:00Z }
 authority: descriptive
 owners: [human:nils]
 sources:
-  - id: okf-plan
-    resource: ../../archive/reports/OKF_PLAN.md
-    title: Open Knowledge Format plan for Rocci
-    author: human:nils
-    last_modified: 2026-08-16
-  - id: archive
-    resource: ../../archive/reports/README.md
-    title: Archived Rocci reports
-    author: process:okf-phase-6
-    last_modified: 2026-08-16
   - id: benchmark
     resource: ../retrieval-benchmark.toml
     title: Fixed retrieval benchmark
@@ -37,16 +27,13 @@ sources:
 No canonical concept is superseded. The current architecture, status, decision,
 design, and reference records have distinct subjects or lifecycle roles, so
 Phase 6 does not mark any record `deprecated`. Future replacement records must
-name the superseded concept and provide a replacement link or explanation.[^okf-plan]
+name the superseded concept and provide a replacement link or explanation.
 
 ## Root-report disposition
 
-Seven dated reports first moved to `archive/reports/` with their prose
-unchanged and only relative links repaired. `ROC_TEMPLATE.md` and
-`ROCDOWN_DOCUMENTATION_GENERATOR_IMPLEMENTATION_PLAN.md` were later archived
-there as well; they are detailed companions, not current root plans. No
-report was deleted, and the migration matrix retains original basenames as
-stable source identifiers.[^archive]
+Dated root reports and the later `archive/reports/` tree are no longer in
+the repository. Current contracts live in crate READMEs, `docs/`, and
+`knowledge/`.
 
 ## Public-documentation audit
 
@@ -69,7 +56,5 @@ run in CI before embeddings or a database service are considered.[^benchmark]
 This consolidation record and the measured queries are generated evidence and
 remain `draft` until a human reviews their dispositions and relevance labels.
 
-[^okf-plan]: Phase 6 deliverables and the rule that report movement is a separately reviewed change.
-[^archive]: File-by-file report disposition and authority notes.
 [^publication]: Current local-only publication boundary.
 [^benchmark]: Versioned lexical retrieval questions, relevance labels, and lifecycle expectations.

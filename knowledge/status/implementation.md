@@ -4,7 +4,7 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-26T12:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
@@ -21,11 +21,6 @@ sources:
     title: Rocdown product-boundary refactor plan
     author: process:codex
     last_modified: 2026-08-17
-  - id: okf-plan
-    resource: ../../archive/reports/OKF_PLAN.md
-    title: Open Knowledge Format plan for Rocci
-    author: human:nils
-    last_modified: 2026-08-16
   - id: design-system
     resource: ../design/design-system.md
     title: Rocci design-system knowledge
@@ -103,15 +98,15 @@ The editor adapters and host-language LSP with Rocdown composition exist, but wo
 
 Current implementation and accepted project direction keep render components as ordinary Roc functions, durable application state on the server, Rocdown Markdown-first with visible executable regions, and the Rocdown catalog in Rust with its visible shell in Rocci. These choices are recorded separately so their lifecycle does not depend on this status snapshot.
 
-The OKF compatibility boundary, bundle location, metadata vocabulary, ownership convention, and local-first publication are approved implementation contracts. DTCG is approved only as research evidence for design knowledge, not as implementation authority.[^okf-plan]
+The OKF compatibility boundary, bundle location, metadata vocabulary, ownership convention, and local-first publication are approved implementation contracts. DTCG is approved only as research evidence for design knowledge, not as implementation authority.
 
 ## Design-system knowledge phase
 
-The root `DESIGN.md` and two design knowledge records now document the current CSS theme surfaces and DTCG-informed research.[^design-system][^design-tokens] Rocci still has no DTCG token sources, checked compatibility CSS, per-theme token resolvers, generator, or token validation, and Phase 4 does not approve those artifacts.[^okf-plan]
+The root `DESIGN.md` and two design knowledge records now document the current CSS theme surfaces and DTCG-informed research.[^design-system][^design-tokens] Rocci still has no DTCG token sources, checked compatibility CSS, per-theme token resolvers, generator, or token validation, and Phase 4 does not approve those artifacts.
 
 ## Publication
 
-Knowledge output remains local and repository-visible. CI validates and compares temporary builds, but no public deployment or verbatim bundle archive is configured pending an explicit source-and-license review.[^publication][^okf-plan]
+Knowledge output remains local and repository-visible. CI validates and compares temporary builds, but no public deployment or verbatim bundle archive is configured pending an explicit source-and-license review.[^publication]
 
 ## Proposed, not approved
 
@@ -123,7 +118,6 @@ This record must be reviewed when its `stale_after` date is reached or when eith
 
 [^roadmap]: Current shipped focus and deliberate remaining limitations.
 [^refactor-plan]: Active ownership rule, implementation phases, testing, and remaining work.
-[^okf-plan]: Approved OKF contract and amended knowledge-only DTCG boundary.
 [^design-system]: Draft Phase 4 record of current design intent and shipped surfaces.
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
 [^okf]: Portable OKF engine and okmate knowledge application.

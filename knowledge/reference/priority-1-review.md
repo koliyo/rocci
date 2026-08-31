@@ -4,15 +4,11 @@ title: Priority-1 knowledge review checklist
 description: This checklist defines the evidence-based human gate for verifying and stabilizing the ten priority-1 Rocci knowledge records.
 tags: [domain/rocci, integration/okf, concern/validation, audience/maintainer]
 status: draft
-generated: { by: process:okf-phase-6, at: 2026-08-16T20:30:00Z }
+generated: { by: process:okf-phase-6, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-09-15
 authority: descriptive
 owners: [human:nils]
-sources:
-  - id: okf-plan
-    resource: ../../archive/reports/OKF_PLAN.md
-    title: Open Knowledge Format plan for Rocci
-    author: human:nils
+sources: []
     last_modified: 2026-08-16
 ---
 
@@ -20,9 +16,9 @@ sources:
 
 ## Review gate
 
-A reviewer must compare each current-behavior claim with code, tests, current crate documentation, or published docs; confirm that report-derived rationale is not presented as shipped behavior; check authority and lifecycle; and verify that keyed citations support the claims they follow.[^okf-plan]
+A reviewer must compare each current-behavior claim with code, tests, current crate documentation, or published docs; confirm that report-derived rationale is not presented as shipped behavior; check authority and lifecycle; and verify that keyed citations support the claims they follow.
 
-Substantive corrections update `generated.at` and leave the record `draft`. An accepted current revision receives a real `verified` event with the reviewer's actor ID and timestamp. Only records ready for consumption at their declared authority become `stable`.[^okf-plan]
+Substantive corrections update `generated.at` and leave the record `draft`. An accepted current revision receives a real `verified` event with the reviewer's actor ID and timestamp. Only records ready for consumption at their declared authority become `stable`.
 
 ## Priority-1 queue
 
@@ -54,4 +50,3 @@ Run `rocci-okf check knowledge --profile base`. `OKF4004` reports stale records,
 
 All ten priority-1 records were verified by `human:nils` at `2026-08-16T18:14:13Z` and promoted to `stable`. Phase 4 substantively corrected implementation status and theming; Phase 5 updated the Rocs compiler and known-limitations records; Phase 6 further updated implementation status, known limitations, and the Rocs compiler for consolidation and measured retrieval; subsequent work updated the Rocdown format record for document-root HTML template islands. Historical verification events are retained, but those five revised records are now `draft` and must be reviewed again. The other five priority-1 records remain stable. New design, publication, and consolidation records, the exploratory client-behavior-island decision, this checklist, and the static-OKF-boundary seed record are also `draft`.
 
-[^okf-plan]: Phase 3 deliverables, authority order, lifecycle rules, and evidence-based trust policy.

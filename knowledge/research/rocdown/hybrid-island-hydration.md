@@ -4,7 +4,7 @@ title: Hybrid island hydration versus SSR island frameworks
 description: "Shipped Rocdown static/hydrate/live is build-time HTML splice plus an optional Datastar island service, not React-style client hydration. v1 of that deploy shape is implemented and experimental; @island JS islands are not. Knowledge status records still describe the pre-ship gate."
 tags: [domain/rocdown, domain/rocci, domain/runtime, integration/datastar, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-28T17:20:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-28
 authority: exploratory
 owners: [human:nils]
@@ -104,11 +104,6 @@ sources:
     title: Known Rocci limitations
     author: process:cursor
     last_modified: 2026-08-24
-  - id: rocket-report
-    resource: ../../../archive/reports/DATASTAR_ROCKET_IN_ROCCI_REPORT.md
-    title: Rocket-style client components inside Rocci
-    author: human:nils
-    last_modified: 2026-08-16
   - id: streams-doc
     resource: ../../../docs/concepts/documents-fragments-commands-streams.rocdown
     title: Documents, fragments, commands, and streams
@@ -205,7 +200,7 @@ Explicitly unsolved (product still says experimental):
 
 | Gap | Why it matters |
 | --- | --- |
-| **`@island` / `*.client.js`** | No first-class browser-owned surface. Canvas, drag, maps, editors still have no typed host + controller contract.[^client-islands][^rocket-report][^rocdown-readme] |
+| **`@island` / `*.client.js`** | No first-class browser-owned surface. Canvas, drag, maps, editors still have no typed host + controller contract.[^client-islands][^rocdown-readme] |
 | **Cross-origin CORS and cookies** | `service_origin` already prefixes action URLs and `connect-src`; credentialed cross-origin is not shipped. Same-origin proxy is the supported layout.[^hybrid-guide][^hosting-follow-ons] |
 | **Live island GET refresh** | Snapshot is build-time; the live stream replaces it if authored. There is no generic “re-fetch this host Html from the service” primitive in v1.[^hybrid-plan] |
 | **Islands inside `:note` bodies** | `@render` in article-block bodies is out of v1.[^hybrid-plan][^hybrid-guide] |
@@ -229,7 +224,7 @@ The industry uses the same word for several different machines. Rocci picked one
 | **Full-app hydration** | Classic Next Pages, SvelteKit default, Nuxt | SSR HTML then hydrate the whole app | **Rejected** for Rocdown sites |
 | **Hypermedia / morph** | HTMX, Datastar, Phoenix LiveView, Turbo | Server returns HTML; client morphs by id; no component tree in JS | **Shipped `live` path.** This is the actual interactivity model[^htmx-hateoas][^streams-doc] |
 
-Rocci’s hybrid v1 is therefore closer to **Astro static pages + HTMX/Datastar islands** (or Enhance-style progressive HTML) than to Astro/Fresh **client** islands or Next RSC. The missing piece versus those frameworks is not another splice algorithm; it is the **explicit JS island** for work Datastar should not own.[^client-islands][^rocket-report]
+Rocci’s hybrid v1 is therefore closer to **Astro static pages + HTMX/Datastar islands** (or Enhance-style progressive HTML) than to Astro/Fresh **client** islands or Next RSC. The missing piece versus those frameworks is not another splice algorithm; it is the **explicit JS island** for work Datastar should not own.[^client-islands]
 
 ## Comparison (exploratory scores)
 
@@ -258,7 +253,7 @@ Rocci is **aligned** with HTMX/Datastar and unlike Next/Astro client islands: in
 These are gaps, not approved work. Do not start them from this record.
 
 1. **Keep using “hydrate” only as the page kind**, and say “build-time splice” in docs when talking to people who know Astro/React. The collision is already causing status-record confusion.[^impl-status][^limitations]
-2. **Ship or reject `@island`.** Until that decision is approved, “hybrid hydration” will keep being read as the missing JS story. The Rocket report still recommends light-DOM behavior islands and not bundling Rocket.[^client-islands][^rocket-report]
+2. **Ship or reject `@island`.** Until that decision is approved, “hybrid hydration” will keep being read as the missing JS story. The Rocket report still recommends light-DOM behavior islands and not bundling Rocket.[^client-islands]
 3. **Hosting follow-ons** (CORS/cookies, WebKit-free CLI, runtime without `roc`) if hybrid leaves laptop Docker.[^hosting-follow-ons]
 4. **Snapshot/service Roc reachability** so live pages are not a dual-platform authoring trap.[^snapshot-research]
 5. **Live GET refresh and islands-in-blocks** only if authors hit those walls; v1 explicitly deferred them.[^hybrid-plan]
@@ -290,7 +285,6 @@ These are gaps, not approved work. Do not start them from this record.
 [^pure-render]: `@component` is a Roc function to Html.
 [^impl-status]: 2026-08-26 snapshot still lists island splicing as missing.
 [^limitations]: Static-docs section still describes the pre-splice `RD2301` gate.
-[^rocket-report]: Light-DOM behavior islands; do not bundle Rocket.
 [^streams-doc]: Documents vs fragments vs commands vs live streams.
 [^astro-islands]: Astro client islands hydrate framework components.
 [^astro-server]: Astro server islands fetch HTML at request time.

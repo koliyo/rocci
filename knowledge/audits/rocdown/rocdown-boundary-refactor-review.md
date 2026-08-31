@@ -4,7 +4,7 @@ title: Rocdown product-boundary refactor completion review
 description: Evidence-based review of the completed Rocdown boundary refactor, including exit-gate coverage, residual coupling, stale automation and documentation, and prioritized follow-up work.
 tags: [domain/rocci, domain/rocdown, domain/okf, concern/architecture, concern/migration, concern/tooling, concern/validation]
 status: draft
-generated: { by: process:codex, at: 2026-08-17T21:38:11Z }
+generated: { by: process:codex, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-15
 authority: descriptive
 owners: [human:nils]
@@ -129,10 +129,6 @@ sources:
     title: Rocci knowledge log
     author: process:git
     last_modified: 2026-08-17
-  - id: playground-plan
-    resource: ../../../archive/reports/ROCCI_PLAYGROUND_IMPLEMENTATION_PLAN.md
-    title: Root playground implementation plan
-    author: process:codex
     last_modified: 2026-08-17
 ---
 
@@ -185,7 +181,7 @@ for the two workflow failures described below.[^ci-run][^knowledge-run]
 | 1 — characterize and extract seams | Complete | Golden parser/generator/LSP coverage, generic driver, reusable highlighting primitives, and `DocumentAnalyzer` extension points exist.[^rocci-lsp][^rocdown-lsp] |
 | 2 — unified Rocdown product | Complete | `rocci-rocdown-cli` owns `rocdown` commands, `rocci-rocdown` owns format/site/theme logic, and configuration loading is simplified to canonical `CONFIG_FILE` and `load_config`.[^workspace][^rocdown-config] |
 | 3 — remove Rocdown from base Rocci | Complete | Base Rocci has zero Rocdown dependencies; `rocci-rocdown-lsp` provides the shipped `rocci-language-server` binary registering both analyzers; VS Code and Zed extensions register `.rocdown` with CI tests.[^rocci-lsp-main][^rocdown-lsp][^vscode][^zed] |
-| 4 — retire Rocs | Complete | Old packages, binary, configuration, templates, and generated module names are retired; canonical knowledge and active plans use Rocdown identifiers.[^plan][^playground-plan][^language-knowledge] |
+| 4 — retire Rocs | Complete | Old packages, binary, configuration, templates, and generated module names are retired; canonical knowledge and active plans use Rocdown identifiers.[^plan][^language-knowledge] |
 | 5 — desktop rename | Complete | Active packages and imports use `rocci-desktop`.[^workspace] |
 | 6 — separate OKF | Complete | `okf` is portable with zero workspace dependencies; `rocci-okf` has no `rocci-rocdown` or `rocci-core` dependencies and the temporary allowlist is deleted.[^okf-app][^dependency-check] |
 | 7 — extract shared UI only from demonstrated duplication | Complete | `rocci-ui` is pruned to domain-neutral view records (`PageView`, `SiteView`, `NavConfig`, etc.) and HTML escaping; OKF-specific badge tones and presentation are self-contained in `rocci-okf`.[^ui-readme][^ui-view][^ui-html] |
@@ -344,7 +340,7 @@ Rocdown syntax through the base CLI, and the DevOps skill retained the deleted
 knowledge commands until an uncommitted audit-time correction. The root
 playground and language-server plans, branding launch material, and agent-skill
 plan contain current-tense references to `rocs`, `rocci-wry`, or the old shared
-server architecture.[^examples-doc][^playground-plan]
+server architecture.[^examples-doc]
 
 Update commands that remain operational guidance. For large dated research
 reports, prefer moving them under `archive/` or adding an unmistakable
@@ -521,4 +517,3 @@ The audit is closed.
 [^language-knowledge]: Current canonical claims and citations for language-server and editor behavior.
 [^implementation-status]: Current shipped-feature and editor-registration claims.
 [^knowledge-log]: Phase completion and validation claims recorded on 2026-08-17.
-[^playground-plan]: Active proposed work still based on pre-refactor package and product names.

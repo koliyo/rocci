@@ -4,7 +4,7 @@ title: Rocci @test syntax lowered to Roc expect
 description: "Shipped root @test name = boolExpr with optional {fixture: name}. expect stays out of wrap_type_module; rocci test appends aliases plus expects after Type := [].{ } and runs roc test on that module."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/testing]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T18:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -124,11 +124,6 @@ sources:
     title: Feature manifest with syntax.fixture and no syntax.test
     author: process:git
     last_modified: 2026-08-22
-  - id: archive-jsx
-    resource: ../../../archive/reports/ROC_TEMPLATE.md
-    title: Historical Html.render expect example for components
-    author: process:git
-    last_modified: 2026-08-23
   - id: roc-tutorial
     resource: https://github.com/roc-lang/roc/blob/main/docs/mini-tutorial-new-compiler.md
     title: Roc expect and roc test on the new compiler
@@ -211,7 +206,7 @@ On the new compiler, a test is a top-level `expect <Bool>` (one line) or
 on failure. `roc test file.roc` runs those expects. Inline `expect` inside
 functions is a debug assertion, not the authoring form here.[^roc-tutorial][^roc-allsyntax]
 
-Historical Rocci writing already used this pattern for components:[^archive-jsx]
+Historical Rocci writing already used this pattern for components:
 
 ```roc
 expect
@@ -219,7 +214,7 @@ expect
 ```
 
 `Html` values are not the comparison type; **strings from `Html.render`**
-are.[^html-roc][^archive-jsx]
+are.[^html-roc]
 
 ## Why `@test` instead of opaque `expect`
 
@@ -361,7 +356,7 @@ until CI and Knowledge succeed.
 
 | Idea | Why not v1 |
 | --- | --- |
-| JSX-style HTML as Roc, tests are just `expect` | Historical alternative; `@component` is the shipped form.[^archive-jsx] |
+| JSX-style HTML as Roc, tests are just `expect` | Historical alternative; `@component` is the shipped form. |
 | Auto-snapshot `@test{fixture: x}` with no body | Hidden `Html.render` and CSS-stamp surprises. |
 | Separate `Foo.test.rocci` | Fixtures already live beside components; split files fight `view`. |
 | HTTP handler tests | Requires a server, `!`, and a different runner. |
@@ -388,7 +383,6 @@ until CI and Knowledge succeed.
 [^lsp]: `fixture_symbol`; `DIRECTIVES` has no `test`.
 [^rocdown-scan]: `Reserved::Fixture`; no `Test`.
 [^coverage]: `syntax.fixture` current; no `syntax.test` / `cli.test`.
-[^archive-jsx]: `Html.render(hello(…)) == "<p>…"`.
 [^roc-tutorial]: `expect` and `roc test` on the new compiler.
 [^roc-allsyntax]: One-line and block `expect`.
 [^phase0-probe]: Hand-written `/tmp` stand-in on nightly-2026-08-18-e9be50a; layout (b) is 1 test.

@@ -4,7 +4,7 @@ title: rocci.dev public-launch checklist
 description: After the 2026-08-23 Should pass, live example hostnames are not advertised as serving, a public support matrix and one GitHub-issues feedback URL are published; remaining gates are a signed-out staging smoke, a tagged clean install, the known repository-visibility flip, and production DNS.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ux, concern/navigation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T07:37:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-22
 authority: descriptive
 owners: [human:nils]
@@ -197,7 +197,7 @@ staging browser walk.[^publish-plan][^inventory][^contributing-md]
   root `CONTRIBUTING.md`.[^contributing-page][^contributing-md]
 - Tree-sitter grammars under `crates/rocci-highlight/grammars/` are
   `linguist-vendored`.[^gitattributes]
-- Root leftover plans moved to `archive/reports/`. `reports/` is gone.
+- Root leftover plans and the later `archive/reports/` tree are gone.
   `knowledge/plans/site/rocci-playground.md` is the knowledge-facing playground
   plan. `README.md`, `LICENSE`, `AGENTS.md`, `ROADMAP.md`, and `DESIGN.md`
   stay at the root.
@@ -268,8 +268,8 @@ forwards and is the listed contact.[^publish-plan]
   and point at root `CONTRIBUTING.md`.[^contributing-page][^contributing-md]
 - [x] Mark Tree-sitter grammar C as linguist-vendored so GitHub does not
   classify the public repo as C.[^gitattributes]
-- [x] Sweep root leftovers that would dominate the GitHub file list. Plans
-  and `reports/` now live under `archive/reports/`.
+- [x] Sweep root leftovers that would dominate the GitHub file list. Dated
+  plans and reports are gone from the tree.
 - [x] Confirm live example hostnames
   (`live-counter.examples.rocci.dev`, `datastar.examples.rocci.dev`) are
   either serving or not linked as if they were. They are not serving; public

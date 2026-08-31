@@ -4,7 +4,7 @@ title: Datastar SSE is a per-request transport; generated apps do not fan out
 description: "Datastar morphs from each request's response. Generated Rocci one-shot POST patches do not fan out. Multi-client push is Tao CQRS. Generated @live polls with keepalives; Datastar @command success is empty SSE (not 204); ordinary clients get JSON. Platform idle-timeout limits are in basic-webserver-sse-http."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-21T13:08:32Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -89,16 +89,6 @@ sources:
     title: Durable application state is server-owned
     author: human:nils
     last_modified: 2026-08-16
-  - id: runtime-report
-    resource: ../../../archive/reports/ROC_DATASTAR_COMPONENT_FILETYPE_REPORT.md
-    title: Direct patches versus CQRS stream, fat morph
-    author: human:nils
-    last_modified: 2026-08-16
-  - id: snake-study
-    resource: ../../../archive/reports/SNAKE_DATASTAR_ARCHITECTURE_REPORT.md
-    title: Snake input and Datastar architecture
-    author: human:nils
-    last_modified: 2026-08-16
   - id: author-skill
     resource: ../../../.agents/skills/rocci-author/SKILL.md
     title: Authoring table for handlers and empty SSE commands
@@ -179,7 +169,7 @@ Rocci's generated apps only implement the first row. Snake implements the
 third, in an authored `main.roc`. The published rendering model already lists
 that third row as “authored long-lived SSE,” and the Snake architecture
 report already split `GET /sse` from JSON direction POSTs; generated `@on`
-never grew the same split.[^snake-main][^snake-rocci][^rendering-doc][^snake-study]
+never grew the same split.[^snake-main][^snake-rocci][^rendering-doc]
 
 ## Current generated contract
 
@@ -236,7 +226,7 @@ patch.
   DOM, not when the POST returns.[^ds-tao]
 - Do **not** patch the same `#counter` from both the POST and the stream
   unless events are versioned. A late POST can overwrite a newer streamed
-  render.[^runtime-report]
+  render.
 
 Snake already does this: `POST /api/direction` writes SQLite and returns
 `empty_sse!` (unfold immediately `End`). `GET /sse` polls revision and emits
@@ -273,7 +263,7 @@ broadcast another user's field errors over the shared stream.
 ## Recommended wire shape for a shared view
 
 Keep durable state in SQLite. Keep `#counter` as the morph boundary. Split
-read and write:[^server-state][^runtime-report][^ds-tao]
+read and write:[^server-state][^ds-tao]
 
 ```text
 GET  /                         document (initial HTML)
@@ -291,7 +281,7 @@ replaces `/actions/counter/sync`.[^hybrid-counter]
 
 Direct one-shot patches remain correct for **single-viewer** forms (gallery
 search, click-to-edit, inline validation). Those should not be forced onto
-CQRS.[^runtime-report]
+CQRS.
 
 ## What authors must write versus what Rocci can generate
 
@@ -302,7 +292,7 @@ Snake copies by hand because it ships an authored `main.roc`.[^dispatch-rs][^sna
 The leftover authoring is only **which HTML is live** and **that POSTs are
 commands**. Those are product facts Rocci cannot infer without breaking
 forms. Inferring CQRS from “there is a POST” would turn gallery validation
-into a broadcast bus.[^runtime-report]
+into a broadcast bus.
 
 | Layer | Who | Notes |
 | --- | --- | --- |
@@ -348,7 +338,7 @@ Drop `@live` for the common single-page app: `rocci.toml` `[datastar] live = tru
 (or a module flag) re-runs the document `GET /` and fat-morphs `html` /
 `#main`. Tao already prefers fat morph over hand-picked fragments. Cost is
 re-rendering the whole page each poll. Multi-page apps pass the current
-path as a query on `/sse`.[^runtime-report][^ds-tao]
+path as a query on `/sse`.[^ds-tao]
 
 Command POSTs in live mode can return `{}` / JSON only; the stream is the
 read path. That **reduces** authoring versus today’s increment handler,
@@ -389,7 +379,7 @@ at live-counter for fan-out.
 `basic-webserver` 0.16 typed SSE is `Emit` / `Wait` / `End` per connection.
 Snake fans out by parking `Wait({ wake: After(125) })` and rereading a
 SQLite `revision`. There is no cross-request mailbox to wake other
-streams.[^snake-main][^runtime-report]
+streams.[^snake-main]
 
 A pure `Wait` with no bytes also hits the host **30s response idle timeout**.
 Generated `@live` therefore keepalive-Emits on the unchanged path. Further
@@ -410,7 +400,7 @@ true in-process pub/sub is out of scope until the platform grows one.
   authority in the browser).[^ds-tao][^server-state]
 - Auto-wrap **all** GET handlers as streams (`GET /` must stay a document).
 - Infer CQRS from "there is a POST" (breaks gallery-style direct patches).
-- Invent a retained server VDOM or per-tab LiveView process for v1.[^runtime-report]
+- Invent a retained server VDOM or per-tab LiveView process for v1.
 
 ## Open product questions
 
@@ -450,8 +440,6 @@ stays the hand-written ceiling.[^dispatch-rs][^snake-main][^counter-readme][^pla
 [^ungram]: Handler and `LiveDecl` grammar.
 [^service-rs]: `IslandServicePlan.into_app_plan` feeds `rocci_cli` generic dispatch.
 [^server-state]: Backend remains authoritative; Datastar transports intent and server HTML.
-[^runtime-report]: Direct POST patch versus CQRS GET stream; do not double-patch one boundary.
-[^snake-study]: Multiplayer patches on a long-lived GET; commands are separate.
 [^author-skill]: Server-app table lists empty SSE for Datastar `@command`.
 [^bws-limits]: Silent `Wait` vs 30s idle timeout; HTTP/1.1 on plaintext `rocci run`; opaque Body-stream logs.
 [^ds-backend]: Zero or more SSE events per response; SDKs format `PatchElements` / `PatchSignals`.

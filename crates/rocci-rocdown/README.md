@@ -20,9 +20,9 @@ cargo run -p rocci-rocdown-cli -- inspect ast test/AllSyntax.rocdown
 
 Library entry points are `parse`, `compile`, and `format_ast` in `rocci_rocdown`.
 
-The original language design lives in
-[`ROCDOWN_FORMAT_REPORT.md`](../../archive/reports/ROCDOWN_FORMAT_REPORT.md). This README is
-what the compiler actually does.
+The language overview is
+[`knowledge/architecture/rocdown-format.md`](../../knowledge/architecture/rocdown-format.md).
+This README is what the compiler actually does.
 
 ## File shape
 

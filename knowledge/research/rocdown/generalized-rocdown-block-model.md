@@ -4,7 +4,7 @@ title: Generalized Rocdown block model
 description: "Exploratory research for a uniform Rocdown article-block AST. Decision: :name with [params] and {{ }} bodies. Source spelling later shipped; renderer override is a follow-on."
 tags: [domain/rocdown, domain/rocci, concern/syntax, concern/rendering, concern/architecture, concern/authoring]
 status: draft
-generated: { by: process:cursor, at: 2026-08-19T19:10:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -94,11 +94,6 @@ sources:
     title: Public Rocdown language reference
     author: process:git
     last_modified: 2026-08-18
-  - id: format-report
-    resource: ../../../archive/reports/ROCDOWN_FORMAT_REPORT.md
-    title: Original Rocdown format investigation
-    author: human:nils
-    last_modified: 2026-08-16
   - id: bravo-ungram
     resource: ../../../bravo/Bravo.AST.ungram
     title: Bravo document AST ungrammar
@@ -417,7 +412,7 @@ inline Markdown a second language.[^bravo-ungram][^ast]
 
 Inline `DecoratedFragment` is the MDX-like path. It conflicts with the
 Markdown-first decision unless it stays opt-in and document-root / block-body
-only. This research keeps inline decorations out of the first syntax.[^markdown-first][^format-report]
+only. This research keeps inline decorations out of the first syntax.[^markdown-first]
 
 ## Params versus content
 
@@ -917,7 +912,6 @@ namespace or inline decorations in the first syntax.
 [^generation-research]: Duplicate article-widget wrappers and the rule that renderer compilation must not run per page.
 [^compiler-arch]: Static article tree, fragment files, and Rocci painting from scalar segment records.
 [^rocdown-reference]: Public `:kind` article-block contract: kinds are not top-level `@` names.
-[^format-report]: Original rationale for Markdown-first islands; not shipped syntax.
 [^bravo-ungram]: Line versus section blocks, decorators, and a uniform `Block*` document.
 [^syntax-recommended]: Decided sample: `:note`, `[params]`, line-scope, `{{ }}`.
 [^syntax-variations]: Wrapping, `:end`, decided `:`, historical prefixes, rejected mixed `{ }`.

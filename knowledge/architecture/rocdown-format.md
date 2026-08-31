@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-20T15:10:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -46,10 +46,6 @@ sources:
     title: Rocdown CLI compile-option construction
     author: process:git
     last_modified: 2026-08-17
-  - id: format-report
-    resource: ../../archive/reports/ROCDOWN_FORMAT_REPORT.md
-    title: Original Rocdown format investigation
-    author: human:nils
     last_modified: 2026-08-15
 ---
 
@@ -79,7 +75,7 @@ This split has a syntax consequence: moving an otherwise HTML-looking block to d
 
 ## Language boundary
 
-Markdown owns prose. Roc owns data and computation inside explicit regions. Rocci owns server-rendered templates, and server handlers remain visible declarations. Fenced code is always displayed rather than executed.[^format-report]
+Markdown owns prose. Roc owns data and computation inside explicit regions. Rocci owns server-rendered templates, and server handlers remain visible declarations. Fenced code is always displayed rather than executed.
 
 This is the implemented form of the [Markdown-first explicit-islands decision](/decisions/markdown-first-explicit-islands.md). The stricter [OKF boundary](/decisions/static-okf-boundary.md) reuses only the Markdown AST and renderer, not Rocdown declarations.
 
@@ -89,7 +85,7 @@ This is the implemented form of the [Markdown-first explicit-islands decision](/
 
 ## Evidence policy
 
-The crate README and parser describe shipped behavior. The 2026-08-15 report supplies design rationale and future proposals only where explicitly labeled; it is not allowed to override the current implementation.[^format-report]
+The crate README and parser describe shipped behavior. The 2026-08-15 report supplies design rationale and future proposals only where explicitly labeled; it is not allowed to override the current implementation.
 
 [^rocdown-readme]: Current file shape, declarations, Markdown profile, lowering, and implemented/deferred list.
 [^parser]: Executable recognition and parsing behavior in code, including ordinary footnotes.
@@ -98,4 +94,3 @@ The crate README and parser describe shipped behavior. The 2026-08-15 report sup
 [^img]: `@img` field extraction, alt/decorative validation, and source-relative asset resolution.
 [^compiler-tests]: Regression coverage for root HTML islands, autolinks, list and fence boundaries, raw-HTML defaults, footnotes, and the image/figure contract.
 [^cli-options]: CLI construction of Rocdown compile options without a raw-HTML override.
-[^format-report]: Original design rationale, with its own warning that current crate documentation has precedence.
