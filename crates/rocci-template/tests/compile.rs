@@ -195,9 +195,65 @@ fn rejects_unparenthesized_header_record() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unparenthesized record")),
+            .any(|msg| msg.contains("RC1007") && msg.contains("unparenthesized record")),
         "{errors:?}"
     );
+}
+
+#[test]
+fn parse_families_cover_rc1001_through_rc1007() {
+    let cases = [
+        (
+            r#"
+@test
+= Bool.true
+"#,
+            "RC1001",
+            "expected test name",
+        ),
+        (
+            r#"
+@component Hello = |{}| {
+    <p>Hi</p>
+"#,
+            "RC1002",
+            "unclosed template block",
+        ),
+        (
+            r#"@component Hello = |{}| { @fi True { <p>x</p> } }"#,
+            "RC1003",
+            "unknown directive",
+        ),
+        (
+            r#"@on:get("/") { Html.text("x") }"#,
+            "RC1004",
+            "`@on` was removed",
+        ),
+        (
+            r#"@component Hello = |{}| { <div></span> }"#,
+            "RC1005",
+            "does not match",
+        ),
+        (
+            r#"@component Hello = |{}| { <button data-on:click=@steer("/x") /> }"#,
+            "RC1006",
+            "unknown Datastar action",
+        ),
+        (
+            r#"@component Hello = |{}| { @view("/") { Html.text("no") } <p>x</p> }"#,
+            "RC1007",
+            "only valid at document root",
+        ),
+    ];
+    for (src, code, needle) in cases {
+        let errors = compile_err(src);
+        assert!(
+            errors
+                .iter()
+                .any(|msg| msg.contains(code) && msg.contains(needle)),
+            "{code} {needle}: {errors:?}"
+        );
+    }
 }
 
 #[test]
@@ -228,7 +284,9 @@ fn unknown_directive_suggests_if() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("did you mean `@if`")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1003") && msg.contains("did you mean `@if`")),
         "{errors:?}"
     );
 }
@@ -417,10 +475,9 @@ hello = @component |{ name }| {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("start of the declaration")
-                && msg.contains("@component Name = |params|")),
+        errors.iter().any(|msg| msg.contains("RC1001")
+            && msg.contains("start of the declaration")
+            && msg.contains("@component Name = |params|")),
         "{errors:?}"
     );
 }
@@ -435,9 +492,9 @@ fn rejects_camel_case_component_names() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("PascalCase") && msg.contains("@component Hello")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003") && msg.contains("PascalCase") && msg.contains("@component Hello")
+        }),
         "{errors:?}"
     );
 }
@@ -452,9 +509,11 @@ fn rejects_ambiguous_component_names() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("ambiguous component name") && msg.contains("HtmlShell")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003")
+                && msg.contains("ambiguous component name")
+                && msg.contains("HtmlShell")
+        }),
         "{errors:?}"
     );
 }
@@ -520,9 +579,9 @@ fn braceless_rejects_sibling_tags() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("one HTML tag") && msg.contains("{ ... }")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1001") && msg.contains("one HTML tag") && msg.contains("{ ... }")
+        }),
         "{errors:?}"
     );
 }
@@ -537,8 +596,9 @@ fn preamble_and_directives_still_require_braces() {
 "#,
     );
     assert!(
-        css.iter()
-            .any(|msg| msg.contains("expected `{`") || msg.contains("one HTML tag")),
+        css.iter().any(|msg| {
+            msg.contains("RC1001") && (msg.contains("expected `{`") || msg.contains("one HTML tag"))
+        }),
         "{css:?}"
     );
 
@@ -551,7 +611,8 @@ fn preamble_and_directives_still_require_braces() {
 "#,
     );
     assert!(
-        dir.iter().any(|msg| msg.contains("expected `{`")),
+        dir.iter()
+            .any(|msg| msg.contains("RC1001") && msg.contains("expected `{`")),
         "{dir:?}"
     );
 }
@@ -690,7 +751,9 @@ sample = { name: "Ada" }
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("{target: ...}")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1001") && msg.contains("{target: ...}")),
         "{errors:?}"
     );
 }
@@ -707,9 +770,9 @@ sample = { name: "Ada" }
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown `@fixture` attribute `name`")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003") && msg.contains("unknown `@fixture` attribute `name`")
+        }),
         "{errors:?}"
     );
 }
@@ -775,7 +838,9 @@ fn rejects_missing_test_name() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("expected test name")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1001") && msg.contains("expected test name")),
         "{errors:?}"
     );
 }
@@ -790,7 +855,7 @@ helloRenders Bool.true
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("expected `=` after test name")),
+            .any(|msg| msg.contains("RC1001") && msg.contains("expected `=` after test name")),
         "{errors:?}"
     );
 }
@@ -803,9 +868,9 @@ helloRenders = Bool.true
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown `@test` attribute `target`")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003") && msg.contains("unknown `@test` attribute `target`")
+        }),
         "{errors:?}"
     );
 }
@@ -827,7 +892,7 @@ helloRenders = Bool.true
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("duplicate `fixture` attribute")),
+            .any(|msg| msg.contains("RC1003") && msg.contains("duplicate `fixture` attribute")),
         "{errors:?}"
     );
 }
@@ -858,9 +923,9 @@ fn rejects_test_inside_component_body() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@test` is only valid at document root")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1007") && msg.contains("`@test` is only valid at document root")
+        }),
         "{errors:?}"
     );
 }
@@ -876,9 +941,9 @@ fn rejects_fixture_inside_component_body() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@fixture` is only valid at document root")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1007") && msg.contains("`@fixture` is only valid at document root")
+        }),
         "{errors:?}"
     );
 }
@@ -945,9 +1010,9 @@ fn rejects_datastar_action_with_js_single_quotes() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("Roc strings") && msg.contains("@post(\"/x\")")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1006") && msg.contains("Roc strings") && msg.contains("@post(\"/x\")")
+        }),
         "{errors:?}"
     );
 }
@@ -961,9 +1026,9 @@ fn rejects_unknown_datastar_action() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown Datastar action `@steer`")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1006") && msg.contains("unknown Datastar action `@steer`")
+        }),
         "{errors:?}"
     );
 }
@@ -979,7 +1044,7 @@ fn datastar_action_in_text_is_still_unknown_directive() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unknown directive `@post`")),
+            .any(|msg| msg.contains("RC1003") && msg.contains("unknown directive `@post`")),
         "{errors:?}"
     );
 }
@@ -1729,9 +1794,9 @@ fn rejects_view_inside_component() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@view` is only valid at document root")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1007") && msg.contains("`@view` is only valid at document root")
+        }),
         "{errors:?}"
     );
 }
@@ -1806,9 +1871,9 @@ fn rejects_removed_on_get_json() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@on` was removed") && msg.contains("@get:view")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1004") && msg.contains("`@on` was removed") && msg.contains("@get:view")
+        }),
         "{errors:?}"
     );
 }
@@ -1823,7 +1888,9 @@ fn rejects_removed_on_unknown_respond() {
 "#,
     );
     assert!(
-        errors.iter().any(|msg| msg.contains("`@on` was removed")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1004") && msg.contains("`@on` was removed")),
         "{errors:?}"
     );
 }
