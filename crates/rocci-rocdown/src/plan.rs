@@ -1565,17 +1565,22 @@ fn leaf_group(item: NavItemView) -> NavGroupView {
     }
 }
 
-fn peel_matching_index(label: &str, items: &mut Vec<NavItemView>) -> String {
-    let matches_index = items.first().is_some_and(|item| {
-        items.len() > 1
-            && item.title == label
-            && (item.href.ends_with('/') || !item.href.is_empty())
-    });
-    if matches_index {
-        items.remove(0).href
-    } else {
-        String::new()
+fn is_group_root_index(id: &str, items: &[catalog::NavItem]) -> bool {
+    if id == "index" {
+        return items.iter().any(|item| item.id == "index");
     }
+    let Some(dir) = index_dir(id) else {
+        return false;
+    };
+    section_root_dir(items).is_some_and(|root| dir == root)
+}
+
+fn root_index_href(items: &[catalog::NavItem], has_siblings: bool) -> Option<String> {
+    if items.len() <= 1 && !has_siblings {
+        return None;
+    }
+    let first = items.first()?;
+    is_group_root_index(&first.id, items).then(|| first.route.clone())
 }
 
 fn rows_to_group(
@@ -1583,7 +1588,9 @@ fn rows_to_group(
     rows: Vec<ForestRow>,
     extra_children: Vec<NavGroupView>,
     open: bool,
+    section_items: &[catalog::NavItem],
 ) -> Option<NavGroupView> {
+    let landing = root_index_href(section_items, !extra_children.is_empty() || rows.len() > 1);
     let has_group =
         rows.iter().any(|row| matches!(row, ForestRow::Group(_))) || !extra_children.is_empty();
     if !has_group {
@@ -1597,7 +1604,14 @@ fn rows_to_group(
         if items.is_empty() && extra_children.is_empty() {
             return None;
         }
-        let href = peel_matching_index(label, &mut items);
+        let href = if let Some(href) =
+            landing.filter(|href| items.first().is_some_and(|item| item.href == *href))
+        {
+            items.remove(0);
+            href
+        } else {
+            String::new()
+        };
         return Some(flatten_group_depth(NavGroupView {
             title: label.into(),
             href,
@@ -1614,10 +1628,13 @@ fn rows_to_group(
         })
         .collect();
     children.extend(extra_children);
-    let href = if children.first().is_some_and(|child| {
-        child.items.is_empty() && child.children.is_empty() && child.title == label
+    let href = if let Some(href) = landing.filter(|href| {
+        children.first().is_some_and(|child| {
+            child.items.is_empty() && child.children.is_empty() && child.href == *href
+        })
     }) {
-        children.remove(0).href
+        children.remove(0);
+        href
     } else {
         String::new()
     };
@@ -1644,7 +1661,7 @@ fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavG
                 .iter()
                 .any(|item| nav_item_owns_page(&item.id, id))
     });
-    rows_to_group(&section.label, rows, extra_children, open)
+    rows_to_group(&section.label, rows, extra_children, open, &section.items)
 }
 
 fn flatten_group_depth(mut group: NavGroupView) -> NavGroupView {
@@ -2888,8 +2905,10 @@ mod tests {
         assert!(sidebar[0].items.is_empty());
         assert_eq!(sidebar[0].children.len(), 1);
         assert_eq!(sidebar[0].children[0].title, "Language");
+        assert_eq!(sidebar[0].children[0].href, "/docs/reference/language/");
         assert!(sidebar[0].children[0].open);
-        assert_eq!(sidebar[0].children[0].items[1].title, "Tags and fragments");
+        assert_eq!(sidebar[0].children[0].items.len(), 1);
+        assert_eq!(sidebar[0].children[0].items[0].title, "Tags and fragments");
     }
 
     #[test]
@@ -2914,9 +2933,32 @@ mod tests {
         )];
         let (_, sidebar) = lanes_and_sidebar(&navigation, Some("docs/appendix/glossary"));
         assert_eq!(sidebar.len(), 1);
-        assert_eq!(sidebar[0].items.len(), 4);
+        assert_eq!(sidebar[0].href, "/docs/");
+        assert_eq!(sidebar[0].items.len(), 3);
         assert!(sidebar[0].children.is_empty());
-        assert_eq!(sidebar[0].items[2].title, "Glossary");
+        assert_eq!(sidebar[0].items[0].title, "Install");
+        assert_eq!(sidebar[0].items[1].title, "Glossary");
+        assert!(!sidebar[0].items.iter().any(|item| item.title == "Overview"));
+    }
+
+    #[test]
+    fn templates_index_still_peels_when_title_matches_label() {
+        let navigation = vec![nav_section(
+            "Templates",
+            vec![
+                nav_item("docs/templates/index", "Templates", "/docs/templates/"),
+                nav_item(
+                    "docs/templates/components",
+                    "Components",
+                    "/docs/templates/components/",
+                ),
+            ],
+            vec![],
+        )];
+        let (_, sidebar) = lanes_and_sidebar(&navigation, Some("docs/templates/components"));
+        assert_eq!(sidebar[0].href, "/docs/templates/");
+        assert_eq!(sidebar[0].items.len(), 1);
+        assert_eq!(sidebar[0].items[0].title, "Components");
     }
 
     #[test]

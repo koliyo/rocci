@@ -975,12 +975,49 @@ fn directory_ids(pages: &[ResolvedPage], directory: &str) -> Vec<String> {
     matched.into_iter().map(|page| page.id.clone()).collect()
 }
 
+fn warn_indexless_clusters(
+    pages: &[ResolvedPage],
+    listed: &[NavLink],
+    diagnostics: &mut Vec<CatalogDiagnostic>,
+) {
+    let draft: BTreeSet<&str> = pages
+        .iter()
+        .filter(|page| page.draft)
+        .map(|page| page.id.as_str())
+        .collect();
+    let mut buckets: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for link in listed {
+        if draft.contains(link.id.as_str()) {
+            continue;
+        }
+        let Some((dir, _)) = link.id.rsplit_once('/') else {
+            continue;
+        };
+        buckets.entry(dir).or_default().push(link.id.as_str());
+    }
+    for (dir, ids) in buckets {
+        let index_id = format!("{dir}/index");
+        if ids.contains(&index_id.as_str()) || ids.len() < 2 {
+            continue;
+        }
+        diagnostics.push(CatalogDiagnostic::warning(
+            "RD2205",
+            "rocdown.toml",
+            format!(
+                "navigation directory `{dir}` lists {} without a listed `{index_id}`; add an index to create a section",
+                ids.join(", ")
+            ),
+        ));
+    }
+}
+
 fn apply_journey(
     pages: &mut [ResolvedPage],
     navigation: &[NavSection],
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) {
     let listed: Vec<NavLink> = navigation.iter().flat_map(nav_section_links).collect();
+    warn_indexless_clusters(pages, &listed, diagnostics);
     let listed_ids: BTreeSet<&str> = listed.iter().map(|item| item.id.as_str()).collect();
     let home = pages
         .iter()
@@ -1358,6 +1395,116 @@ mod tests {
         );
 
         assert!(codes(&result).contains(&"RD2202"));
+    }
+
+    #[test]
+    fn indexless_listed_cluster_warns_rd2205() {
+        let pages = [
+            page(
+                "docs/index",
+                "docs/index.rocdown",
+                RouteHint::Derived,
+                "Overview",
+            ),
+            page(
+                "docs/appendix/glossary",
+                "docs/appendix/glossary.rocdown",
+                RouteHint::Derived,
+                "Glossary",
+            ),
+            page(
+                "docs/appendix/roc-for-rocci",
+                "docs/appendix/roc-for-rocci.rocdown",
+                RouteHint::Derived,
+                "Roc for Rocci",
+            ),
+            page(
+                "docs/reference/contributor/checklist",
+                "docs/reference/contributor/checklist.rocdown",
+                RouteHint::Derived,
+                "Checklist",
+            ),
+            page(
+                "docs/reference/contributor/rocci-tree",
+                "docs/reference/contributor/rocci-tree.rocdown",
+                RouteHint::Derived,
+                "Rocci tree",
+            ),
+        ];
+        let result = resolve(
+            &pages,
+            &ResolveOptions {
+                navigation: vec![NavConfig {
+                    label: "Start".into(),
+                    items: vec![
+                        "docs/index".into(),
+                        "docs/appendix/glossary".into(),
+                        "docs/appendix/roc-for-rocci".into(),
+                        "docs/reference/contributor/checklist".into(),
+                        "docs/reference/contributor/rocci-tree".into(),
+                    ],
+                    directory: None,
+                    groups: Vec::new(),
+                }],
+                files: BTreeSet::new(),
+            },
+        );
+        assert!(!result.has_errors(), "{}", result.error_summary());
+        let warnings: Vec<_> = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "RD2205")
+            .map(|d| d.message.as_str())
+            .collect();
+        assert_eq!(warnings.len(), 2, "{warnings:?}");
+        assert!(warnings.iter().any(|m| m.contains("docs/appendix")));
+        assert!(
+            warnings
+                .iter()
+                .any(|m| m.contains("docs/reference/contributor"))
+        );
+    }
+
+    #[test]
+    fn listed_index_clears_rd2205() {
+        let pages = [
+            page(
+                "docs/appendix/index",
+                "docs/appendix/index.rocdown",
+                RouteHint::Derived,
+                "Appendix",
+            ),
+            page(
+                "docs/appendix/glossary",
+                "docs/appendix/glossary.rocdown",
+                RouteHint::Derived,
+                "Glossary",
+            ),
+            page(
+                "docs/appendix/roc-for-rocci",
+                "docs/appendix/roc-for-rocci.rocdown",
+                RouteHint::Derived,
+                "Roc for Rocci",
+            ),
+        ];
+        let result = resolve(
+            &pages,
+            &ResolveOptions {
+                navigation: vec![NavConfig {
+                    label: "Start".into(),
+                    items: vec![
+                        "docs/appendix/index".into(),
+                        "docs/appendix/glossary".into(),
+                        "docs/appendix/roc-for-rocci".into(),
+                    ],
+                    directory: None,
+                    groups: Vec::new(),
+                }],
+                files: BTreeSet::new(),
+            },
+        );
+        assert!(!result.has_errors(), "{}", result.error_summary());
+        assert!(!codes(&result).contains(&"RD2205"));
     }
 
     #[test]
