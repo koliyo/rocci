@@ -2,27 +2,79 @@
     layout: "docs",
     meta: {
         title: "Diagnostics",
-        description: "Organize Rocci failures by owning phase and leading message until stable diagnostic codes exist.",
+        description: "Stable RCxxxx codes for Rocci template parse and validate, rustc-style frames, and how they relate to Rocdown RDxxxx.",
     },
 }
 
 # Diagnostics
 
-**Status:** current. Rocci does not yet publish a stable diagnostic ID catalog
-for the template language. Do not invent codes in prose. Rocdown catalog codes
-(`RD2101`, …) belong to [Rocdown](/docs/rocdown/).
+**Status:** current. Template parse and validate diagnostics carry a stable
+`RCxxxx` code. Frames look like rustc:
 
-Organize failures by **owning phase** and the **exact leading message**.
+```text
+error[RC2009]: illegal handler pair `@get:command`; GET accepts view, fragment, or live
+ --> App.rocci:1:1
+```
+
+Cite the code in issues and tests. The message can change; the code's meaning
+does not. Roc compiler failures, HTTP 404/500, and handler dispatch stay
+outside this catalog. Rocdown catalog codes (`RD2101`, …) belong to
+[Rocdown](/docs/rocdown/).
+
+Organize remaining uncoded failures by **owning phase**.
 
 | Phase | Typical surface | Where to look |
 | --- | --- | --- |
-| Rocci parse / lower | `rocci build` / `inspect` | Template diagnostics; source maps |
+| Rocci parse / validate | `rocci build` / `inspect` | `RCxxxx` below; source maps |
 | Roc compile | `roc` after lowering | Roc compiler; generated Roc |
 | Application effects | `@init` / handlers | `?` → process exit or HTTP 500 |
 | HTTP dispatch | wrong method/path | `--log-handlers`; handler matrix |
 | Webview / preview | window does not open | `--no-window`; Linux WebKitGTK |
 
-Until codes exist, quote the leading message in issues. Migration from
-removed `@on` is a rewrite diagnostic, not a deprecation warning.
+Migration from removed `@on` is `RC1004`, a rewrite diagnostic, not a
+deprecation warning.
+
+## Parse families (`RC1xxx`)
+
+One family per author-facing condition. Many recovery sites share a code.
+
+| Code | Condition |
+| --- | --- |
+| `RC1001` | expected structure or token |
+| `RC1002` | unterminated construct |
+| `RC1003` | unknown or unexpected form |
+| `RC1004` | removed syntax (rewrite) |
+| `RC1005` | HTML / tag mismatch |
+| `RC1006` | Datastar action or attribute shape |
+| `RC1007` | directive header or placement |
+
+## Validate codes (`RC2xxx`)
+
+One code per closed condition.
+
+| Code | Condition |
+| --- | --- |
+| `RC2001` | duplicate `@context` |
+| `RC2002` | duplicate `@init` |
+| `RC2003` | `@init` without `@context` |
+| `RC2004` | `@context` without `@init` |
+| `RC2005` | record handler without `@context` |
+| `RC2006` | defaulted field needs a type |
+| `RC2007` | handler arity over two |
+| `RC2008` | unknown HTTP method |
+| `RC2009` | illegal handler pair |
+| `RC2010` | empty handler path |
+| `RC2011` | duplicate method+path handler |
+| `RC2012` | generated Roc handler name collision |
+| `RC2013` | unknown fixture target |
+| `RC2014` | unknown `@test` fixture name |
+| `RC2015` | `@let` after render-producing items |
+| `RC2016` | `@css` outside a component body start |
+| `RC2017` | `@css` after render-producing items |
+| `RC2018` | illegal fixture target name |
+
+`RC3xxx` is reserved. Rocdown site reports pass a coded template diagnostic
+through instead of rewriting it to `RD1001` / `RD1002`. Those two codes stay
+the fallback for uncoded Rocdown `@page` / parse errors.
 
 **Related:** [Troubleshooting](/docs/troubleshooting/), [Grammar](/docs/reference/language/grammar/).
