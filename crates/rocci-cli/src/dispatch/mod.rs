@@ -376,6 +376,7 @@ datastar_request = |request|
     out
 }
 
+#[cfg(test)]
 pub fn json_encoder_probe_main_roc() -> String {
     let mut out = format!(
         r#"app [Context, program] {{
