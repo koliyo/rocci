@@ -4,6 +4,7 @@ use crate::ast::{
     Document, FixtureDecl, ModuleItem, RouteDecl, TemplateItem, TestDecl, default_field_type,
     handler_param_arity, parse_component_params,
 };
+use crate::codes;
 use crate::diagnostic::Diagnostic;
 use crate::lower::route_fn_name;
 use crate::resolve::{fixture_target_name_error, pascal_to_camel};
@@ -51,7 +52,8 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             ModuleItem::Test(test) => validate_test(test, &fixture_names, diagnostics),
             ModuleItem::Context(context) => {
                 if context_span.is_some() {
-                    diagnostics.push(Diagnostic::error(
+                    diagnostics.push(Diagnostic::error_code(
+                        codes::RC2001,
                         context.span,
                         "duplicate `@context`; a module may declare app state once",
                     ));
@@ -61,7 +63,8 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
             }
             ModuleItem::Init(init) => {
                 if init_span.is_some() {
-                    diagnostics.push(Diagnostic::error(
+                    diagnostics.push(Diagnostic::error_code(
+                        codes::RC2002,
                         init.span,
                         "duplicate `@init`; a module may initialize app state once",
                     ));
@@ -87,13 +90,15 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
     }
 
     if let (Some(init), None) = (init_span, context_span) {
-        diagnostics.push(Diagnostic::error(
+        diagnostics.push(Diagnostic::error_code(
+            codes::RC2003,
             init,
             "`@init` requires `@context` to declare the app state type",
         ));
     }
     if let (Some(ctx), None) = (context_span, init_span) {
-        diagnostics.push(Diagnostic::error(
+        diagnostics.push(Diagnostic::error_code(
+            codes::RC2004,
             ctx,
             "`@context` requires `@init` to produce the app state value",
         ));
@@ -111,7 +116,8 @@ pub fn validate(src: &str, document: &Document, diagnostics: &mut Vec<Diagnostic
                 _ => None,
             })
             .unwrap_or(document.span);
-        diagnostics.push(Diagnostic::error(
+        diagnostics.push(Diagnostic::error_code(
+            codes::RC2005,
             span,
             "route handlers that destructure a record require `@context`",
         ));
@@ -135,7 +141,8 @@ fn validate_defaulted_props(src: &str, params: Span, diagnostics: &mut Vec<Diagn
             .find(|(n, _)| n == name)
             .map(|(_, ty)| ty.as_str());
         if default_field_type(authored_ty, default).is_none() {
-            diagnostics.push(Diagnostic::error(
+            diagnostics.push(Diagnostic::error_code(
+                codes::RC2006,
                 params,
                 format!(
                   "defaulted field `{name}` needs a type (`{name} : Type ?? {default}`); string, Bool, and integer defaults are inferred"
@@ -215,7 +222,8 @@ fn validate_route_handler<'a, 'd>(validation: &mut RouteValidation<'a, 'd>, rout
     if let Some(params) = route.params
         && handler_param_arity(params.of(validation.src)) > 2
     {
-        validation.diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error_code(
+            codes::RC2007,
             params,
             format!(
                 "`@{}:{}` handlers take at most two parameters: state and request",
@@ -228,7 +236,8 @@ fn validate_route_handler<'a, 'd>(validation: &mut RouteValidation<'a, 'd>, rout
     }
     let method_known = matches!(route.method, "get" | "post" | "put" | "patch" | "delete");
     if !method_known {
-        validation.diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error_code(
+            codes::RC2008,
             route.method_span,
             format!(
                 "unknown HTTP method `{}`; expected get, post, put, patch, or delete",
@@ -241,7 +250,8 @@ fn validate_route_handler<'a, 'd>(validation: &mut RouteValidation<'a, 'd>, rout
         } else {
             "mutation methods accept fragment or command"
         };
-        validation.diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error_code(
+            codes::RC2009,
             route.method_span,
             format!(
                 "illegal handler pair `@{}:{}`; {guidance}",
@@ -250,7 +260,8 @@ fn validate_route_handler<'a, 'd>(validation: &mut RouteValidation<'a, 'd>, rout
         ));
     }
     if route.path.is_empty() {
-        validation.diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error_code(
+            codes::RC2010,
             route.path_span,
             format!(
                 "`@{}:{}` requires a non-empty literal path",
@@ -267,14 +278,16 @@ fn validate_route_handler<'a, 'd>(validation: &mut RouteValidation<'a, 'd>, rout
         })
     {
         let header = route_header(route.method, route.role, route.path);
-        validation.diagnostics.push(Diagnostic::error(
+        validation.diagnostics.push(Diagnostic::error_code(
+            codes::RC2011,
             route.span,
             format!("duplicate `{header}` handler"),
         ));
     } else {
         let fn_name = route_fn_name(route.method, route.path);
         if let Some((first_method, first_path, _)) = validation.generated_names.get(&fn_name) {
-            validation.diagnostics.push(Diagnostic::error(
+            validation.diagnostics.push(Diagnostic::error_code(
+                codes::RC2012,
                 route.span,
                 format!(
                     "route `{} {}` and `{} {}` both generate Roc handler `{fn_name}`; choose paths with distinct normalized names",
@@ -317,7 +330,7 @@ fn validate_fixture(
         return;
     };
     if let Some(message) = fixture_target_name_error(&last.name) {
-        diagnostics.push(Diagnostic::error(last.span, message));
+        diagnostics.push(Diagnostic::error_code(codes::RC2018, last.span, message));
         return;
     }
     if fixture.target.parts.len() != 1 {
@@ -329,7 +342,8 @@ fn validate_fixture(
     }
     if !component_names.contains(name) {
         let source = fixture.target.source_name();
-        diagnostics.push(Diagnostic::error(
+        diagnostics.push(Diagnostic::error_code(
+            codes::RC2013,
             fixture.target.span,
             format!("unknown fixture target `{source}`; no `@component {source}` in this module"),
         ));
@@ -348,7 +362,8 @@ fn validate_test(
         return;
     }
     if !fixture_names.contains(&fixture.name) {
-        diagnostics.push(Diagnostic::error(
+        diagnostics.push(Diagnostic::error_code(
+            codes::RC2014,
             fixture.span,
             format!(
                 "unknown fixture name `{}`; no `@fixture {}` in this module",
@@ -367,20 +382,23 @@ fn validate_items(
     for item in items {
         match item {
             TemplateItem::Let(let_dir) if *saw_render => {
-                diagnostics.push(Diagnostic::error(
+                diagnostics.push(Diagnostic::error_code(
+                    codes::RC2015,
                     let_dir.span,
                     "`@let` must appear before render-producing items in this block",
                 ));
             }
             TemplateItem::Let(_) => {}
             TemplateItem::Css(css) if !allow_css => {
-                diagnostics.push(Diagnostic::error(
+                diagnostics.push(Diagnostic::error_code(
+                    codes::RC2016,
                     css.span,
                     "`@css` is only valid at the start of a component body",
                 ));
             }
             TemplateItem::Css(css) if *saw_render => {
-                diagnostics.push(Diagnostic::error(
+                diagnostics.push(Diagnostic::error_code(
+                    codes::RC2017,
                     css.span,
                     "`@css` must appear before render-producing items in this block",
                 ));

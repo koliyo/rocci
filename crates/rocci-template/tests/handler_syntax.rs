@@ -19,7 +19,10 @@ fn compile_err(src: &str) -> Vec<String> {
         .diagnostics
         .into_iter()
         .filter(|d| d.is_error())
-        .map(|d| d.message)
+        .map(|d| match d.code {
+            Some(code) => format!("{code}: {}", d.message),
+            None => d.message,
+        })
         .collect()
 }
 
@@ -114,7 +117,7 @@ fn rejects_illegal_method_role_pairs_in_validation() {
         assert_eq!(
             errors
                 .iter()
-                .filter(|msg| msg.contains("illegal handler pair"))
+                .filter(|msg| msg.contains("RC2009") && msg.contains("illegal handler pair"))
                 .count(),
             1,
             "{src}: {errors:?}"
@@ -143,7 +146,7 @@ fn diagnoses_malformed_method_first_headers() {
         ),
         (
             r#"@head:view("/x") { Html.text("x") }"#,
-            "unknown HTTP method `head`",
+            "RC2008: unknown HTTP method `head`",
         ),
         (
             r#"@get:fragment(path) { Html.text("x") }"#,
@@ -151,7 +154,7 @@ fn diagnoses_malformed_method_first_headers() {
         ),
         (
             r#"@get:live("") { Html.text("x") }"#,
-            "requires a non-empty literal path",
+            "RC2010: `@get:live` requires a non-empty literal path",
         ),
         (
             r#"@get:fragment("/x") json { Html.text("x") }"#,
@@ -243,9 +246,9 @@ fn duplicate_routes_and_generated_names_are_rejected() {
 "#,
     );
     assert!(
-        duplicate
-            .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@get:fragment")),
+        duplicate.iter().any(|msg| {
+            msg.contains("RC2011") && msg.contains("duplicate") && msg.contains("@get:fragment")
+        }),
         "{duplicate:?}"
     );
 
@@ -258,7 +261,7 @@ fn duplicate_routes_and_generated_names_are_rejected() {
     assert!(
         names
             .iter()
-            .any(|msg| msg.contains("both generate Roc handler")),
+            .any(|msg| msg.contains("RC2012") && msg.contains("both generate Roc handler")),
         "{names:?}"
     );
 }
