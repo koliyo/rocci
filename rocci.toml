@@ -30,4 +30,4 @@ devtools = false
 
 [bundle]
 app = "examples/rocci/custom/datastar"
-macos_plist = "macos/Info.plist"
+macos_plist = "packaging/macos/Info.plist"

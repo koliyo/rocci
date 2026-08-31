@@ -46,7 +46,7 @@ devtools = false
 
 [bundle]
 app = "."
-macos_plist = "macos/Info.plist"
+macos_plist = "packaging/macos/Info.plist"
 ```
 
 ## App
