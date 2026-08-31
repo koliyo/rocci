@@ -1,3 +1,4 @@
+use super::theme::roc_fn_name;
 use super::*;
 use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
 use std::{env, fs, path::PathBuf};
