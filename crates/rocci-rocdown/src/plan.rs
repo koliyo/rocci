@@ -1313,11 +1313,8 @@ fn current_section<'a>(navigation: &'a [NavSection], id: &str) -> Option<&'a Nav
 fn sidebar_has_current(sidebar: &[NavGroupView], route: &str) -> bool {
     sidebar.iter().any(|group| {
         group.covers_href(route)
-            || group
-                .items
-                .iter()
-                .any(|item| item.class_name.contains("is-current"))
-            || (group.items.is_empty() && group.open)
+            || group.marks_current()
+            || (group.items.is_empty() && group.children.is_empty() && group.open)
     })
 }
 
@@ -1439,7 +1436,207 @@ fn nav_item_owns_page(item_id: &str, current_id: &str) -> bool {
         .is_some_and(|rest| rest == slug || rest.starts_with(&format!("{slug}/")))
 }
 
+fn index_dir(id: &str) -> Option<&str> {
+    id.strip_suffix("/index")
+}
+
+fn section_root_dir(items: &[catalog::NavItem]) -> Option<&str> {
+    items
+        .iter()
+        .filter_map(|item| index_dir(&item.id))
+        .min_by_key(|dir| dir.len())
+}
+
+fn is_under_dir(dir: &str, id: &str) -> bool {
+    id == dir || id.starts_with(&format!("{dir}/"))
+}
+
+fn is_fold_index(id: &str, root: Option<&str>) -> bool {
+    let Some(dir) = index_dir(id) else {
+        return false;
+    };
+    root.is_some_and(|root| dir.len() > root.len() && dir.starts_with(&format!("{root}/")))
+}
+
+struct BuildingGroup {
+    index: catalog::NavItem,
+    dir: String,
+    items: Vec<catalog::NavItem>,
+    children: Vec<NavGroupView>,
+}
+
+enum ForestRow {
+    Item(NavItemView),
+    Group(NavGroupView),
+}
+
+fn flush_building(building: BuildingGroup, current_id: Option<&str>) -> ForestRow {
+    if building.items.is_empty() && building.children.is_empty() {
+        return ForestRow::Item(nav_leaf(&building.index, current_id));
+    }
+    let items = building
+        .items
+        .iter()
+        .map(|item| nav_leaf(item, current_id))
+        .collect();
+    let open = current_id.is_some_and(|id| {
+        is_under_dir(&building.dir, id)
+            || nav_item_owns_page(&building.index.id, id)
+            || building
+                .items
+                .iter()
+                .any(|item| nav_item_owns_page(&item.id, id))
+    }) || building.children.iter().any(|child| child.open);
+    ForestRow::Group(NavGroupView {
+        title: building.index.title,
+        href: building.index.route,
+        open,
+        items,
+        children: building.children,
+    })
+}
+
+fn attach_row(
+    row: ForestRow,
+    stack: &mut Vec<BuildingGroup>,
+    rows: &mut Vec<ForestRow>,
+    current_id: Option<&str>,
+) {
+    if let Some(parent) = stack.last_mut() {
+        match row {
+            ForestRow::Item(item) => parent.children.push(leaf_group(item)),
+            ForestRow::Group(group) => parent.children.push(group),
+        }
+        return;
+    }
+    let _ = current_id;
+    rows.push(row);
+}
+
+fn forest_from_items(items: &[catalog::NavItem], current_id: Option<&str>) -> Vec<ForestRow> {
+    let root = section_root_dir(items);
+    let mut rows = Vec::new();
+    let mut stack: Vec<BuildingGroup> = Vec::new();
+    for item in items {
+        while stack
+            .last()
+            .is_some_and(|top| !is_under_dir(&top.dir, &item.id))
+        {
+            let finished = stack.pop().expect("stack");
+            attach_row(
+                flush_building(finished, current_id),
+                &mut stack,
+                &mut rows,
+                current_id,
+            );
+        }
+        if is_fold_index(&item.id, root) {
+            stack.push(BuildingGroup {
+                index: item.clone(),
+                dir: index_dir(&item.id).expect("fold index").to_string(),
+                items: Vec::new(),
+                children: Vec::new(),
+            });
+        } else if let Some(top) = stack.last_mut() {
+            top.items.push(item.clone());
+        } else {
+            rows.push(ForestRow::Item(nav_leaf(item, current_id)));
+        }
+    }
+    while let Some(finished) = stack.pop() {
+        attach_row(
+            flush_building(finished, current_id),
+            &mut stack,
+            &mut rows,
+            current_id,
+        );
+    }
+    rows
+}
+
+fn leaf_group(item: NavItemView) -> NavGroupView {
+    let open = item.class_name.contains("is-current");
+    NavGroupView {
+        title: item.title,
+        href: item.href,
+        open,
+        items: Vec::new(),
+        children: Vec::new(),
+    }
+}
+
+fn peel_matching_index(label: &str, items: &mut Vec<NavItemView>) -> String {
+    let matches_index = items.first().is_some_and(|item| {
+        items.len() > 1
+            && item.title == label
+            && (item.href.ends_with('/') || !item.href.is_empty())
+    });
+    if matches_index {
+        items.remove(0).href
+    } else {
+        String::new()
+    }
+}
+
+fn rows_to_group(
+    label: &str,
+    rows: Vec<ForestRow>,
+    extra_children: Vec<NavGroupView>,
+    open: bool,
+) -> Option<NavGroupView> {
+    let has_group =
+        rows.iter().any(|row| matches!(row, ForestRow::Group(_))) || !extra_children.is_empty();
+    if !has_group {
+        let mut items: Vec<NavItemView> = rows
+            .into_iter()
+            .map(|row| match row {
+                ForestRow::Item(item) => item,
+                ForestRow::Group(_) => unreachable!(),
+            })
+            .collect();
+        if items.is_empty() && extra_children.is_empty() {
+            return None;
+        }
+        let href = peel_matching_index(label, &mut items);
+        return Some(flatten_group_depth(NavGroupView {
+            title: label.into(),
+            href,
+            open: open || extra_children.iter().any(|child| child.open),
+            items,
+            children: extra_children,
+        }));
+    }
+    let mut children: Vec<NavGroupView> = rows
+        .into_iter()
+        .map(|row| match row {
+            ForestRow::Item(item) => leaf_group(item),
+            ForestRow::Group(group) => group,
+        })
+        .collect();
+    children.extend(extra_children);
+    let href = if children.first().is_some_and(|child| {
+        child.items.is_empty() && child.children.is_empty() && child.title == label
+    }) {
+        children.remove(0).href
+    } else {
+        String::new()
+    };
+    Some(flatten_group_depth(NavGroupView {
+        title: label.into(),
+        href,
+        open: open || children.iter().any(|child| child.open),
+        items: Vec::new(),
+        children,
+    }))
+}
+
 fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavGroupView> {
+    let rows = forest_from_items(&section.items, current_id);
+    let extra_children = section
+        .children
+        .iter()
+        .filter_map(|child| nav_group_view(child, current_id))
+        .collect();
     let open = current_id.is_some_and(|id| {
         catalog::section_contains(section, id)
             || section
@@ -1447,18 +1644,25 @@ fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavG
                 .iter()
                 .any(|item| nav_item_owns_page(&item.id, id))
     });
-    match section.items.as_slice() {
-        [] => None,
-        items => Some(NavGroupView {
-            title: section.label.clone(),
-            href: String::new(),
-            open,
-            items: items
-                .iter()
-                .map(|item| nav_leaf(item, current_id))
-                .collect(),
-        }),
+    rows_to_group(&section.label, rows, extra_children, open)
+}
+
+fn flatten_group_depth(mut group: NavGroupView) -> NavGroupView {
+    let mut next = Vec::new();
+    for child in group.children {
+        let child = flatten_group_depth(child);
+        let grandchildren = child.children;
+        next.push(NavGroupView {
+            title: child.title,
+            href: child.href,
+            open: child.open || grandchildren.iter().any(|grand| grand.open),
+            items: child.items,
+            children: Vec::new(),
+        });
+        next.extend(grandchildren);
     }
+    group.children = next;
+    group
 }
 
 fn selected_example_slug(page_id: &str) -> Option<&str> {
@@ -1519,6 +1723,20 @@ fn attach_example_source_tree(
         })
         .collect();
     let mut replacement = Vec::new();
+    if !group.href.is_empty()
+        && group
+            .items
+            .first()
+            .is_none_or(|item| item.href != group.href)
+    {
+        replacement.push(NavGroupView {
+            title: group.title.clone(),
+            href: group.href.clone(),
+            open: false,
+            items: Vec::new(),
+            children: Vec::new(),
+        });
+    }
     for item in group.items {
         let selected = item.href == example_href;
         replacement.push(NavGroupView {
@@ -1526,6 +1744,7 @@ fn attach_example_source_tree(
             href: item.href,
             open: false,
             items: Vec::new(),
+            children: Vec::new(),
         });
         if selected {
             replacement.push(NavGroupView {
@@ -1533,6 +1752,7 @@ fn attach_example_source_tree(
                 href: String::new(),
                 open: true,
                 items: source_items.clone(),
+                children: Vec::new(),
             });
         }
     }
@@ -2125,23 +2345,7 @@ fn pages_roc(pages: &[PlannedPage]) -> String {
         }
         out.push_str("                ],\n                sidebar: [\n");
         for group in &page.view.sidebar {
-            out.push_str("                    { title: ");
-            push_roc_string(&mut out, &group.title);
-            out.push_str(", href: ");
-            push_roc_string(&mut out, &group.href);
-            out.push_str(", open: ");
-            out.push_str(if group.open { "True" } else { "False" });
-            out.push_str(", items: [\n");
-            for item in &group.items {
-                out.push_str("                        { title: ");
-                push_roc_string(&mut out, &item.title);
-                out.push_str(", href: ");
-                push_roc_string(&mut out, &item.href);
-                out.push_str(", class_name: ");
-                push_roc_string(&mut out, &item.class_name);
-                out.push_str(" },\n");
-            }
-            out.push_str("                    ] },\n");
+            emit_nav_group(&mut out, group, "                    ", true);
         }
         out.push_str("                ],\n                route: ");
         push_roc_string(&mut out, &page.view.route);
@@ -2314,6 +2518,40 @@ fn push_node(out: &mut String, node: &crate::docs::PlannedNode) {
     }
 }
 
+fn emit_nav_group(out: &mut String, group: &NavGroupView, indent: &str, with_children: bool) {
+    out.push_str(indent);
+    out.push_str("{ title: ");
+    push_roc_string(out, &group.title);
+    out.push_str(", href: ");
+    push_roc_string(out, &group.href);
+    out.push_str(", open: ");
+    out.push_str(if group.open { "True" } else { "False" });
+    out.push_str(", items: [\n");
+    let item_indent = format!("{indent}    ");
+    for item in &group.items {
+        out.push_str(&item_indent);
+        out.push_str("{ title: ");
+        push_roc_string(out, &item.title);
+        out.push_str(", href: ");
+        push_roc_string(out, &item.href);
+        out.push_str(", class_name: ");
+        push_roc_string(out, &item.class_name);
+        out.push_str(" },\n");
+    }
+    out.push_str(indent);
+    if with_children {
+        out.push_str("], children: [\n");
+        let child_indent = format!("{indent}    ");
+        for child in &group.children {
+            emit_nav_group(out, child, &child_indent, false);
+        }
+        out.push_str(indent);
+        out.push_str("] },\n");
+    } else {
+        out.push_str("] },\n");
+    }
+}
+
 fn push_roc_string(out: &mut String, value: &str) {
     out.push('"');
     for ch in value.chars() {
@@ -2404,10 +2642,9 @@ mod tests {
         assert_eq!(sidebar.len(), 2);
         assert!(!sidebar[0].open);
         assert!(sidebar[1].open);
-        assert!(sidebar[1].href.is_empty());
-        assert_eq!(sidebar[1].items[0].title, "Tutorials");
-        assert_eq!(sidebar[1].items[1].title, "Build your first component");
-        assert!(sidebar[1].items[1].class_name.contains("is-current"));
+        assert_eq!(sidebar[1].href, "/tutorials/");
+        assert_eq!(sidebar[1].items[0].title, "Build your first component");
+        assert!(sidebar[1].items[0].class_name.contains("is-current"));
     }
 
     fn source_page(id: &str, title: &str, route: &str) -> ResolvedPage {
@@ -2555,6 +2792,131 @@ mod tests {
         assert_eq!(sidebar[1].title, "Status");
         assert_eq!(sidebar[1].items.len(), 1);
         assert_eq!(sidebar[1].items[0].title, "Status");
+        assert!(sidebar[0].children.is_empty());
+    }
+
+    #[test]
+    fn language_index_nests_descendants_and_opens_ancestors() {
+        let navigation = vec![nav_section(
+            "Reference",
+            vec![
+                nav_item("docs/reference/index", "Reference", "/docs/reference/"),
+                nav_item(
+                    "docs/reference/language/index",
+                    "Rocci language reference",
+                    "/docs/reference/language/",
+                ),
+                nav_item(
+                    "docs/reference/language/file-structure",
+                    "File structure and Roc regions",
+                    "/docs/reference/language/file-structure/",
+                ),
+                nav_item(
+                    "docs/reference/runtime",
+                    "Runtime and HTTP",
+                    "/docs/reference/runtime/",
+                ),
+                nav_item(
+                    "docs/reference/contributor/rocci-tree",
+                    "Rocci tree appendix",
+                    "/docs/reference/contributor/rocci-tree/",
+                ),
+            ],
+            vec![],
+        )];
+        let (_, sidebar) =
+            lanes_and_sidebar(&navigation, Some("docs/reference/language/file-structure"));
+        assert_eq!(sidebar.len(), 1);
+        assert!(sidebar[0].open);
+        assert_eq!(sidebar[0].href, "/docs/reference/");
+        assert!(sidebar[0].items.is_empty());
+        assert_eq!(sidebar[0].children.len(), 3);
+        assert_eq!(sidebar[0].children[0].title, "Rocci language reference");
+        assert_eq!(sidebar[0].children[0].href, "/docs/reference/language/");
+        assert!(sidebar[0].children[0].open);
+        assert_eq!(sidebar[0].children[0].items.len(), 1);
+        assert!(
+            sidebar[0].children[0].items[0]
+                .class_name
+                .contains("is-current")
+        );
+        assert_eq!(sidebar[0].children[1].title, "Runtime and HTTP");
+        assert!(sidebar[0].children[1].items.is_empty());
+        assert_eq!(sidebar[0].children[2].title, "Rocci tree appendix");
+        assert!(sidebar_has_current(
+            &sidebar,
+            "/docs/reference/language/file-structure/"
+        ));
+    }
+
+    #[test]
+    fn explicit_nested_groups_stay_inside_the_parent() {
+        let navigation = vec![nav_section(
+            "Docs",
+            vec![],
+            vec![nav_section(
+                "Reference",
+                vec![nav_item(
+                    "docs/reference/index",
+                    "Reference",
+                    "/docs/reference/",
+                )],
+                vec![nav_section(
+                    "Language",
+                    vec![
+                        nav_item(
+                            "docs/reference/language/index",
+                            "Rocci language reference",
+                            "/docs/reference/language/",
+                        ),
+                        nav_item(
+                            "docs/reference/language/tags",
+                            "Tags and fragments",
+                            "/docs/reference/language/tags/",
+                        ),
+                    ],
+                    vec![],
+                )],
+            )],
+        )];
+        let (lanes, sidebar) = lanes_and_sidebar(&navigation, Some("docs/reference/language/tags"));
+        assert_eq!(lanes.len(), 1);
+        assert_eq!(sidebar.len(), 1);
+        assert_eq!(sidebar[0].title, "Reference");
+        assert!(sidebar[0].open);
+        assert_eq!(sidebar[0].href, "/docs/reference/");
+        assert!(sidebar[0].items.is_empty());
+        assert_eq!(sidebar[0].children.len(), 1);
+        assert_eq!(sidebar[0].children[0].title, "Language");
+        assert!(sidebar[0].children[0].open);
+        assert_eq!(sidebar[0].children[0].items[1].title, "Tags and fragments");
+    }
+
+    #[test]
+    fn appendix_without_index_stays_flat() {
+        let navigation = vec![nav_section(
+            "Start",
+            vec![
+                nav_item("docs/index", "Overview", "/docs/"),
+                nav_item("docs/install", "Install", "/docs/install/"),
+                nav_item(
+                    "docs/appendix/glossary",
+                    "Glossary",
+                    "/docs/appendix/glossary/",
+                ),
+                nav_item(
+                    "docs/appendix/roc-for-rocci",
+                    "Roc for Rocci",
+                    "/docs/appendix/roc-for-rocci/",
+                ),
+            ],
+            vec![],
+        )];
+        let (_, sidebar) = lanes_and_sidebar(&navigation, Some("docs/appendix/glossary"));
+        assert_eq!(sidebar.len(), 1);
+        assert_eq!(sidebar[0].items.len(), 4);
+        assert!(sidebar[0].children.is_empty());
+        assert_eq!(sidebar[0].items[2].title, "Glossary");
     }
 
     #[test]

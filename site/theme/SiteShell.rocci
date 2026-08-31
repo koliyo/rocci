@@ -391,6 +391,11 @@ import PageOutline
             display: flex;
             align-items: center;
         }
+        .mobile-panel .nav-section summary {
+            min-height: 2.75rem;
+            display: flex;
+            align-items: center;
+        }
         .mobile-nav-label {
             margin: 1rem 0 0.5rem;
             color: var(--muted);

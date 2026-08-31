@@ -142,12 +142,11 @@ import PageOutline
         top: var(--header-height);
         align-self: start;
         height: calc(100vh - var(--header-height));
+        overflow-x: hidden;
         overflow-y: auto;
         overscroll-behavior: contain;
+        padding-bottom: 2rem;
         scrollbar-width: thin;
-        scrollbar-color: transparent transparent;
-    }
-    .sidebar:hover, .sidebar:focus-within {
         scrollbar-color: var(--line) transparent;
     }
     .sidebar::-webkit-scrollbar {
@@ -157,12 +156,8 @@ import PageOutline
         background: transparent;
     }
     .sidebar::-webkit-scrollbar-thumb {
-        background: transparent;
-        border-radius: 999px;
-    }
-    .sidebar:hover::-webkit-scrollbar-thumb,
-    .sidebar:focus-within::-webkit-scrollbar-thumb {
         background: var(--line);
+        border-radius: 999px;
     }
     .rocci-col-resizer {
         position: absolute;
@@ -255,6 +250,12 @@ import PageOutline
         border-left: 1px solid var(--line);
         border-radius: 0 0.45rem 0.45rem 0;
         font-size: 0.82rem;
+    }
+    .nav-fold > .nav-items > .nav-section {
+        margin: 0;
+    }
+    .nav-fold .nav-fold .nav-child {
+        margin-left: 1.4rem;
     }
     .outline {
         position: sticky;
@@ -350,6 +351,7 @@ import PageOutline
             top: auto;
             align-self: stretch;
             height: auto;
+            max-height: 100%;
             min-height: 0;
         }
         .content-column {

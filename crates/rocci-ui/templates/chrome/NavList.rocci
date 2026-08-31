@@ -1,5 +1,27 @@
 import Html
 
+covers_route = |group, route| {
+    on_self = group.href == route
+    on_items = List.any(group.items, |item| item.href == route)
+    on_children = List.any(
+        group.children,
+        |child| child.href == route or List.any(child.items, |item| item.href == route),
+    )
+    on_self or on_items or on_children
+}
+
+is_leaf_group = |group| List.is_empty(group.items) and List.is_empty(group.children)
+
+nested_covers = |group, route|
+    group.href == route or List.any(group.items, |item| item.href == route)
+
+section_key = |prefix, title|
+    if prefix == "" {
+        title
+    } else {
+        "${prefix}/${title}"
+    }
+
 @css {
     .nav-items { display: grid; }
     .nav-link, .nav-category {
@@ -45,11 +67,14 @@ import Html
     }
     .nav-section > .nav-fold > .nav-items {
         min-height: 0;
-        overflow: hidden;
     }
     .nav-section[open] > .nav-fold {
         grid-template-rows: 1fr;
         opacity: 1;
+        overflow: visible;
+    }
+    .nav-section[open] > .nav-fold > .nav-items {
+        min-height: min-content;
     }
     @media (prefers-reduced-motion: reduce) {
         .nav-section > .nav-fold { transition: none; }
@@ -58,7 +83,12 @@ import Html
     .nav-items > .nav-link + .nav-section {
         margin-top: 0.08rem;
         margin-bottom: 0.16rem;
-        margin-left: 0.35rem;
+    }
+    .nav-fold > .nav-items > .nav-section {
+        margin: 0;
+    }
+    .nav-fold .nav-fold .nav-child {
+        margin-left: 1.4rem;
     }
     .nav-source {
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -66,9 +96,16 @@ import Html
     }
 }
 
-@component NavGroupInner = |{ group, route }| {
+@component NestedGroupInner = |{ group, route }| {
     <summary class="nav-category">
-        <span class="nav-link nav-category">{group.title}</span>
+        @if group.href == "" {
+            <span class="nav-link nav-category nav-child">{group.title}</span>
+        } @else {
+            <a
+                class={if group.href == route { "nav-link nav-category nav-child is-current" } else { "nav-link nav-category nav-child" }}
+                href={group.href}
+            >{group.title}</a>
+        }
     </summary>
     <div class="nav-fold">
         <div class="nav-items">
@@ -83,27 +120,72 @@ import Html
     </div>
 }
 
+@component NavGroupInner = |{ group, route, key_prefix }| {
+    <summary class="nav-category">
+        @if group.href == "" {
+            <span class="nav-link nav-category">{group.title}</span>
+        } @else {
+            <a
+                class={if group.href == route { "nav-link nav-category is-current" } else { "nav-link nav-category" }}
+                href={group.href}
+            >{group.title}</a>
+        }
+    </summary>
+    <div class="nav-fold">
+        <div class="nav-items">
+            @for item in group.items {
+                <a
+                    class={item.class_name}
+                    href={item.href}
+                    aria-current={if item.href == route { "page" } else { "false" }}
+                >{item.title}</a>
+            }
+            @for child in group.children {
+                @if List.is_empty(child.items) {
+                    <a
+                        class={if child.href == route { "nav-link is-current" } else { "nav-link" }}
+                        href={child.href}
+                        aria-current={if child.href == route { "page" } else { "false" }}
+                    >{child.title}</a>
+                } @else if nested_covers(child, route) {
+                    <details class="nav-section" data-rocci-nav-section={section_key(key_prefix, child.title)} data-rocci-nav-current="" open>
+                        <NestedGroupInner group={child} route={route} />
+                    </details>
+                } @else if child.open {
+                    <details class="nav-section" data-rocci-nav-section={section_key(key_prefix, child.title)} open>
+                        <NestedGroupInner group={child} route={route} />
+                    </details>
+                } @else {
+                    <details class="nav-section" data-rocci-nav-section={section_key(key_prefix, child.title)}>
+                        <NestedGroupInner group={child} route={route} />
+                    </details>
+                }
+            }
+        </div>
+    </div>
+}
+
 @component NavList = |{ items, route, aria_label }| {
     <nav aria-label={aria_label}>
         <div class="nav-items">
             @for group in items {
-                @if List.is_empty(group.items) {
+                @if is_leaf_group(group) {
                     <a
                         class={if group.href == route { "nav-link is-current" } else { "nav-link" }}
                         href={group.href}
                         aria-current={if group.href == route { "page" } else { "false" }}
                     >{group.title}</a>
-                } @else if List.any(group.items, |item| item.href == route) {
-                    <details class="nav-section" data-rocci-nav-section={group.title} data-rocci-nav-current="" open>
-                        <NavGroupInner group={group} route={route} />
+                } @else if covers_route(group, route) {
+                    <details class="nav-section" data-rocci-nav-section={section_key("", group.title)} data-rocci-nav-current="" open>
+                        <NavGroupInner group={group} route={route} key_prefix={group.title} />
                     </details>
                 } @else if group.open {
-                    <details class="nav-section" data-rocci-nav-section={group.title} open>
-                        <NavGroupInner group={group} route={route} />
+                    <details class="nav-section" data-rocci-nav-section={section_key("", group.title)} open>
+                        <NavGroupInner group={group} route={route} key_prefix={group.title} />
                     </details>
                 } @else {
-                    <details class="nav-section" data-rocci-nav-section={group.title}>
-                        <NavGroupInner group={group} route={route} />
+                    <details class="nav-section" data-rocci-nav-section={section_key("", group.title)}>
+                        <NavGroupInner group={group} route={route} key_prefix={group.title} />
                     </details>
                 }
             }
@@ -121,6 +203,7 @@ navListOpen = {
             items: [
                 { title: "What is Rocci", href: "/start/what-is-rocci/", class_name: "nav-link nav-child" },
             ],
+            children: [],
         },
         {
             title: "Tutorials",
@@ -130,14 +213,46 @@ navListOpen = {
                 { title: "Build your first component", href: "/tutorials/first-component/", class_name: "nav-link nav-child is-current" },
                 { title: "Build your first standalone app", href: "/tutorials/first-app/", class_name: "nav-link nav-child" },
             ],
+            children: [],
         },
         {
             title: "Status",
             href: "/status/",
             open: False,
             items: [],
+            children: [],
         },
     ],
     route: "/tutorials/first-component/",
     aria_label: "Site navigation",
+}
+
+@fixture{target: NavList}
+navListNested = {
+    items: [
+        {
+            title: "Reference",
+            href: "/docs/reference/",
+            open: True,
+            items: [],
+            children: [
+                {
+                    title: "Rocci language reference",
+                    href: "/docs/reference/language/",
+                    open: True,
+                    items: [
+                        { title: "File structure and Roc regions", href: "/docs/reference/language/file-structure/", class_name: "nav-link nav-child" },
+                    ],
+                },
+                {
+                    title: "Runtime and HTTP",
+                    href: "/docs/reference/runtime/",
+                    open: False,
+                    items: [],
+                },
+            ],
+        },
+    ],
+    route: "/docs/reference/language/",
+    aria_label: "In this section",
 }

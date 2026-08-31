@@ -78,6 +78,31 @@ fn test_view_constructors_and_serialization() {
     let json = serde_json::to_string(&page).unwrap();
     let deserialized: PageView = serde_json::from_str(&json).unwrap();
     assert_eq!(page, deserialized);
+
+    let mut language = NavGroupView::new(
+        "Rocci language reference",
+        "/docs/reference/language/",
+        true,
+        vec![NavItemView::new(
+            "File structure",
+            "/docs/reference/language/file-structure/",
+            "nav-link nav-child",
+        )],
+    );
+    language.children = Vec::new();
+    let mut reference = NavGroupView::new(
+        "Reference",
+        "",
+        true,
+        vec![NavItemView::new(
+            "Reference",
+            "/docs/reference/",
+            "nav-link nav-child",
+        )],
+    );
+    reference.children = vec![language];
+    assert!(reference.covers_href("/docs/reference/language/file-structure/"));
+    assert!(reference.covers_href("/docs/reference/"));
 }
 
 #[test]
