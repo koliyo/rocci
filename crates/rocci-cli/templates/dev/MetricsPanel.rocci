@@ -3,7 +3,7 @@ import Html
 MetricsSpan : {
     name : Str,
     duration_ms : U64,
-    note : [Some Str, None],
+    note : [Some(Str), None],
 }
 
 @component InspectorTabs = |{ tab }| {
