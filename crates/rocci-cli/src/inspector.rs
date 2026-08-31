@@ -27,6 +27,7 @@ const INSPECTOR_NOTIFY: &str = r#"<script>(function(){var p=new URLSearchParams(
 
 const CONSOLE_JS: &str = r#"<script>(function(){var root=document.querySelector("[data-logs-root]");if(!root)return;var api=root.getAttribute("data-logs-root")||"/__rocci";var pane=document.getElementById("console-log");var body=pane&&pane.querySelector("tbody");if(!pane||!body)return;var levels={debug:true,info:true,warn:true,error:true};var stick=true;function near(){return pane.scrollHeight-pane.scrollTop-pane.clientHeight<32;}function apply(){var rows=body.querySelectorAll("tr[data-level]");for(var i=0;i<rows.length;i++){rows[i].hidden=!levels[rows[i].getAttribute("data-level")];}}function row(line){var tr=document.createElement("tr");tr.setAttribute("data-level",line.level||"info");var t=new Date(Number(line.t)||0);var time=isNaN(t.getTime())?String(line.t||""):t.toLocaleTimeString();tr.innerHTML="<td>"+time+"</td><td>"+esc(line.level)+"</td><td>"+esc(line.source)+"</td><td>"+esc(line.text)+"</td>";return tr;}function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(ch){return ch==="&"?"&amp;":ch==="<"?"&lt;":ch===">"?"&gt;":"&quot;";});}pane.addEventListener("scroll",function(){stick=near();});var chips=root.querySelectorAll(".console-filters button[data-level]");for(var c=0;c<chips.length;c++){(function(btn){btn.addEventListener("click",function(){var level=btn.getAttribute("data-level");levels[level]=!levels[level];btn.setAttribute("aria-pressed",levels[level]?"true":"false");apply();});})(chips[c]);}var clear=root.querySelector(".console-clear");if(clear){clear.addEventListener("click",function(){fetch(api+"/logs/clear",{method:"POST"}).then(function(){body.innerHTML="";});});}try{var es=new EventSource(api+"/logs/events");es.addEventListener("log",function(ev){var keep=stick||near();try{body.appendChild(row(JSON.parse(ev.data)));}catch(err){}apply();if(keep){pane.scrollTop=pane.scrollHeight;}});}catch(err){}})();</script>"#;
 
+#[cfg(test)]
 pub fn render_panel_html(snapshot: Option<&InspectSnapshot>, target: &str) -> String {
     render_panel_with_logs(snapshot, target, &[])
 }
@@ -298,11 +299,8 @@ fn render_spans(snapshot: &ProfileSnapshot) -> String {
     )
 }
 
-pub fn metrics_panel_compiles() -> bool {
-    metrics_panel_diagnostics().is_empty()
-}
-
-pub fn metrics_panel_diagnostics() -> Vec<String> {
+#[cfg(test)]
+fn metrics_panel_diagnostics() -> Vec<String> {
     let compiled = compile(
         SourceFile::new("MetricsPanel.rocci", METRICS_PANEL),
         &LowerOptions::default(),
@@ -316,12 +314,14 @@ pub fn metrics_panel_diagnostics() -> Vec<String> {
 
 pub struct InspectorServer {
     pub url: String,
+    #[cfg_attr(not(test), allow(dead_code))]
     pub logs: Arc<LogHub>,
     stop: Arc<AtomicBool>,
     _thread: Option<JoinHandle<()>>,
 }
 
 impl InspectorServer {
+    #[cfg(test)]
     pub fn spawn(snapshot: impl Into<InspectSnapshot>) -> Result<Self> {
         Self::spawn_with_logs(snapshot, Arc::new(LogHub::new()))
     }
