@@ -303,8 +303,8 @@ Revisit the package from observed consumers:
 The refactor plan and approved decision still say the architecture is not
 implemented. The language-tooling record cites a deleted
 `crates/rocci-lsp/src/rocdown.rs`, describes a removed custom request, and
-claims both editors register Rocdown. The implementation status and roadmap
-also claim shipped Rocdown editor registration. The current architecture
+claims both editors register Rocdown. The implementation status
+also claims shipped Rocdown editor registration. The current architecture
 record named `rocs-documentation-compiler.md` describes the shipped Rocdown
 generator under an obsolete concept identifier rather than as an explicitly
 historical record.[^plan][^decision][^language-knowledge][^implementation-status]

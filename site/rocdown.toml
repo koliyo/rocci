@@ -146,7 +146,6 @@ directory = "project"
 items = [
     "project/index",
     "project/status",
-    "project/roadmap",
     "project/contributing",
 ]
 

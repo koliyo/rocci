@@ -288,7 +288,7 @@ moving domain behavior into it.
 
 ## Phase 8 — documentation, knowledge, and release cleanup
 
-1. Update the root README, roadmap, owning crate READMEs, public Rocdown/CLI
+1. Update the root README, owning crate READMEs, public Rocdown/CLI
    references, contributing guide, examples, and editor documentation.
 2. Revise the system overview, Rocdown architecture, former Rocs compiler
    record, implementation status, known limitations, static OKF decision, and

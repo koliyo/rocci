@@ -4,7 +4,7 @@ title: rocci.dev public-launch checklist
 description: After the 2026-08-23 Should pass, live example hostnames are not advertised as serving, a public support matrix and one GitHub-issues feedback URL are published; remaining gates are a signed-out staging smoke, a tagged clean install, the known repository-visibility flip, and production DNS.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/community, concern/ux, concern/navigation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
 stale_after: 2026-11-22
 authority: descriptive
 owners: [human:nils]
@@ -82,11 +82,6 @@ sources:
   - id: root-readme
     resource: ../../../README.md
     title: Current workspace overview and first-run copy
-    author: human:nils
-    last_modified: 2026-08-22
-  - id: roadmap
-    resource: ../../../ROADMAP.md
-    title: Root implementation roadmap
     author: human:nils
     last_modified: 2026-08-22
   - id: vscode-readme
@@ -173,7 +168,7 @@ Re-reviewed on 2026-08-22 against `staging` (`9bfe631` plus that revision),
 then updated on 2026-08-23 for the public-repo surface sweep and again for
 the Should pass (example-host probes, Access-gated staging, published
 support matrix and feedback URL). Sources were the current `site/`, mounted
-`docs/`, origin Caddy, root README, ROADMAP, and community-health files. The
+`docs/`, origin Caddy, root README, and community-health files. The
 first-use protocol page is deleted from `docs/reference/contributor/`. This
 pass did not rebuild `dist/rocci.dev` and did not complete a signed-out
 staging browser walk.[^publish-plan][^inventory][^contributing-md]
@@ -186,9 +181,9 @@ staging browser walk.[^publish-plan][^inventory][^contributing-md]
   still 410. Former article URLs fall through to the themed 404. Origin tests
   and the chrome-contract fixture match that. Trailing-slash 308s on authored
   routes are unchanged product behavior, not News compatibility.[^caddy][^caddy-test][^ux-contract]
-- Root README, ROADMAP, the VS Code extension README, and the Rocdown CLI
+- Root README, the VS Code extension README, and the Rocdown CLI
   README no longer teach `@on` as current. Public language and diagnostics
-  pages still name `@on` only as a removed form.[^root-readme][^roadmap][^vscode-readme][^project-status]
+  pages still name `@on` only as a removed form.[^root-readme][^vscode-readme][^project-status]
 - Root community-health files exist: `CONTRIBUTING.md`,
   `SECURITY.md`, `SUPPORT.md`, `GOVERNANCE.md`, and focused
   `.github/ISSUE_TEMPLATE` forms. Vulnerability mail is
@@ -199,7 +194,7 @@ staging browser walk.[^publish-plan][^inventory][^contributing-md]
   `linguist-vendored`.[^gitattributes]
 - Root leftover plans and the later `archive/reports/` tree are gone.
   `knowledge/plans/site/rocci-playground.md` is the knowledge-facing playground
-  plan. `README.md`, `LICENSE`, `AGENTS.md`, `ROADMAP.md`, and `DESIGN.md`
+  plan. `README.md`, `LICENSE`, `AGENTS.md`, and `DESIGN.md`
   stay at the root.
 - Dedicated example hostnames
   (`live-counter.examples.rocci.dev`, `datastar.examples.rocci.dev`) fail
@@ -334,7 +329,6 @@ island. GitHub must open without authentication after the known flip.
 [^site-shell]: Current header, lanes, and skip link.
 [^layouts]: Shared navigated frame for non-home layouts.
 [^root-readme]: First-run copy names `@method:role` and a Datastar fragment.
-[^roadmap]: Root roadmap names `@method:role` for standalone HTTP apps.
 [^vscode-readme]: Completion list names current handler forms, not `@on`.
 [^preview-plan]: Phase 0 license and community-health files are in tree; the support matrix is published; a clean tagged install and Discussions remain later.
 [^publish-plan]: Staging Access-gated; production hostnames unrouted until a launch decision. Apex and www 502 on 2026-08-23.

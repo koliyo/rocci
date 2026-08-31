@@ -147,7 +147,7 @@ Give a programmer one `/docs/` manual that:
 | Docs | `/docs/` | Start, Templates, Applications, Rocdown, Reference, Troubleshooting |
 | Examples | `/examples/` | Catalog (unchanged generator) |
 | FAQ | `/faq/` | Unchanged chrome contract |
-| Project | `/project/` | Overview, Status, Roadmap, Contributing |
+| Project | `/project/` | Overview, Status, Contributing |
 
 No top-level Rocdown lane. Home is not a lane. Retired `/rocdown/*` and
 academy `/docs/{start,tutorials,how-to,concepts}/*` routes are not

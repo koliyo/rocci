@@ -234,8 +234,6 @@ uv run rocci-ops ci
 
 GitHub Actions CI, Knowledge, Site, and Release run on GitHub-hosted runners (`ubuntu-latest` / `macos-latest`). CI and Knowledge run automatically on push to `main`, `staging`, and `production`. They do not run on every pull request. A reviewer comments `/ci` or `/CI` (conversation, review body, or inline review comment) to queue hosted CI for that PR head. Owners, members, and collaborators may do this, including on forks. Dependabot PRs need `/ci` the same way. `/ci-local` and `/cl-local` are accepted but queue the same hosted jobs. Site package and deploy use `ubuntu-latest`; deploy secrets stay on the `staging` and `production` GitHub Environments; CI and Knowledge jobs cannot read them.
 
-See [ROADMAP.md](ROADMAP.md) for remaining work.
-
 ## Contributing
 
 This preview does not accept pull requests; that may change later.

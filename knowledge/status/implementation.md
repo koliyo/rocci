@@ -4,18 +4,13 @@ title: Rocci implementation status
 description: Current shipped status across Rocci templates, Rocdown static sites, the portable OKF engine, and the OKF knowledge path.
 tags: [domain/rocci, domain/rocdown, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
+generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-09-15
 authority: descriptive
 owners: [human:nils]
 sources:
-  - id: roadmap
-    resource: ../../ROADMAP.md
-    title: Implementation roadmap
-    author: human:nils
-    last_modified: 2026-08-17
   - id: refactor-plan
     resource: ../plans/rocdown/rocdown-boundary-refactor.md
     title: Rocdown product-boundary refactor plan
@@ -76,7 +71,7 @@ sources:
 
 ## Shipped
 
-The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the inert `knowledge/` bundle in this repository, and the Rust-catalog/Rocci-shell Rocdown documentation generator. Portable OKF parsing and the knowledge CLI live in [okmate](https://github.com/koliyo/okmate).[^roadmap]
+The shipped implementation across Rocci, Rocdown, and the OKF knowledge bundle includes template and document compilation, standalone preview/run workflows, the `rocci-desktop` preview host, ad-hoc macOS application packaging, editor registration with composed language servers (`rocci-rocdown-lsp`), domain-neutral view records (`rocci-ui`), the inert `knowledge/` bundle in this repository, and the Rust-catalog/Rocci-shell Rocdown documentation generator. Portable OKF parsing and the knowledge CLI live in [okmate](https://github.com/koliyo/okmate).
 
 Ordinary `.rocci` routes are mandatory verb-first `@method:role(path)` headers with a closed view/fragment/command/live matrix. Commands return `{}` and have no success representation (empty SSE for Datastar, 204 otherwise). Live routes are plural path-addressed `@get:live` streams with module-local singleton injection. That cutover lives on `verb-first-handler-declarations` and is not logged complete until CI and Knowledge succeed on the revision. Historical role-first research remains labeled historical.[^verb-first]
 
@@ -90,7 +85,7 @@ Retrieval benchmarks measure a fixed seven-question lexical retrieval benchmark 
 
 ## Missing
 
-Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `:api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.[^roadmap]
+Dynamic Roc/Rocci island splicing, broader production packaging, cross-platform installers, and native capability APIs remain incomplete. `:api-operation`, snippet parameter substitution, tab-persistence JavaScript, and generated collection pages are explicitly not shipped.
 
 The editor adapters and host-language LSP with Rocdown composition exist, but workspace-wide language intelligence and compiler-backed Roc semantics remain proposed work.[^lsp-plan]
 
@@ -116,7 +111,6 @@ Typed client-behavior islands, their syntax, generated JavaScript artifact model
 
 This record must be reviewed when its `stale_after` date is reached or when either cited implementation plan changes.
 
-[^roadmap]: Current shipped focus and deliberate remaining limitations.
 [^refactor-plan]: Active ownership rule, implementation phases, testing, and remaining work.
 [^design-system]: Draft Phase 4 record of current design intent and shipped surfaces.
 [^design-tokens]: Draft Phase 4 inventory and external standards research.
