@@ -18,6 +18,10 @@ fn views_roc_is_staged_with_the_runtime() {
         views.contains("Page a : {"),
         "Page must stay parametric over segments"
     );
+    assert!(
+        views.contains("Views := [].{"),
+        "types live in the Views module"
+    );
     let staged = env::temp_dir().join(format!("rocdown-views-stage-{}", std::process::id()));
     let _ = fs::remove_dir_all(&staged);
     crate::runtime::stage_into(&staged).unwrap();
@@ -974,6 +978,8 @@ fn pages_roc_emits_typed_widget_tags_not_segment_bag() {
     assert!(!resolved.has_errors(), "{}", resolved.error_summary());
     let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
     let roc = planned.pages_roc();
+    assert!(roc.contains("import Views"), "{roc}");
+    assert!(roc.contains("pages : List(Views.Page _)"), "{roc}");
     assert!(roc.contains("HtmlFile({ path:"), "{roc}");
     assert!(roc.contains("Note({"), "{roc}");
     assert!(roc.contains("title: \"Watch\""), "{roc}");

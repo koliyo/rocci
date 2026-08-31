@@ -351,7 +351,9 @@ fn escape_xml(value: &str) -> String {
 pub(crate) fn pages_roc(pages: &[PlannedPage]) -> String {
     let mut pages = pages.to_vec();
     pages.sort_by(|a, b| a.output_path.cmp(&b.output_path));
-    let mut out = String::from("RocdownPages := [].{\n    pages = [\n");
+    let mut out = String::from(
+        "import Views\n\nRocdownPages := [].{\n    pages : List(Views.Page _)\n    pages = [\n",
+    );
     for page in &pages {
         out.push_str("        {\n            article_path: ");
         push_roc_string(&mut out, &page.article_path);

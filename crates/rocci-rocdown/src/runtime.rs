@@ -98,6 +98,7 @@ mod tests {
         assert!(dir.join("Views.roc").is_file());
         assert!(VIEWS.contains("NavGroupView : {"));
         assert!(VIEWS.contains("Page a : {"));
+        assert!(VIEWS.contains("Views := [].{"));
         assert!(!dir.join("RocdownModel.roc").exists());
         assert!(!dir.join("RocdownRoute.roc").exists());
         let _ = fs::remove_dir_all(&dir);
