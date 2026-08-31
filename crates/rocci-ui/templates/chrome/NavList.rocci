@@ -87,7 +87,7 @@ section_key = |prefix, title|
     .nav-fold > .nav-items > .nav-section {
         margin: 0;
     }
-    .nav-fold .nav-fold .nav-child {
+    .nav-fold .nav-fold > .nav-items > .nav-link {
         margin-left: 1.4rem;
     }
     .nav-source {
@@ -234,21 +234,19 @@ navListNested = {
             title: "Reference",
             href: "/docs/reference/",
             open: True,
-            items: [],
+            items: [
+                { title: "Overview", href: "/docs/reference/", class_name: "nav-link nav-child" },
+                { title: "Runtime and HTTP", href: "/docs/reference/runtime/", class_name: "nav-link nav-child" },
+            ],
             children: [
                 {
                     title: "Rocci language reference",
                     href: "/docs/reference/language/",
                     open: True,
                     items: [
+                        { title: "Overview", href: "/docs/reference/language/", class_name: "nav-link nav-child" },
                         { title: "File structure and Roc regions", href: "/docs/reference/language/file-structure/", class_name: "nav-link nav-child" },
                     ],
-                },
-                {
-                    title: "Runtime and HTTP",
-                    href: "/docs/reference/runtime/",
-                    open: False,
-                    items: [],
                 },
             ],
         },

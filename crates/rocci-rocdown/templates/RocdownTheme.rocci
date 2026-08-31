@@ -217,7 +217,7 @@ import PageOutline
     .nav-fold > .nav-items > .nav-section {
         margin: 0;
     }
-    .nav-fold .nav-fold .nav-child {
+    .nav-fold .nav-fold > .nav-items > .nav-link {
         margin-left: 1.4rem;
     }
 

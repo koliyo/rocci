@@ -1470,15 +1470,46 @@ enum ForestRow {
     Group(NavGroupView),
 }
 
+fn overview_item(href: &str, current: bool) -> NavItemView {
+    NavItemView {
+        title: "Overview".into(),
+        href: href.into(),
+        class_name: if current {
+            "nav-link nav-child is-current".into()
+        } else {
+            "nav-link nav-child".into()
+        },
+    }
+}
+
+fn prepend_overview(items: &mut Vec<NavItemView>, href: &str, current: bool) {
+    if href.is_empty() {
+        return;
+    }
+    if items
+        .first()
+        .is_some_and(|item| item.title == "Overview" && item.href == href)
+    {
+        return;
+    }
+    items.insert(0, overview_item(href, current));
+}
+
+fn is_landing_overview(item: &NavItemView, href: &str) -> bool {
+    item.title == "Overview" && item.href == href
+}
+
 fn flush_building(building: BuildingGroup, current_id: Option<&str>) -> ForestRow {
     if building.items.is_empty() && building.children.is_empty() {
         return ForestRow::Item(nav_leaf(&building.index, current_id));
     }
-    let items = building
+    let mut items: Vec<NavItemView> = building
         .items
         .iter()
         .map(|item| nav_leaf(item, current_id))
         .collect();
+    let landing_current = current_id.is_some_and(|id| nav_item_owns_page(&building.index.id, id));
+    prepend_overview(&mut items, &building.index.route, landing_current);
     let open = current_id.is_some_and(|id| {
         is_under_dir(&building.dir, id)
             || nav_item_owns_page(&building.index.id, id)
@@ -1583,14 +1614,39 @@ fn root_index_href(items: &[catalog::NavItem], has_siblings: bool) -> Option<Str
     is_group_root_index(&first.id, items).then(|| first.route.clone())
 }
 
+fn take_landing_href(rows: &mut Vec<ForestRow>, landing: Option<String>) -> String {
+    let Some(href) = landing else {
+        return String::new();
+    };
+    let matches = match rows.first() {
+        Some(ForestRow::Item(item)) => item.href == href,
+        Some(ForestRow::Group(child)) => {
+            child.items.is_empty() && child.children.is_empty() && child.href == href
+        }
+        None => false,
+    };
+    if matches {
+        rows.remove(0);
+        href
+    } else {
+        String::new()
+    }
+}
+
 fn rows_to_group(
     label: &str,
-    rows: Vec<ForestRow>,
+    mut rows: Vec<ForestRow>,
     extra_children: Vec<NavGroupView>,
     open: bool,
     section_items: &[catalog::NavItem],
+    current_id: Option<&str>,
 ) -> Option<NavGroupView> {
     let landing = root_index_href(section_items, !extra_children.is_empty() || rows.len() > 1);
+    let landing_current = landing.as_ref().is_some_and(|href| {
+        section_items.first().is_some_and(|item| {
+            item.route == *href && current_id.is_some_and(|id| nav_item_owns_page(&item.id, id))
+        })
+    });
     let has_group =
         rows.iter().any(|row| matches!(row, ForestRow::Group(_))) || !extra_children.is_empty();
     if !has_group {
@@ -1612,6 +1668,7 @@ fn rows_to_group(
         } else {
             String::new()
         };
+        prepend_overview(&mut items, &href, landing_current);
         return Some(flatten_group_depth(NavGroupView {
             title: label.into(),
             href,
@@ -1620,29 +1677,26 @@ fn rows_to_group(
             children: extra_children,
         }));
     }
-    let mut children: Vec<NavGroupView> = rows
-        .into_iter()
-        .map(|row| match row {
-            ForestRow::Item(item) => leaf_group(item),
-            ForestRow::Group(group) => group,
-        })
-        .collect();
+    let href = take_landing_href(&mut rows, landing);
+    let mut items = Vec::new();
+    let mut children = Vec::new();
+    for row in rows {
+        match row {
+            ForestRow::Item(item) => items.push(item),
+            ForestRow::Group(group) => children.push(group),
+        }
+    }
     children.extend(extra_children);
-    let href = if let Some(href) = landing.filter(|href| {
-        children.first().is_some_and(|child| {
-            child.items.is_empty() && child.children.is_empty() && child.href == *href
-        })
-    }) {
-        children.remove(0);
-        href
-    } else {
-        String::new()
-    };
+    prepend_overview(&mut items, &href, landing_current);
     Some(flatten_group_depth(NavGroupView {
         title: label.into(),
         href,
-        open: open || children.iter().any(|child| child.open),
-        items: Vec::new(),
+        open: open
+            || children.iter().any(|child| child.open)
+            || items
+                .iter()
+                .any(|item| item.class_name.contains("is-current")),
+        items,
         children,
     }))
 }
@@ -1661,7 +1715,14 @@ fn nav_group_view(section: &NavSection, current_id: Option<&str>) -> Option<NavG
                 .iter()
                 .any(|item| nav_item_owns_page(&item.id, id))
     });
-    rows_to_group(&section.label, rows, extra_children, open, &section.items)
+    rows_to_group(
+        &section.label,
+        rows,
+        extra_children,
+        open,
+        &section.items,
+        current_id,
+    )
 }
 
 fn flatten_group_depth(mut group: NavGroupView) -> NavGroupView {
@@ -1744,7 +1805,7 @@ fn attach_example_source_tree(
         && group
             .items
             .first()
-            .is_none_or(|item| item.href != group.href)
+            .is_none_or(|item| item.href != group.href || is_landing_overview(item, &group.href))
     {
         replacement.push(NavGroupView {
             title: group.title.clone(),
@@ -1755,6 +1816,9 @@ fn attach_example_source_tree(
         });
     }
     for item in group.items {
+        if is_landing_overview(&item, &group.href) {
+            continue;
+        }
         let selected = item.href == example_href;
         replacement.push(NavGroupView {
             title: item.title,
@@ -2660,8 +2724,10 @@ mod tests {
         assert!(!sidebar[0].open);
         assert!(sidebar[1].open);
         assert_eq!(sidebar[1].href, "/tutorials/");
-        assert_eq!(sidebar[1].items[0].title, "Build your first component");
-        assert!(sidebar[1].items[0].class_name.contains("is-current"));
+        assert_eq!(sidebar[1].items[0].title, "Overview");
+        assert_eq!(sidebar[1].items[0].href, "/tutorials/");
+        assert_eq!(sidebar[1].items[1].title, "Build your first component");
+        assert!(sidebar[1].items[1].class_name.contains("is-current"));
     }
 
     fn source_page(id: &str, title: &str, route: &str) -> ResolvedPage {
@@ -2834,6 +2900,11 @@ mod tests {
                     "/docs/reference/runtime/",
                 ),
                 nav_item(
+                    "docs/reference/contributor/index",
+                    "Contributor",
+                    "/docs/reference/contributor/",
+                ),
+                nav_item(
                     "docs/reference/contributor/rocci-tree",
                     "Rocci tree appendix",
                     "/docs/reference/contributor/rocci-tree/",
@@ -2846,20 +2917,36 @@ mod tests {
         assert_eq!(sidebar.len(), 1);
         assert!(sidebar[0].open);
         assert_eq!(sidebar[0].href, "/docs/reference/");
-        assert!(sidebar[0].items.is_empty());
-        assert_eq!(sidebar[0].children.len(), 3);
+        assert_eq!(sidebar[0].items.len(), 2);
+        assert_eq!(sidebar[0].items[0].title, "Overview");
+        assert_eq!(sidebar[0].items[0].href, "/docs/reference/");
+        assert_eq!(sidebar[0].items[1].title, "Runtime and HTTP");
+        assert_eq!(sidebar[0].children.len(), 2);
         assert_eq!(sidebar[0].children[0].title, "Rocci language reference");
         assert_eq!(sidebar[0].children[0].href, "/docs/reference/language/");
         assert!(sidebar[0].children[0].open);
-        assert_eq!(sidebar[0].children[0].items.len(), 1);
+        assert_eq!(sidebar[0].children[0].items[0].title, "Overview");
+        assert_eq!(
+            sidebar[0].children[0].items[0].href,
+            "/docs/reference/language/"
+        );
+        assert_eq!(
+            sidebar[0].children[0].items[1].title,
+            "File structure and Roc regions"
+        );
         assert!(
-            sidebar[0].children[0].items[0]
+            sidebar[0].children[0].items[1]
                 .class_name
                 .contains("is-current")
         );
-        assert_eq!(sidebar[0].children[1].title, "Runtime and HTTP");
-        assert!(sidebar[0].children[1].items.is_empty());
-        assert_eq!(sidebar[0].children[2].title, "Rocci tree appendix");
+        assert_eq!(sidebar[0].children[1].title, "Contributor");
+        assert_eq!(sidebar[0].children[1].href, "/docs/reference/contributor/");
+        assert_eq!(sidebar[0].children[1].items[0].title, "Overview");
+        assert_eq!(
+            sidebar[0].children[1].items[0].href,
+            "/docs/reference/contributor/"
+        );
+        assert_eq!(sidebar[0].children[1].items[1].title, "Rocci tree appendix");
         assert!(sidebar_has_current(
             &sidebar,
             "/docs/reference/language/file-structure/"
@@ -2902,13 +2989,14 @@ mod tests {
         assert_eq!(sidebar[0].title, "Reference");
         assert!(sidebar[0].open);
         assert_eq!(sidebar[0].href, "/docs/reference/");
-        assert!(sidebar[0].items.is_empty());
+        assert_eq!(sidebar[0].items[0].title, "Overview");
+        assert_eq!(sidebar[0].items[0].href, "/docs/reference/");
         assert_eq!(sidebar[0].children.len(), 1);
         assert_eq!(sidebar[0].children[0].title, "Language");
         assert_eq!(sidebar[0].children[0].href, "/docs/reference/language/");
         assert!(sidebar[0].children[0].open);
-        assert_eq!(sidebar[0].children[0].items.len(), 1);
-        assert_eq!(sidebar[0].children[0].items[0].title, "Tags and fragments");
+        assert_eq!(sidebar[0].children[0].items[0].title, "Overview");
+        assert_eq!(sidebar[0].children[0].items[1].title, "Tags and fragments");
     }
 
     #[test]
@@ -2934,11 +3022,12 @@ mod tests {
         let (_, sidebar) = lanes_and_sidebar(&navigation, Some("docs/appendix/glossary"));
         assert_eq!(sidebar.len(), 1);
         assert_eq!(sidebar[0].href, "/docs/");
-        assert_eq!(sidebar[0].items.len(), 3);
+        assert_eq!(sidebar[0].items.len(), 4);
         assert!(sidebar[0].children.is_empty());
-        assert_eq!(sidebar[0].items[0].title, "Install");
-        assert_eq!(sidebar[0].items[1].title, "Glossary");
-        assert!(!sidebar[0].items.iter().any(|item| item.title == "Overview"));
+        assert_eq!(sidebar[0].items[0].title, "Overview");
+        assert_eq!(sidebar[0].items[0].href, "/docs/");
+        assert_eq!(sidebar[0].items[1].title, "Install");
+        assert_eq!(sidebar[0].items[2].title, "Glossary");
     }
 
     #[test]
@@ -2957,8 +3046,10 @@ mod tests {
         )];
         let (_, sidebar) = lanes_and_sidebar(&navigation, Some("docs/templates/components"));
         assert_eq!(sidebar[0].href, "/docs/templates/");
-        assert_eq!(sidebar[0].items.len(), 1);
-        assert_eq!(sidebar[0].items[0].title, "Components");
+        assert_eq!(sidebar[0].items.len(), 2);
+        assert_eq!(sidebar[0].items[0].title, "Overview");
+        assert_eq!(sidebar[0].items[0].href, "/docs/templates/");
+        assert_eq!(sidebar[0].items[1].title, "Components");
     }
 
     #[test]
