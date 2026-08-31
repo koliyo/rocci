@@ -136,13 +136,5 @@ pub(crate) fn rewrite_map(assets: &[PlannedAsset]) -> BTreeMap<String, String> {
 }
 
 pub(crate) fn rewrite_urls(text: &str, map: &BTreeMap<String, String>) -> String {
-    let mut keys: Vec<_> = map.keys().collect();
-    keys.sort_by(|a, b| b.len().cmp(&a.len()).then(a.cmp(b)));
-    let mut out = text.to_string();
-    for key in keys {
-        if let Some(hashed) = map.get(key) {
-            out = out.replace(key, hashed);
-        }
-    }
-    out
+    crate::docs::rewrite_urls(text, map)
 }
