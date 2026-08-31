@@ -134,3 +134,37 @@ there is no editor and no WASM compile.
 ## Architectural Boundary
 
 `rocci-cli` owns execution and orchestration for `.rocci` templates and Roc applications. It does not parse or execute `.rocdown` documents (which are owned by `rocci-rocdown-cli` / `rocdown`) or OKF bundles. `rocci run` on an OKF-looking `.md` file or bundle directory hints at `okmate view` by extension and leading-byte inspection only.
+
+## Internal modules
+
+`lib.rs` is the library surface used by the `rocci` binary and by Rocdown
+for shared host pieces. New orchestration belongs in the owning file or
+subdirectory below, not a second public driver crate.
+
+Current `src/*.rs` roles:
+
+| File | Role |
+| --- | --- |
+| `lib.rs` | Library barrel |
+| `main.rs` | `rocci` clap dispatch |
+| `run.rs` | `rocci run` orchestration (target: `src/run/` after visibility is tight) |
+| `dev_server.rs` | Shared preview and live-reload server used by Rocdown (target: `src/dev_server/`) |
+| `browse.rs` | Gallery compiler; stays CLI-private, not a Rocdown dependency (target: `src/browse/`) |
+| `dispatch.rs` | Generated HTTP dispatcher (target: `src/dispatch/`) |
+| `driver.rs` / `serve.rs` / `view.rs` / `inspect.rs` / `inspector.rs` | Compile driver, static serve, component preview, inspect, Dev overlay |
+| `playground.rs` / `playground_html.rs` / `playground_compile.rs` | Playground host, HTML, local compile |
+| `bundle.rs` / `http_module.rs` / `datastar_asset.rs` | macOS bundle, WASI HTTP module, Datastar pin |
+| `rocci_test.rs` / `logs.rs` / `profile.rs` / `error_page.rs` / `path_hint.rs` | `rocci test`, log tee, metrics fixture, failed-rebuild dialog, `okmate` hint |
+| `style.rs` / `native_target.rs` / `runtime_assets.rs` / `roc_module.rs` | Highlight CSS, host triple, staged assets, Roc module helpers |
+
+`rocci_cli::` stays `pub` only for modules Rocdown or tests already import
+(`driver`, `serve`, `dev_server`, `logs`, `inspect`, `profile`, `path_hint`,
+`error_page`, `playground`, and any other current external import). The rest
+tighten to `pub(crate)`. Do not add CLI flags.
+
+The split sequence and no-feature contract are in the
+[implementation-structure plan](../../knowledge/plans/rocci/implementation-structure.md)
+and the
+[structure audit](../../knowledge/audits/rocci/implementation-structure.md).
+Site-planning code still belongs in `rocci-rocdown` (`src/plan/`, `src/docs/`,
+`src/lower/`), not here.
