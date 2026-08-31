@@ -60,7 +60,7 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: ci-local
-    resource: ../../../tools/rocci-ops/src/rocci_ops/ci.py
+    resource: ../../../rocci-ops/src/rocci_ops/ci.py
     title: Local CI job runner
     author: process:git
     last_modified: 2026-08-19

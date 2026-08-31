@@ -71,7 +71,7 @@ def test_stage_origin_kit_copies_compose_and_caddy(tmp_path: Path) -> None:
     assert (tmp_path / "docker" / "compose.origin.yml").is_file()
     assert (tmp_path / "docker" / "cdn" / "examples.caddy").is_file()
     assert (tmp_path / "docker" / "cdn" / "examples.stub.caddy").is_file()
-    assert (tmp_path / "tools" / "rocci-ops" / "src" / "rocci_ops" / "lanes.py").is_file()
+    assert (tmp_path / "rocci-ops" / "src" / "rocci_ops" / "lanes.py").is_file()
     assert not (tmp_path / "docker" / "blocks").exists()
 
 

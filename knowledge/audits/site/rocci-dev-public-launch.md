@@ -60,7 +60,7 @@ sources:
     author: process:git
     last_modified: 2026-08-22
   - id: caddy-test
-    resource: ../../../tools/rocci-ops/tests/test_example_origins.py
+    resource: ../../../rocci-ops/tests/test_example_origins.py
     title: Origin tests for News 410 and no News redirects
     author: process:git
     last_modified: 2026-08-22

@@ -8,7 +8,7 @@ Cloudflare Tunnel.
 
 `/srv/rocci` is a **parent** owned by `deploy`. Each GitHub Environment
 (`staging` / `production`) is a complete origin tree under it. `site.yml`
-sets `ROCCI_LANE` to the branch name. [`lanes.py`](../../tools/rocci-ops/src/rocci_ops/lanes.py)
+sets `ROCCI_LANE` to the branch name. [`lanes.py`](../../rocci-ops/src/rocci_ops/lanes.py)
 maps that to root, port, Compose project, image tag, and whether live
 examples start. Explicit env vars override any field.
 
@@ -36,7 +36,7 @@ Inside each lane root:
 | `releases/<sha>/islands-context/` | `Dockerfile` plus the musl `islands` binary |
 | `releases/<sha>/examples-live/<id>/` | Live app context (staging compose only) |
 | `docker/` | Hybrid + origin Compose, Caddy, image Dockerfiles |
-| `tools/rocci-ops/` | `uv run rocci-ops origin publish` |
+| `rocci-ops/` | `uv run rocci-ops origin publish` |
 
 Docker **volumes** stay project-prefixed (`rocci-prod_islands-db`,
 `rocci-staging_live-counter-db`, …). Image tags are `rocci-islands:prod` /
@@ -125,7 +125,7 @@ DEPLOY_HOST=ssh.rocci.dev DEPLOY_USER=deploy ROCCI_LANE=staging \
 ```
 
 That streams **one** gzip tar over one SSH connection into the lane root
-(Compose, Caddy, `tools/rocci-ops`, `pyproject.toml` / `uv.lock`).
+(Compose, Caddy, `rocci-ops`, `pyproject.toml` / `uv.lock`).
 `deploy push` adds `incoming/<sha>/` to the same tar and runs
 `origin publish` in that same session.
 

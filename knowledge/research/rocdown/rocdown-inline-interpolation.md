@@ -110,7 +110,7 @@ sources:
     author: process:git
     last_modified: 2026-08-19
   - id: git-upstream
-    resource: ../../../tools/rocci-ops/src/rocci_ops/site.py
+    resource: ../../../rocci-ops/src/rocci_ops/site.py
     title: Git @{upstream} ref in operator tooling
     author: process:git
     last_modified: 2026-08-22

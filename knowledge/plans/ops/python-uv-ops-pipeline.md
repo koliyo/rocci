@@ -1,7 +1,7 @@
 ---
 type: Implementation Plan
 title: Python and uv operator pipeline
-description: "Replace CI, deploy, origin, and local maintainer shell with a pinned tools/rocci-ops uv package. POSIX remains for container PID 1, install-roc.sh, and OpenSSH ProxyCommand. Roc port is a later branch. Exploratory; Phases 1–6 implemented in this revision; not CI-complete."
+description: "Replace CI, deploy, origin, and local maintainer shell with a pinned rocci-ops uv package. POSIX remains for container PID 1, install-roc.sh, and OpenSSH ProxyCommand. Roc port is a later branch. Exploratory; Phases 1–6 implemented in this revision; not CI-complete."
 tags: [domain/rocci, concern/ci, concern/tooling, concern/publication]
 status: draft
 generated: { by: process:cursor, at: 2026-08-21T10:00:00Z }
@@ -10,22 +10,22 @@ authority: exploratory
 owners: [human:nils]
 sources:
   - id: ops-cli
-    resource: ../../../tools/rocci-ops/src/rocci_ops/cli.py
+    resource: ../../../rocci-ops/src/rocci_ops/cli.py
     title: rocci-ops command dispatch
     author: process:cursor
     last_modified: 2026-08-21
   - id: ops-ci
-    resource: ../../../tools/rocci-ops/src/rocci_ops/ci.py
+    resource: ../../../rocci-ops/src/rocci_ops/ci.py
     title: CI job bodies shared with GitHub Actions
     author: process:cursor
     last_modified: 2026-08-21
   - id: ops-deploy
-    resource: ../../../tools/rocci-ops/src/rocci_ops/deploy.py
+    resource: ../../../rocci-ops/src/rocci_ops/deploy.py
     title: SSH probe, bootstrap, and artifact push
     author: process:cursor
     last_modified: 2026-08-21
   - id: ops-origin
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin publish, up, and SQLite backup
     author: process:cursor
     last_modified: 2026-08-21
@@ -61,7 +61,7 @@ toolchain. Access SSH stays a POSIX `ProxyCommand`.[^proxy]
 
 ## Phase 1 — uv package and workspace-deps
 
-**Bound:** `tools/rocci-ops` scaffold; workspace-deps in Python; lint uses uv.
+**Bound:** `rocci-ops` scaffold; workspace-deps in Python; lint uses uv.
 **Exit:** `uv run rocci-ops check-deps`
 
 ## Phase 2 — CI job runner
@@ -91,7 +91,7 @@ toolchain. Access SSH stays a POSIX `ProxyCommand`.[^proxy]
 
 Roc follow-on is a **new branch** after this plan is green on CI.[^research]
 
-[^ops-cli]: Console script `rocci-ops` in `tools/rocci-ops`.
+[^ops-cli]: Console script `rocci-ops` in `rocci-ops`.
 [^ops-ci]: Shared lint/test/fixtures/editors/knowledge command lists.
 [^ops-deploy]: Laptop and Actions SSH using Access `ProxyCommand`.
 [^ops-origin]: Remote `uv run rocci-ops origin publish SHA`.

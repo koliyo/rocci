@@ -159,7 +159,7 @@ def test_publish_rolls_back_on_health_failure(monkeypatch, tmp_path: Path) -> No
     (docker / "Dockerfile").write_text("FROM scratch\n", encoding="utf-8")
     (tmp_path / "repo" / "docker").mkdir(exist_ok=True)
     (tmp_path / "repo" / "docker" / "compose.hybrid.yml").write_text("services: {}\n", encoding="utf-8")
-    (tmp_path / "repo" / "tools" / "rocci-ops").mkdir(parents=True)
+    (tmp_path / "repo" / "rocci-ops").mkdir(parents=True)
     (tmp_path / "repo" / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
 
     current = origin / "current"
@@ -220,7 +220,7 @@ def test_publish_live_apps_use_origin_compose_and_rollback(monkeypatch, tmp_path
     (docker / "app" / "entrypoint.sh").write_text("#!/bin/sh\n", encoding="utf-8")
     (docker / "compose.hybrid.yml").write_text("services: {}\n", encoding="utf-8")
     (docker / "compose.origin.yml").write_text("services: {}\n", encoding="utf-8")
-    (tmp_path / "repo" / "tools" / "rocci-ops").mkdir(parents=True)
+    (tmp_path / "repo" / "rocci-ops").mkdir(parents=True)
     (tmp_path / "repo" / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
 
     current = origin / "current"
@@ -278,7 +278,7 @@ def test_publish_live_disabled_skips_origin_compose(monkeypatch, tmp_path: Path)
     (docker / "app" / "entrypoint.sh").write_text("#!/bin/sh\n", encoding="utf-8")
     (docker / "compose.hybrid.yml").write_text("services: {}\n", encoding="utf-8")
     (docker / "compose.origin.yml").write_text("services: {}\n", encoding="utf-8")
-    (tmp_path / "repo" / "tools" / "rocci-ops").mkdir(parents=True)
+    (tmp_path / "repo" / "rocci-ops").mkdir(parents=True)
     (tmp_path / "repo" / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
 
     monkeypatch.setenv("ROCCI_ORIGIN_ROOT", str(origin))

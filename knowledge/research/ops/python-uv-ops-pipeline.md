@@ -1,7 +1,7 @@
 ---
 type: Research Report
 title: Findings after migrating operator scripts to Python and uv
-description: "After implementing tools/rocci-ops, POSIX remains only where the process cannot be uv (container PID 1, image Roc install, OpenSSH ProxyCommand). A later Roc port should reuse the same CLI surface; basic-cli is not yet a substitute for uv on CI, laptops, and the origin."
+description: "After implementing rocci-ops, POSIX remains only where the process cannot be uv (container PID 1, image Roc install, OpenSSH ProxyCommand). A later Roc port should reuse the same CLI surface; basic-cli is not yet a substitute for uv on CI, laptops, and the origin."
 tags: [domain/rocci, concern/ci, concern/tooling, concern/publication]
 status: draft
 generated: { by: process:cursor, at: 2026-08-30T09:30:00Z }
@@ -15,7 +15,7 @@ sources:
     author: process:cursor
     last_modified: 2026-08-21
   - id: pyproject
-    resource: ../../../tools/rocci-ops/pyproject.toml
+    resource: ../../../rocci-ops/pyproject.toml
     title: rocci-ops uv project metadata
     author: process:cursor
     last_modified: 2026-08-21
@@ -30,7 +30,7 @@ sources:
     author: process:cursor
     last_modified: 2026-08-21
   - id: origin
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin publish implemented in Python
     author: process:cursor
     last_modified: 2026-08-21
@@ -57,7 +57,7 @@ sources:
 
 CI job bodies, release packaging and `gh` gating, deploy SSH/SCP, origin
 publish/up/backup, and localhost maintainer helpers now live in
-`tools/rocci-ops` (Python 3.12, stdlib plus pytest, committed `uv.lock`).
+`rocci-ops` (Python 3.12, stdlib plus pytest, committed `uv.lock`).
 GitHub Actions YAML is checkout, toolchains, cache, `astral-sh/setup-uv`,
 secrets, and artifacts; sequences are `uv run --no-dev rocci-ops …`.[^plan][^pyproject][^ci-yml][^site-yml][^origin]
 

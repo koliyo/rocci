@@ -40,7 +40,7 @@ sources:
     author: process:git
     last_modified: 2026-08-29
   - id: origin-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin unpack, hybrid plus examples compose, Host health
     author: process:git
     last_modified: 2026-08-29

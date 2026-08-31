@@ -61,7 +61,7 @@ def steps_for(job: str, root: Path) -> list[Step]:
             Step(("cargo", "run", "-q", "-p", "rocci-ungram", "--", "check")),
             Step(("cargo", "fmt", "--all", "--", "--check")),
             Step(("cargo", "clippy", "--workspace", "--all-targets", "--", "-D", "warnings")),
-            Step(("uv", "run", "--group", "dev", "pytest"), cwd="tools/rocci-ops"),
+            Step(("uv", "run", "--group", "dev", "pytest"), cwd="rocci-ops"),
         ]
         if _rustup_available():
             return [

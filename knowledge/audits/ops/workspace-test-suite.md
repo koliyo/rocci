@@ -20,7 +20,7 @@ sources:
     author: process:git
     last_modified: 2026-08-26
   - id: ci-py
-    resource: ../../../tools/rocci-ops/src/rocci_ops/ci.py
+    resource: ../../../rocci-ops/src/rocci_ops/ci.py
     title: Canonical CI job bodies
     author: process:git
     last_modified: 2026-08-29
@@ -110,7 +110,7 @@ sources:
     author: process:git
     last_modified: 2026-08-25
   - id: ops-tests
-    resource: ../../../tools/rocci-ops/tests/test_ci.py
+    resource: ../../../rocci-ops/tests/test_ci.py
     title: rocci-ops pytest for CI job shapes
     author: process:git
     last_modified: 2026-08-29
@@ -146,7 +146,7 @@ Outside Cargo:
 
 - VS Code: Mocha unit tests plus `@vscode/test-electron` integration. CI
   `editors` runs `npm --prefix editors/vscode test`.[^ci-py][^vscode-pkg]
-- `tools/rocci-ops`: 95 pytest functions. No CI job runs them.[^ops-tests][^ci-py]
+- `rocci-ops`: 95 pytest functions. No CI job runs them.[^ops-tests][^ci-py]
 - `playground/`: `build` and `check` only; no test script.[^playground-pkg]
 - `test/wasm/*.mjs`: six manual WASM harnesses, not wired to CI.[^wasm-harness]
 
@@ -276,7 +276,7 @@ style-sibling incident; a plan already exists and has not started.[^sse-tests][^
 
 **`rocci-ops` pytest is local-only.** Phase 2 of the uv pipeline treated
 pytest as an exit criterion. CI `lint` / `test` never invoke
-`uv run --group dev pytest` under `tools/rocci-ops`. Operator job-shape
+`uv run --group dev pytest` under `rocci-ops`. Operator job-shape
 and deploy-client regressions are unguarded on GitHub.[^python-uv-plan][^ops-tests][^ci-py]
 
 **Playground UI and WASM harnesses are manual.** `playground/package.json`

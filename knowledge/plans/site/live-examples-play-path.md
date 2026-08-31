@@ -30,7 +30,7 @@ sources:
     author: process:git
     last_modified: 2026-08-29
   - id: origin-ops
-    resource: ../../../tools/rocci-ops/src/rocci_ops/origin.py
+    resource: ../../../rocci-ops/src/rocci_ops/origin.py
     title: Origin health checks by Host examples.localhost
     author: process:git
     last_modified: 2026-08-29
@@ -40,7 +40,7 @@ sources:
     author: process:git
     last_modified: 2026-08-29
   - id: example-tests
-    resource: ../../../tools/rocci-ops/tests/test_example_origins.py
+    resource: ../../../rocci-ops/tests/test_example_origins.py
     title: Caddy Host isolation tests
     author: process:git
     last_modified: 2026-08-29
@@ -113,7 +113,7 @@ and avoids paid multi-level certs.[^background]
 ## Phase 0 — Caddy play routes
 
 **Bound:** `docker/cdn/Caddyfile` and
-`tools/rocci-ops/tests/test_example_origins.py`.
+`rocci-ops/tests/test_example_origins.py`.
 No origin.py, no Launch hrefs, no promote.[^cdn-caddy][^example-tests]
 
 **Work**
@@ -139,7 +139,7 @@ uv run --no-dev rocci-ops test example-origins
 
 ## Phase 1 — Origin health on play paths
 
-**Bound:** `tools/rocci-ops/src/rocci_ops/origin.py`
+**Bound:** `rocci-ops/src/rocci_ops/origin.py`
 and its tests. No Launch. No promote.[^origin-ops]
 
 **Work**

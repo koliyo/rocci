@@ -64,8 +64,8 @@ def stage_origin_kit(dest: Path) -> None:
     shutil.copy2(root / "pyproject.toml", dest / "pyproject.toml")
     shutil.copy2(root / "uv.lock", dest / "uv.lock")
     shutil.copy2(root / ".python-version", dest / ".python-version")
-    ops = root / "tools" / "rocci-ops"
-    ops_dest = dest / "tools" / "rocci-ops"
+    ops = root / "rocci-ops"
+    ops_dest = dest / "rocci-ops"
     (ops_dest / "src").mkdir(parents=True, exist_ok=True)
     shutil.copy2(ops / "pyproject.toml", ops_dest / "pyproject.toml")
     shutil.copy2(ops / ".python-version", ops_dest / ".python-version")

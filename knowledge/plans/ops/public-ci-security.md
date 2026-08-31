@@ -40,7 +40,7 @@ sources:
     author: process:git
     last_modified: 2026-08-22
   - id: ops-ci
-    resource: ../../../tools/rocci-ops/src/rocci_ops/ci.py
+    resource: ../../../rocci-ops/src/rocci_ops/ci.py
     title: Shared CI job bodies
     author: process:cursor
     last_modified: 2026-08-21

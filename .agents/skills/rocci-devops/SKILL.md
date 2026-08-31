@@ -19,7 +19,7 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
      `/cl-local` queue the same hosted jobs; self-hosted CI is disabled.
      Actions **Run workflow** is hosted. There is no `pull_request` trigger.
      `ci.yml` jobs:
-     - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), clippy (`cargo clippy -D warnings`), and `uv run --group dev pytest` under `tools/rocci-ops` on `ubuntu-latest` when hosted.
+     - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), clippy (`cargo clippy -D warnings`), and `uv run --group dev pytest` under `rocci-ops` on `ubuntu-latest` when hosted.
      - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest` when hosted. Offline: no Roc compiles.
      - `fixtures-and-docs`: `rocdown check docs` / `check site` and example-docs stage on `ubuntu-latest` when hosted.
      - `roc`: Pinned Roc nightly via `docker/install-roc.sh`, then `ROCCI_REQUIRE_ROC=1` crate tests on `ubuntu-latest` when hosted.
@@ -105,7 +105,7 @@ Categorize the root cause by examining the failing job and log output:
 
 | Job | Common failure modes | Reproduction & fix strategy |
 |---|---|---|
-| `lint` | Unformatted code, clippy warnings, stale `ast.generated.rs`, rocci-ops pytest | Run `uv run rocci-ops ci lint` (or `check deps` plus `cargo fmt` / clippy). Pytest: `uv run --group dev pytest` under `tools/rocci-ops`. Regenerate AST with `cargo run -q -p rocci-ungram -- generate` if `--check` fails. |
+| `lint` | Unformatted code, clippy warnings, stale `ast.generated.rs`, rocci-ops pytest | Run `uv run rocci-ops ci lint` (or `check deps` plus `cargo fmt` / clippy). Pytest: `uv run --group dev pytest` under `rocci-ops`. Regenerate AST with `cargo run -q -p rocci-ungram -- generate` if `--check` fails. |
 | `test` (macOS / Ubuntu) | Logic regressions, platform differences, socket permissions, timing/budget assertions | Run `cargo test -p CRATE` for the failing test. This job is offline (no Roc). Ensure timing assertions account for unoptimized debug mode on shared CI VMs (`cfg!(debug_assertions)`). |
 | `fixtures-and-docs` | Broken docs/site check, example-docs stage failure | Check documentation with `cargo run -q -p rocci-rocdown-cli -- check docs` and `check site`. |
 | `roc` | Generated-app HTTP, islands, or `roc build` failure | Install the pinned nightly with `docker/install-roc.sh`, then `ROCCI_REQUIRE_ROC=1 cargo test -p rocci-cli -p rocci-rocdown -p rocci-rocdown-cli`. |

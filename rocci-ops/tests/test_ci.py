@@ -61,7 +61,7 @@ def test_editors_job_uses_check_zed() -> None:
     pytest_steps = [s for s in lint if s.argv[-1:] == ("pytest",)]
     assert pytest_steps
     assert pytest_steps[0].argv[:3] == ("uv", "run", "--group")
-    assert pytest_steps[0].cwd == "tools/rocci-ops"
+    assert pytest_steps[0].cwd == "rocci-ops"
 
 
 def test_roc_job_installs_nightly_and_requires_roc() -> None:

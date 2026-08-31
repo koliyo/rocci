@@ -8,7 +8,7 @@ def repo_root() -> Path:
         return Path(env)
     here = Path(__file__).resolve()
     for parent in here.parents:
-        if not (parent / "tools" / "rocci-ops").is_dir():
+        if not (parent / "rocci-ops").is_dir():
             continue
         if (parent / "Cargo.toml").is_file() or (
             parent / "docker" / "compose.hybrid.yml"

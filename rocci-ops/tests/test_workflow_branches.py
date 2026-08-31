@@ -1,6 +1,6 @@
 from pathlib import Path
 
-WORKFLOWS = Path(__file__).resolve().parents[3] / ".github" / "workflows"
+WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
 
 
 def _on_push_branches(text: str) -> str:

@@ -80,7 +80,7 @@ sources:
     author: process:git
     last_modified: 2026-08-29
   - id: workspace-deps
-    resource: ../../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
+    resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: New workspace crate must be classified in BASE_ROCCI
     author: process:git
     last_modified: 2026-08-26
@@ -289,7 +289,7 @@ Buffer the WASI body before `map_request`. Ignore listen host/port.
 **Tests:** `cargo test -p rocci-wasi-http` (embedder still green).
 Component build command from Phase 0. `wasmtime serve` `GET /` → 200
 and the stub HTML bytes. `cargo fmt --all -- --check`.
-`uv run --directory tools/rocci-ops rocci-ops check deps`.
+`uv run --directory rocci-ops rocci-ops check deps`.
 
 **Exit:** Those commands pass. Native embedder tests are unchanged.
 

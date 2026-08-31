@@ -25,7 +25,7 @@ sources:
     author: process:git
     last_modified: 2026-08-17
   - id: dependency-check
-    resource: ../../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
+    resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace dependency-direction checker
     author: process:cursor
     last_modified: 2026-08-17
@@ -243,7 +243,7 @@ integration test is insufficient evidence for shipped editor support.
 implementation itself.
 
 The post-refactor `rocci-datastar` commit added a workspace package without
-classifying it in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`, causing the dependency
+classifying it in `rocci-ops/src/rocci_ops/workspace_deps.py`, causing the dependency
 check to fail with `unclassified workspace package rocci-datastar`.[^workspace][^dependency-check]
 
 Follow-up commit `b353895` contains the obvious classification fix. Add a small
@@ -487,7 +487,7 @@ reason to falsify verification metadata.
 ## Closure criteria
 
 All P0, P1, and P2 findings have been resolved across follow-up commits (`b353895`, `73d20bc`, `3fed595`, and the closure pass):
-- **F-01, F-02, F-03 (P0):** Workflows fixed and green (CI `32072225878`, Knowledge `32072226074`); `rocci-rocdown-lsp` shipped as `rocci-language-server` with editor registrations and CI tests; atomic workspace package classification enforced in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`.
+- **F-01, F-02, F-03 (P0):** Workflows fixed and green (CI `32072225878`, Knowledge `32072226074`); `rocci-rocdown-lsp` shipped as `rocci-language-server` with editor registrations and CI tests; atomic workspace package classification enforced in `rocci-ops/src/rocci_ops/workspace_deps.py`.
 - **F-04, F-05, F-06, F-07 (P1):** Unused OKF-to-Rocdown edges and temporary allowlist deleted; `rocci-ui` pruned to neutral view records and string escaping; canonical records, concepts, citations, and system overview reconciled; operational commands in docs, skills, and plans fixed.
 - **F-08, F-09, F-10, F-11 (P2):** Direct `rocci-theme` dependency removed from `rocci-rocdown-cli`; `ROCDOWN_THEME` / `ROCDOWN_COLOR_SCHEME` supported with fallbacks; `load_config_named` internalized; intentional base CLI UX hint documented in decision and plan; `rocci-okf` included in release packaging.
 

@@ -115,7 +115,7 @@ sources:
     author: process:git
     last_modified: 2026-08-18
   - id: workspace-deps
-    resource: ../../../tools/rocci-ops/src/rocci_ops/workspace_deps.py
+    resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: Workspace package class and edge checker
     author: process:git
     last_modified: 2026-08-18
@@ -358,7 +358,7 @@ reuses Rocci parsing for islands rather than cloning the grammar.
 The generator may be shared. The grammars must not be.[^product-boundary][^language-dev]
 
 **Generator placement.** Add a workspace crate such as `rocci-ungram`,
-classified as **base-rocci** in `tools/rocci-ops/src/rocci_ops/workspace_deps.py`. It
+classified as **base-rocci** in `rocci-ops/src/rocci_ops/workspace_deps.py`. It
 depends on the `ungrammar` crate. Language crates do **not** depend on
 it at runtime. `cargo run -p rocci-ungram -- generate` writes committed
 `ast.generated.rs` files; `--check` fails CI on drift. No
