@@ -31,11 +31,7 @@ fn nav_item(id: &str, title: &str, route: &str) -> catalog::NavItem {
     }
 }
 
-fn nav_section(
-    label: &str,
-    items: Vec<catalog::NavItem>,
-    children: Vec<NavSection>,
-) -> NavSection {
+fn nav_section(label: &str, items: Vec<catalog::NavItem>, children: Vec<NavSection>) -> NavSection {
     NavSection {
         label: label.into(),
         items,
@@ -214,8 +210,7 @@ fn nested_groups_keep_lanes_and_current_docs_sidebar() {
             vec![],
         ),
     ];
-    let (lanes, sidebar) =
-        lanes_and_sidebar(&navigation, Some("docs/tutorials/first-component"));
+    let (lanes, sidebar) = lanes_and_sidebar(&navigation, Some("docs/tutorials/first-component"));
     assert_eq!(lanes.len(), 2);
     assert!(lanes[0].current);
     assert!(!lanes[1].current);
@@ -695,8 +690,7 @@ fn site_without_playground_omits_playground_assets() {
     assert!(!resolved.has_errors(), "{}", resolved.error_summary());
     let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
     assert!(planned.assets.iter().all(|asset| {
-        !asset.logical_path.contains("playground")
-            && !asset.logical_path.contains("compiler.wasm")
+        !asset.logical_path.contains("playground") && !asset.logical_path.contains("compiler.wasm")
     }));
     let home = planned
         .pages
@@ -1465,8 +1459,7 @@ import Html
 
     let err = load_site(&root).unwrap_err().to_string();
     assert!(
-        err.contains("reserved name")
-            && err.contains("helpers must not live in the block pack"),
+        err.contains("reserved name") && err.contains("helpers must not live in the block pack"),
         "{err}"
     );
 
@@ -1703,9 +1696,11 @@ fn unknown_layout_returns_rd2007_diagnostic() {
     let loaded = load_site(&root).unwrap();
     let resolved = resolve_loaded(&loaded);
     assert!(resolved.has_errors());
-    assert!(resolved.diagnostics.iter().any(
-        |d| d.code == "RD2007" && d.message.contains("unknown layout `nonexistent_layout`")
-    ));
+    assert!(
+        resolved.diagnostics.iter().any(
+            |d| d.code == "RD2007" && d.message.contains("unknown layout `nonexistent_layout`")
+        )
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -1786,9 +1781,11 @@ fn builtin_theme_keeps_phone_menu_and_table_wrap() {
     assert!(theme.contains(
         "min-height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px))"
     ));
-    assert!(theme.contains(
-        "height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px))"
-    ));
+    assert!(
+        theme.contains(
+            "height: calc(100vh - var(--header-height) - var(--rocci-chrome-bottom, 0px))"
+        )
+    );
     assert!(theme.contains(
         "max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-bottom, 0px))"
     ));
