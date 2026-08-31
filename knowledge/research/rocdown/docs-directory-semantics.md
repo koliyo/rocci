@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Directory plus index is the Rocdown site section
-description: The catalog lists pages; the sidebar infers sections from index.rocdown. Title-matching peel, nested folds, and indexless directories are three presentations of one unstated rule. Make directory+index the section, peel the landing into the heading, and require an index to name a subsection.
+description: The catalog lists pages; the sidebar infers sections from index.rocdown. Phases 0-4 shipped peel-by-id heading-as-landing. That hides the index as a page and NavList extra-indents subsection folds. Next contract: reserved first child Overview plus equal sibling indent.
 tags: [domain/rocdown, concern/publication, concern/developer-experience, concern/navigation, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T08:50:00Z }
+generated: { by: process:cursor, at: 2026-08-31T09:10:00Z }
 stale_after: 2026-11-29
 authority: exploratory
 owners: [human:nils]
@@ -73,12 +73,12 @@ sources:
     resource: ../../../docs/rocdown/sites.rocdown
     title: Published Rocdown site configuration reference
     author: process:git
-    last_modified: 2026-08-30
+    last_modified: 2026-08-31
   - id: compiler-arch
     resource: ../../architecture/rocdown-documentation-compiler.md
     title: Rocdown documentation generator architecture
     author: process:cursor
-    last_modified: 2026-08-26
+    last_modified: 2026-08-31
   - id: catalog-shell
     resource: ../../decisions/rust-catalog-rocci-shell.md
     title: Rust catalog and Rocci documentation shell
@@ -110,14 +110,16 @@ gets a stable id from its path, a directory `index.rocdown` owns that
 directory's URL, and `[[nav]]` lists which pages appear and in what
 order.[^catalog][^site-rs][^sites-ref]
 
-The **section** contract is not written down. A second pass in the planner
-turns that flat list into the sidebar forest. It peels a landing into the
-group heading only when the page title equals the nav label, folds a nested
-`*/index` into a named subsection, and leaves an indexless directory as
-ungrouped leaves.[^plan-rs]
+The **section** contract is the planner's second pass: listed ids plus
+`index.rocdown` become the sidebar forest. Before Phases 0–4 it peeled a
+landing only when the page title equaled the nav label. After those
+phases it peels by id (heading-as-landing) and warns `RD2205` on
+indexless clusters. Contributor and Appendix now have landings. The
+remaining hole is that the landing is not a child row, and `NavList`
+extra-indents subsection folds.[^plan-rs][^nav-list]
 
-That is why the same filename does three different things in today's
-manual:[^docs-nav][^site-nav][^docs-index][^language-index][^contributor-checklist]
+That is why the same filename did three different things before
+peel-by-id shipped:[^docs-nav][^site-nav][^docs-index][^language-index][^contributor-checklist]
 
 | Authored shape | What readers see |
 | --- | --- |
@@ -125,11 +127,17 @@ manual:[^docs-nav][^site-nav][^docs-index][^language-index][^contributor-checkli
 | `docs/reference/language/index.rocdown` | A named subsection **Rocci language reference** |
 | `docs/reference/contributor/` with no index | No Contributor heading; three long titles sit after Diagnostics |
 
-Recommend one rule: **a directory with `index.rocdown` is a section**. The
-index is the landing (heading is the link; the index is not a second row). A
+Recommend one rule: **a directory with `index.rocdown` is a section**. A
 nested index is a named subsection. A directory without an index is not a
-section; two or more listed pages in that shape should warn. Implementation:
-[directory-plus-index plan](/plans/rocdown/docs-directory-semantics.md).[^follow-on]
+section; two or more listed pages in that shape warn `RD2205`.
+
+Phases 0–4 of the paired plan shipped peel-by-id **heading-as-landing** (the
+index is only the fold heading). After that shipped, the landing is
+invisible as a page, and `NavList` extra-indents subsection folds so
+Language and Contributor do not line up with Runtime. The remaining
+contract is a reserved first child **Overview** (sidebar label only) plus
+equal sibling indent. Heading may still link to the same URL.
+Implementation: [directory-plus-index plan](/plans/rocdown/docs-directory-semantics.md).[^follow-on][^nav-list]
 
 This does not reopen the stack-first group labels (Start, Templates,
 Applications, Rocdown, Reference, Troubleshooting). Those are *which*
@@ -164,31 +172,35 @@ planner that builds `PageView.sidebar`, not in the theme.[^catalog-shell][^compi
 `inspect nav` prints this layer: a labeled list of `{id, title, route}`. It
 does not print the sidebar forest.
 
-### Layer 2 — sidebar forest (unstated)
+### Layer 2 — sidebar forest
 
-`lanes_and_sidebar` walks each group's items and applies:[^plan-rs]
+`lanes_and_sidebar` walks each group's items. Shipped (Phases 0–4):[^plan-rs]
 
 1. **Shortest index is the group root.** Among listed `*/index` ids, the
    shortest directory is the section root (`docs/reference` in Reference).
 2. **Nested index folds.** An `*/index` whose directory is strictly under
    that root becomes a subsection titled from the **page title**, with later
    listed descendants as its children.
-3. **Title-matching peel.** If the first *flat* item's title equals the
-   `[[nav]]` label and there is more than one item, that item is removed and
-   its route becomes the group heading href.
-4. **Indexless directory stays flat.** Pages under `contributor/` or
-   `appendix/` are ordinary leaves of the parent group.
+3. **Peel by id.** If the first listed item is the group's root `index`
+   and there is more than one item, that item is removed and its route
+   becomes the group heading href. Title-equality peel is gone.
+4. **Indexless directory stays flat.** Pages under a directory with no
+   listed `…/index` stay ordinary leaves. `RD2205` warns when two or more
+   listed non-draft pages share that shape.
 5. **Depth cap.** `flatten_group_depth` promotes grandchildren to siblings.
    The visible tree is group → optional subsection → pages. A third
    `*/index` does not nest.
 
 `NavList` only renders that view: a fold heading may be a link; a child
-with no items is a leaf link.[^nav-list]
+with no items is a leaf link. When a group has any fold, remaining rows
+go into `children`; nested fold titles then pick up extra `.nav-child`
+margin that sibling leaves do not.[^nav-list]
 
-The published site page documents Layer 1 and `[[nav.groups]]`. It does not
-document peel, fold, or the depth cap.[^sites-ref]
+The published site page now documents peel-by-id, nested folds, `RD2205`,
+and the depth cap. It still describes heading-as-landing without an
+Overview child.[^sites-ref]
 
-## The three observations
+## The three observations (before Phases 0–4)
 
 ### 1. The docs root becomes Overview
 
@@ -228,8 +240,13 @@ appendix, Rocdown tree appendix, Documentation contributor checklist —
 after Diagnostics, under a long Language fold. That is "does not show up
 in docs nav": the *section* is missing, not the routes.
 
-`appendix/` under Start is the same shape: three primers, no index, no
+`appendix/` under Start was the same shape: three primers, no index, no
 Appendix heading.[^docs-nav]
+
+Phase 2 added `reference/contributor/index.rocdown` and
+`appendix/index.rocdown`. After peel-by-id, those landings are only fold
+headings. The original Start Overview child is also gone: Start links to
+`/docs/` with no page row.[^docs-nav][^plan-rs]
 
 ## What authors are writing today
 
@@ -237,20 +254,21 @@ The mental model implied by the tree and the stack-IA plan:[^stack-plan][^docs-n
 
 ```text
 docs/
-  index.rocdown                 # portal
+  index.rocdown                 # portal (sidebar should show Overview)
   install.rocdown
+  appendix/index.rocdown        # shipped landing
   templates/index.rocdown       # layer landing
   templates/components.rocdown
   reference/index.rocdown
   reference/language/index.rocdown
   reference/language/tags.rocdown
-  reference/contributor/checklist.rocdown   # no landing
+  reference/contributor/index.rocdown
+  reference/contributor/checklist.rocdown
 ```
 
-Authors already treat `index.rocdown` as "the page for this folder" in
-Templates, Applications, Rocdown, Troubleshooting, and Language. Start and
-Contributor do not follow that habit. The generator only sometimes agrees,
-and only when titles line up.
+Authors treat `index.rocdown` as "the page for this folder." The
+generator now agrees on peel-by-id. Readers still cannot find that page
+as a sidebar row.
 
 `[[nav]]` still lists every page. Hierarchy is inferred from ids, not from
 nested `[[nav.groups]]`. Language is not a configured group; it is a
@@ -285,7 +303,7 @@ rule.[^stack-ia]
 | --- | --- |
 | **Page** | One `.rocdown` file. Id and route from Layer 1. |
 | **Section** | A directory that contains `index.rocdown`. |
-| **Landing** | That index page. It *is* the section in the sidebar. |
+| **Landing** | That index page. In the sidebar it is the reserved first child **Overview**, not the only click target. |
 | **Member** | A non-index page in that directory, or in an indexless child directory. |
 | **Nav group** | An authored `[[nav]]` / `[[nav.groups]]` label. Curated name and order. |
 | **Lane** | A top-level `[[nav]]` that has groups (Docs, Examples, Project). |
@@ -295,26 +313,36 @@ rule.[^stack-ia]
 1. **Directory + index = section.** Adding `index.rocdown` creates a
    section. Removing it dissolves the section; remaining pages become
    members of the parent.
-2. **Heading is the landing.** The section heading links to the index
-   route. The index is not also a child row. The heading text is the
-   `[[nav]]` label for a configured group, or the index page title for an
-   inferred subsection.
-3. **Peel by id, not by title.** If the first listed item of a group is
-   that group's root `index`, peel it even when the page title is
-   Overview and the label is Start. Title-equality peel is retired.
-4. **Nested index = named subsection.** `dir/nested/index.rocdown` folds
+2. **Heading names the section.** Text is the `[[nav]]` label for a
+   configured group, or the index page title for an inferred subsection.
+   The heading may link to the index route. It is not the only way to
+   open the landing.
+3. **First child is Overview.** Every section and subsection with an
+   index gets a first sidebar row titled **Overview** pointing at that
+   index. `@page.meta.title` and the H1 stay the document title. Do not
+   print `INDEX`. Do not repeat the section title as the child
+   (`Reference` / `Reference`).
+4. **Peel by id, then reinsert Overview.** The group's root `index` still
+   sets `group.href`. Title-equality peel stays retired. After peel,
+   insert the Overview row; do not leave the landing heading-only.
+5. **Nested index = named subsection.** `dir/nested/index.rocdown` folds
    listed descendants under a heading titled from that page. Same
-   heading-as-landing rule: no extra Overview row inside the fold.
-5. **No index = no section.** Pages stay in the parent, in list order.
-6. **Warn on an indexless cluster.** `rocdown check` warns when two or
-   more *listed* pages share a directory that has no listed index (today:
-   `reference/contributor`, `appendix`). One file in a directory is a
-   page, not a forgotten section.
-7. **Nav still owns inclusion and order.** Unlisted pages still `RD2202`.
+   Overview-first rule inside the fold.
+6. **Equal sibling indent.** Leaves and subsection headings under the
+   same parent share one indent. Extra indent is only *inside* a nested
+   fold. `NavList` must not extra-indent `.nav-child` fold titles relative
+   to sibling leaf links (that is why Contributor looks like a child of
+   Diagnostics).[^nav-list]
+7. **No index = no section.** Pages stay in the parent, in list order.
+8. **Warn on an indexless cluster.** `rocdown check` warns `RD2205` when
+   two or more *listed* pages share a directory that has no listed index.
+   Contributor and Appendix landings shipped in Phase 2; the warning
+   remains for other sites.
+9. **Nav still owns inclusion and order.** Unlisted pages still `RD2202`.
    `directory =` remains an optional way to fill items, not a second
    hierarchy language.
-8. **Visible depth is two.** Group → optional subsection → pages. Deeper
-   indexes flatten. v1 does not grow a recursive sidebar.
+10. **Visible depth is two.** Group → optional subsection → pages. Deeper
+    indexes flatten. v1 does not grow a recursive sidebar.
 
 A single-page group (FAQ: only `faq/index`) stays one leaf, as now.[^plan-rs]
 
@@ -331,26 +359,24 @@ section/
 ```
 
 - Title the index as the **section name** readers should see on nested
-  folds (`Rocci language reference`, `Contributor`). For a configured
-  group, the label in `rocdown.toml` is what the sidebar prints; the
-  index title may match (Templates) or describe the landing (Overview on
-  `/docs/`) without creating a second row.
-- Put the landing first in `[[nav]]` items.
+  folds (`Rocci language reference`, `Contributor`). The configured
+  `[[nav]]` label is the fold heading. The sidebar landing row is always
+  **Overview**, not the meta title and not `INDEX`.
+- Put the landing first in `[[nav]]` items. The generator inserts the
+  Overview row; authors do not add a second `overview.rocdown` unless
+  they want a distinct member page.
 - List subsection members after that subsection's index, before the next
   sibling.
 - Do not use `[[nav.groups]]` merely to recreate a directory. Use groups
   for curated lanes (Start vs Templates).
-- Do not title a group-root index with a *different* word in order to
-  force a child row. If a page must appear beside the landing, it is not
-  the index — give it its own stem (`overview.rocdown` is a member).
 
 ### How the three cases should read
 
-| Case | After the contract |
+| Case | After the remaining contract |
 | --- | --- |
-| `docs/index.rocdown` titled Overview | Start heading links to `/docs/`. No Overview child. The page H1 can stay Overview. |
-| `reference/language/index.rocdown` | Subsection **Rocci language reference** linking to `/docs/reference/language/`. Members inside. |
-| `reference/contributor/` | Add `contributor/index.rocdown` titled Contributor (or Contributor appendix). Until then, check warns. |
+| `docs/index.rocdown` titled Overview | Start heading (may link to `/docs/`). First child **Overview**. H1 stays Overview. |
+| `reference/language/index.rocdown` | Subsection **Rocci language reference**. First child **Overview**, then File structure, … |
+| `reference/contributor/` | Subsection **Contributor** (landing shipped). First child **Overview**, then the three appendix pages. |
 
 `appendix/` should get `appendix/index.rocdown` if those primers are a
 named subsection; otherwise they stay Start members and the warning is
@@ -358,11 +384,19 @@ accepted or the files move up.
 
 ### Rejected alternatives
 
-**Reserved Overview child.** Always insert a first child labeled Overview
-for every section index. Matches today's Start row and some VitePress
-skins. Rejected: Templates through Troubleshooting already peel; a second
-name for the same URL is noise; Language would grow a nested Overview
-that the user did not ask for.
+**Heading-as-landing only (Phases 0–4).** Peel the index into the fold
+heading and omit a child row. Shipped, then failed as UX: readers do not
+treat a disclosure label as a page, even when it is current (blue
+Reference on `/docs/reference/`).
+
+**Print `INDEX`.** Filename vocabulary. Not a reader label.
+
+**Repeat the section title** as the first child (`Reference` /
+`Reference`). That is the old title-matching peel. It collides when the
+document title already differs (`Overview` vs Start).
+
+**Use `@page.meta.title` as the child when it equals the group label.**
+Same collision as repeating the section title.
 
 **Filesystem-only nav.** Drop `[[nav]]` and autogenerate from directories.
 Rejected: order, omission, and mount visibility are editorial. Keep
@@ -375,48 +409,59 @@ already works as a file. Groups stay a lane tool.
 inconsistency. Authors should not have to remember to name the page
 Templates for the landing to attach.
 
-## What should change
+## What shipped (Phases 0–4)
+
+Directory+index sections, peel-by-id, `RD2205`, Contributor and Appendix
+landings, and the first cookbook on the site-configuration page.[^follow-on][^sites-ref]
+
+## Post-ship sidebar UX
+
+On the built site, `/docs/reference/` shows **Reference** as a current
+heading and no Overview row. Language and Contributor sit on a deeper
+indent than Runtime / CLI / Diagnostics because `NavList` adds
+`nav-child` margin only on nested fold titles. Contributor therefore
+looks like a child of Diagnostics. The catalog tree is correct; the
+chrome is not.[^nav-list][^plan-rs]
+
+## What should change next
 
 | Layer | Change |
 | --- | --- |
-| Planner | Peel the group-root index by id. Keep nested-index folds. Warn on indexless clusters of two or more listed pages. Keep the depth cap. Update `appendix_without_index_stays_flat` and add Start-Overview and contributor-cluster tests.[^plan-rs] |
-| Docs tree | Add `docs/reference/contributor/index.rocdown`. Decide Appendix (index vs flatten). List the new ids in both toml files. |
-| Public docs | Teach the cookbook on the site-configuration page and in the contributor checklist. One paragraph on pages: omit `route` on catalog pages; `index.rocdown` is the section landing.[^sites-ref][^contributor-checklist] |
-| Architecture | After the planner ships, the generator record should say the sidebar forest is derived from listed ids plus index files, not from title equality.[^compiler-arch] |
+| Planner | After peel-by-id, insert a first child titled Overview for every section and nested fold that has an index. Put same-level leaves in `items` and only folds in `children`.[^plan-rs] |
+| `NavList` | Same-level members share one indent. Extra indent only inside a nested fold. Drop the extra `.nav-fold .nav-fold .nav-child` offset on subsection headings.[^nav-list] |
+| Public docs | Teach Overview as the reserved landing row; heading may still link. Revise the Phase 3 cookbook that said the index is not a child.[^sites-ref] |
+| Architecture | One sentence: landing row is Overview; heading href is still the index.[^compiler-arch] |
 
 Do not change `.rocci` / `.rocdown` grammar, lane labels, or the
 Rust-catalog / Rocci-shell split.[^catalog-shell][^stack-plan]
 
 ## Risks
 
-- **Start loses the Overview row.** Intended. The portal is still `/docs/`.
-- **Indexless clusters warn.** Contributor and appendix will fail a
-  newly-strict check until they gain an index or the warning stays
-  warning-only (recommended: warning, not error, so existing sites do not
-  break).
-- **Title-matching tests.** Planner tests that expect Overview to remain
-  a child must move to the new peel-by-id rule.[^plan-rs]
+- **Two links to the same URL.** Heading and Overview may both go to the
+  index. That is accepted. Overview is the discoverable page row.
+- **Document title vs sidebar label.** `docs/index.rocdown` titled
+  Overview still shows Overview as the child; the H1 does not have to
+  change. Templates titled Templates still show Overview in the sidebar.
+- **Planner tests.** Phase 1 tests that require no Overview child after
+  peel must flip.[^plan-rs]
 - **Deep trees.** Authors who nest `a/b/c/index.rocdown` will not get a
   third fold. Document the cap; do not silently invent depth.
-- **Stack-IA scope.** File moves already landed for templates and
-  applications. This work is generator semantics plus a few landings, not
-  another IA rewrite.[^stack-plan]
 
 Writing this record does not start the plan.
 
 [^catalog]: Page ids, derived routes, explicit `[[nav]]` resolve, `directory` auto-list, `RD2202`.
-[^plan-rs]: `peel_matching_index`, `is_fold_index`, `forest_from_items`, `flatten_group_depth`, Language and appendix tests.
+[^plan-rs]: Peel-by-id, `is_fold_index`, `forest_from_items`, `flatten_group_depth`, Language and appendix tests. Heading-as-landing; no Overview child yet.
 [^site-rs]: Derived id from relative path; title from `@page` then heading; root `index` defaults to `home` layout.
 [^config-rs]: `NavConfig` label, items, optional directory, nested groups.
-[^nav-list]: Fold headings as links; empty-item children as leaf anchors.
+[^nav-list]: Fold headings as links; empty-item children as leaf anchors; `.nav-fold .nav-fold .nav-child` adds 1.4rem only on nested fold titles.
+[^sites-ref]: Id/route table, peel-by-id, `RD2205`; still heading-as-landing without an Overview child.
 [^docs-nav]: Start lists `index` then primers; Reference lists language index then contributor pages; no contributor index id.
 [^site-nav]: Same lists under the Docs lane with `docs/` prefixes.
 [^docs-index]: Portal `@page` title and H1 are Overview.
 [^templates-index]: Templates landing title equals the Templates group label.
 [^language-index]: Nested landing titled Rocci language reference.
 [^reference-index]: Reference landing title equals the Reference group label.
-[^contributor-checklist]: Contributor pages exist; the directory has no index file.
-[^sites-ref]: Documents id/route table and `[[nav.groups]]`; does not document peel or fold.
+[^contributor-checklist]: Contributor pages and the docs-PR checklist; landing added in Phase 2.
 [^compiler-arch]: Rust owns navigation data; Rocci owns chrome. Forest derivation is unnamed.
 [^catalog-shell]: Catalog in Rust; theme receives a page view.
 [^stack-ia]: Stack-layer groups; Diátaxis as authoring lens only.
