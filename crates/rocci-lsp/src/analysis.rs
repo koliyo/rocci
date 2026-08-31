@@ -1,7 +1,7 @@
 use lsp_types::{
     CompletionItem, CompletionItemKind, CompletionResponse, Diagnostic, DiagnosticSeverity,
     DocumentSymbol, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents, Location,
-    MarkupContent, MarkupKind, Position, Range, SymbolKind,
+    MarkupContent, MarkupKind, NumberOrString, Position, Range, SymbolKind,
 };
 use rocci_template::{
     CommandDecl, CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl,
@@ -51,7 +51,9 @@ pub fn map_diagnostics(
                 Severity::Error => DiagnosticSeverity::ERROR,
                 Severity::Warning => DiagnosticSeverity::WARNING,
             }),
-            code: None,
+            code: diagnostic
+                .code
+                .map(|code| NumberOrString::String(code.to_string())),
             code_description: None,
             source: Some(source_name.to_string()),
             message: diagnostic.message.clone(),
@@ -732,4 +734,23 @@ pub fn lsp_range(source: SourceFile<'_>, span: Span, encoding: PositionEncoding)
 
 pub fn offset_at(source: SourceFile<'_>, position: Position, encoding: PositionEncoding) -> u32 {
     source.offset_at(position.line, position.character, encoding)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn map_diagnostics_passes_template_code() {
+        let src = "@init { {} }\n";
+        let compiled = compile_text("App.rocci", src);
+        let diags = diagnostics("App.rocci", src, &compiled, PositionEncoding::Utf8);
+        assert!(
+            diags.iter().any(|diagnostic| {
+                diagnostic.code == Some(NumberOrString::String("RC2003".into()))
+                    && diagnostic.message.contains("`@init` requires `@context`")
+            }),
+            "{diags:?}"
+        );
+    }
 }

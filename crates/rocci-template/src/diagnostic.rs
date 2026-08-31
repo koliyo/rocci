@@ -110,7 +110,7 @@ impl DiagnosticFrame {
         }
     }
 
-    fn kind_label(&self) -> String {
+    pub fn kind_label(&self) -> String {
         match self.code {
             Some(code) => format!("{}[{code}]", self.severity_label()),
             None => self.severity_label().to_string(),
