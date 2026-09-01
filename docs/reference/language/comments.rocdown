@@ -8,7 +8,11 @@
 
 # Comments, escaping, and whitespace
 
-**Status:** current.
+```rocci
+## Greeting used by the page.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+```
 
 | Form | Where | Effect |
 | --- | --- | --- |

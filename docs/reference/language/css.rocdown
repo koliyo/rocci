@@ -8,7 +8,16 @@
 
 # CSS
 
-**Status:** current. `:deep` piercing is **planned** (not shipped).
+```rocci
+@component Card = |_| {
+    @css {
+        .card { padding: 1rem; }
+    }
+    <section class="card">Hello</section>
+}
+```
+
+`:deep` piercing is **planned** (not shipped).
 
 `@css { … }` is raw CSS (no interpolations). File-level and component-level
 blocks concatenate in source order at that scope. Component CSS is a preamble

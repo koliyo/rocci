@@ -8,7 +8,14 @@
 
 # Tags and fragments
 
-**Status:** current.
+```rocci
+<div>
+    <Hello />
+    <>
+        <br>
+    </>
+</div>
+```
 
 | Form | Meaning | Generated |
 | --- | --- | --- |

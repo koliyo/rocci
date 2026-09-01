@@ -2,74 +2,22 @@
     layout: "docs",
     meta: {
         title: "Rocci CLI reference",
-        description: "Look up rocci commands: validate, build, run, view, browse, playground, render, inspect, test, bundle, and datastar.",
+        description: "Look up rocci commands: run, view, build, validate, and the rest of the checkout CLI.",
     },
 }
 
 # Rocci CLI reference
 
-**Status:** current.
+This page documents the `rocci` binary only. `rocdown` is the
+[Rocdown CLI](/docs/rocdown/cli/).
 
-This page documents the `rocci` binary only. `rocdown` and [okmate](https://github.com/koliyo/okmate) are
-other products; see [Rocdown CLI](/docs/rocdown/cli/).
-
-Examples use a source checkout. Until a distribution exists, the spelling is
-`cargo run -q -p rocci-cli -- …`. An installed `rocci` would drop the Cargo
-prefix.
-
-## Validate
-
-```sh
-cargo run -q -p rocci-cli -- validate [rocci.toml]
-```
-
-Parse and validate configuration. Unknown fields and unsafe hosts are errors.
-Default path `rocci.toml`. Exit non-zero on failure.
-
-## Build
-
-```sh
-cargo run -q -p rocci-cli -- build INPUT [-o OUTPUT]
-```
-
-Lower one `.rocci` file to Roc. `-o` writes a file; otherwise stdout.
-
-## Build WASI HTTP module (experimental)
-
-```sh
-cargo run -q -p rocci-cli -- build --http-module INPUT.rocci [-o http-module.wasm]
-```
-
-`INPUT.rocci` is the **entry** (the file with `@init` / routes), not a
-directory and not a file list. Discovery matches `rocci run`: every `.rocci`
-under the standalone app root (the entry’s directory, or a `rocci.toml` above
-it before `.git`) plus authored `.roc` helpers. Live-counter is
-`LiveCounter.rocci`; `LiveCounterUi.rocci` and `Origin.roc` come along.
-
-Writes a WASI 0.3 `wasi:http/service` **component** against the sibling
-`../roc-basic-webserver` wasm32 platform (or `ROCCI_BASIC_WEBSERVER`). **Not**
-apply `--host wasm`, and **not** a musl `--release` process. Missing fork or
-missing `roc` is an error. Serve with `wasmtime serve -Sp3 -Scli`. Sqlite apps
-need `--env DB_PATH=…` and `--dir=host::guest`. `--http-module` writes
-`<dest>.assets/` (Datastar, extracted `@css` as `rocci.css`, and app files);
-map it with `--dir=<dest>.assets::/assets`. Live SSE comes from the compiled app
-(`examples/rocci/standalone/live-counter`). `rocci run` stays native 0.16.0.
-Still omitted: Cmd, in-guest TLS, desktop URL.
-
-## Build release
-
-```sh
-cargo run -q -p rocci-cli -- build --release INPUT [-o OUTPUT] [--target x64musl|arm64musl]
-```
-
-Package a Linux **server** plus `assets/` (not a macOS `.app`). `INPUT` may be
-an app directory, a standalone `.rocci`, or `rocci.toml`. `--target` requires
-`--release`.
+Until a distribution exists, the spelling is
+`cargo run -q -p rocci-cli --`. Examples below write `rocci`.
 
 ## Run
 
 ```sh
-cargo run -q -p rocci-cli -- run [ENTRY] [serve options]
+rocci run [ENTRY] [serve options]
 ```
 
 Standalone directory (`rocci run .` or `rocci run <dir>`), standalone
@@ -83,16 +31,43 @@ to the Roc binary.
 ## View
 
 ```sh
-cargo run -q -p rocci-cli -- view INPUT --component NAME [--arg name=val]
+rocci view INPUT --component NAME [--arg name=val]
 ```
 
-Preview one component. HTTP declarations are ignored. `--component Hello` and
-`--component hello` both work.
+Preview one component. HTTP declarations are ignored. `--component Hello`
+and `--component hello` both work.
+
+## Build
+
+```sh
+rocci build INPUT [-o OUTPUT]
+```
+
+Lower one `.rocci` file to Roc. `-o` writes a file; otherwise stdout.
+
+## Validate
+
+```sh
+rocci validate [rocci.toml]
+```
+
+Parse and validate configuration. Unknown fields and unsafe hosts are
+errors. Default path `rocci.toml`. Exit non-zero on failure.
+
+## Build release
+
+```sh
+rocci build --release INPUT [-o OUTPUT] [--target x64musl|arm64musl]
+```
+
+Package a Linux **server** plus `assets/` (not a macOS `.app`). `INPUT`
+may be an app directory, a standalone `.rocci`, or `rocci.toml`.
+`--target` requires `--release`.
 
 ## Browse
 
 ```sh
-cargo run -q -p rocci-cli -- browse [ROOTS…]
+rocci browse [ROOTS…]
 ```
 
 Component gallery.
@@ -100,18 +75,20 @@ Component gallery.
 ## Playground
 
 ```sh
-cargo run -q -p rocci-cli -- playground INPUT [--mode wasm|local]
+rocci playground INPUT [--mode wasm|local]
 ```
 
 `--mode wasm` (default) runs in a worker and does not snapshot HTML.
 `--mode local` can snapshot through native Roc.
 
-The public site hosts the same WASM workbench at `/playground/`. It lowers source to generated Roc and AST; HTML preview is not available there.
+The public site hosts the same WASM workbench at `/playground/`. It
+lowers source to generated Roc and AST; HTML preview is not available
+there.
 
 ## Render
 
 ```sh
-cargo run -q -p rocci-cli -- render INPUT [--fragment] [-o OUTPUT]
+rocci render INPUT [--fragment] [-o OUTPUT]
 ```
 
 `Html.render` snapshot. `--fragment` skips the document wrapper.
@@ -119,17 +96,17 @@ cargo run -q -p rocci-cli -- render INPUT [--fragment] [-o OUTPUT]
 ## Inspect
 
 ```sh
-cargo run -q -p rocci-cli -- inspect INPUT [--ast]
+rocci inspect INPUT [--ast]
 ```
 
 Components, fixtures, styles, handlers, generated Roc, and source-map
-segments. Segments always print; there is no `--segments` flag. `--ast` adds
-the S-expression tree.
+segments. Segments always print; there is no `--segments` flag. `--ast`
+adds the S-expression tree.
 
 ## Ast
 
 ```sh
-cargo run -q -p rocci-cli -- ast INPUT
+rocci ast INPUT
 ```
 
 Parse tree only.
@@ -137,29 +114,28 @@ Parse tree only.
 ## Test
 
 ```sh
-cargo run -q -p rocci-cli -- test [PATH]
+rocci test [PATH]
 ```
 
-Compile each `.rocci` file (or each `.rocci` under a directory; default `.`)
-that declares `@test`, stage a type module with an `expect` trailer, and run
-`roc test` on that module. Files without tests are skipped (exit 0). Rocci
-diagnostics or a failing `roc test` exit non-zero.
+Compile each `.rocci` file (or each `.rocci` under a directory; default
+`.`) that declares `@test`, stage a type module with an `expect` trailer,
+and run `roc test` on that module. Files without tests are skipped (exit
+0). Rocci diagnostics or a failing `roc test` exit non-zero.
 
 ## Bundle
 
 ```sh
-cargo run -q -p rocci-cli -- bundle [--config rocci.toml] [--target …]
+rocci bundle [--config rocci.toml] [--target …]
 ```
 
-Ad-hoc signed macOS `.app`. Host-native; `--target` is rejected for `.app`.
-`--target` on this command is for Linux process binaries in other flows.
-Production signing is planned.
+Ad-hoc signed macOS `.app`. Host-native; `--target` is rejected for
+`.app`. Production signing is planned.
 
 ## Datastar
 
 ```sh
-cargo run -q -p rocci-cli -- datastar pin VERSION [--app PATH]
-cargo run -q -p rocci-cli -- datastar update [--app PATH]
+rocci datastar pin VERSION [--app PATH]
+rocci datastar update [--app PATH]
 ```
 
 Pin or upgrade the Datastar JS asset. `run` does not auto-upgrade.
@@ -176,4 +152,21 @@ Shared by `run`, `view`, `browse`, and `playground`:
 | `-v` / `--verbose` | off | Per-module template timings, listen heartbeats, and Roc `--timings` / `--verbose` from `roc build --opt=dev`. Phase start/done lines always print. |
 | `--port PORT\|auto` | `auto` with a window; `8000` with `--no-window` | Also `ROC_BASIC_WEBSERVER_PORT` |
 
-**Related:** [Configuration](/docs/reference/configuration/), [Install](/docs/install/).
+## Experimental: WASI HTTP module
+
+```sh
+rocci build --http-module INPUT.rocci [-o http-module.wasm]
+```
+
+`INPUT.rocci` is the **entry** (the file with `@init` / routes), not a
+directory and not a file list. Discovery matches `rocci run`: every
+`.rocci` under the standalone app root plus authored `.roc` helpers.
+
+Writes a WASI 0.3 `wasi:http/service` **component** against the sibling
+`../roc-basic-webserver` wasm32 platform (or `ROCCI_BASIC_WEBSERVER`).
+**Not** apply `--host wasm`, and **not** a musl `--release` process.
+Missing fork or missing `roc` is an error. Serve with
+`wasmtime serve -Sp3 -Scli`. Sqlite apps need `--env DB_PATH=…` and
+`--dir=host::guest`. `--http-module` writes `<dest>.assets/`; map it with
+`--dir=<dest>.assets::/assets`. `rocci run` stays native 0.16.0. Still
+omitted: Cmd, in-guest TLS, desktop URL.

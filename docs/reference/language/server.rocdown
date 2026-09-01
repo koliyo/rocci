@@ -8,9 +8,14 @@
 
 # Server declarations
 
-**Status:** current. Route declarations use mandatory verb-first
-`@method:role("path")` headers. The former role-first forms, `@on`, trailing
-`json`, and pathless `@live` are **removed**, not aliases.
+```rocci
+@get:view("/") = |{ db }|
+    counterPage({ count: count })
+```
+
+Route declarations use mandatory verb-first `@method:role("path")`
+headers. The former role-first forms, `@on`, trailing `json`, and
+pathless `@live` are **removed**, not aliases.
 
 Bodies are Roc, not templates. Module-level only.
 

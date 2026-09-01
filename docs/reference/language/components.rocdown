@@ -8,7 +8,12 @@
 
 # Components
 
-**Status:** current. `??` field defaults are **experimental**.
+```rocci
+@component Hello = |{ name ?? "Roc" }|
+    <p>Hello, {name}</p>
+```
+
+`??` field defaults are **experimental**.
 
 ```text
 @component Name = |params| html

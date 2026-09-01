@@ -8,12 +8,6 @@
 
 # File structure and Roc regions
 
-**Status:** current.
-
-A `.rocci` file may mix a module header, imports, types, helpers, and any
-number of recognized declarations. Everything outside an `@` declaration is
-copied into generated Roc unchanged.
-
 ```rocci
 module Example exposing [hello]
 
@@ -24,6 +18,10 @@ Tone : [Neutral, Positive]
 @component Hello = |{ name }|
     <p>Hello, {name}</p>
 ```
+
+A `.rocci` file may mix a module header, imports, types, helpers, and any
+number of recognized declarations. Everything outside an `@` declaration is
+copied into generated Roc unchanged.
 
 Recognized **only** at the start of a top-level definition: `@component`,
 `@fixture`, `@test`, `@css`, `@context`, `@init`, and `@method:role` routes.

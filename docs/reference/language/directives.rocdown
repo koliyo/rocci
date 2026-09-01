@@ -8,7 +8,13 @@
 
 # Template directives
 
-**Status:** current.
+```rocci
+@if List.is_empty(items) {
+    <p>Nothing yet.</p>
+} @else {
+    <p>{List.len(items).to_str()} items</p>
+}
+```
 
 The body-opening `{` must be on the same logical header line. Parenthesize
 records in headers: `@match ({ status, items }) {`.

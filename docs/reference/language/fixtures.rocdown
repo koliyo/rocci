@@ -8,8 +8,6 @@
 
 # Fixtures
 
-**Status:** current.
-
 ```rocci
 @fixture{target: TodoItem}
 todoItemExample = { item: { id: 1, text: "Buy milk" } }

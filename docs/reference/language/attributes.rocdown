@@ -8,7 +8,11 @@
 
 # Attributes and actions
 
-**Status:** current.
+```rocci
+<button class="primary" disabled data-on:click=@post("/actions/x")>
+    Save
+</button>
+```
 
 | Form | Meaning |
 | --- | --- |

@@ -8,7 +8,9 @@
 
 # Text and interpolation
 
-**Status:** current.
+```rocci
+<p>Hello, <strong>{name}</strong></p>
+```
 
 `{expr}` in text or attribute position is a Roc expression. Markup is not
 allowed inside it.
