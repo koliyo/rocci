@@ -64,22 +64,30 @@ fn test_tier2_renderer_cache_and_integrity() {
     let artifact = b"fake binary executable";
     let fp = vec![InputFingerprint::from_bytes("Theme.rocci", b"import Html")];
 
-    assert!(cache.lookup_renderer(compile_hash, target).is_none());
+    assert!(cache.lookup_renderer(compile_hash, target, &fp).is_none());
     let path = cache
         .store_renderer(compile_hash, target, artifact, &fp)
         .unwrap();
     assert!(path.is_file());
 
     let hit = cache
-        .lookup_renderer(compile_hash, target)
+        .lookup_renderer(compile_hash, target, &fp)
         .expect("should hit cache");
     assert_eq!(fs::read(hit).unwrap(), artifact);
+
+    let drifted = vec![InputFingerprint::from_bytes("Theme.rocci", b"import Css")];
+    match cache.inspect_renderer(compile_hash, target, &drifted) {
+        RendererInspect::Stale { detail } => {
+            assert!(detail.contains("Theme.rocci"), "{detail}");
+        }
+        other => panic!("expected stale, got {other:?}"),
+    }
 
     // Corrupt the binary to test integrity check
     let bin_path = cache.renderer_dir(compile_hash).join("apply");
     fs::write(&bin_path, b"corrupted").unwrap();
     assert!(
-        cache.lookup_renderer(compile_hash, target).is_none(),
+        cache.lookup_renderer(compile_hash, target, &fp).is_none(),
         "corrupted binary must fail check"
     );
 

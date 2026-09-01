@@ -17,6 +17,14 @@ pub struct TwoTierCache {
     pub root: PathBuf,
 }
 
+#[derive(Debug)]
+pub enum RendererInspect {
+    Hit(PathBuf),
+    Missing,
+    Corrupt,
+    Stale { detail: String },
+}
+
 impl TwoTierCache {
     pub fn default_dir() -> PathBuf {
         if let Ok(cache_env) = env::var("ROCCI_CACHE")
@@ -108,14 +116,36 @@ impl TwoTierCache {
         Ok(dir)
     }
 
-    pub fn lookup_renderer(&self, compile_hash: &str, target: &str) -> Option<PathBuf> {
+    pub fn lookup_renderer(
+        &self,
+        compile_hash: &str,
+        target: &str,
+        fingerprints: &[InputFingerprint],
+    ) -> Option<PathBuf> {
+        match self.inspect_renderer(compile_hash, target, fingerprints) {
+            RendererInspect::Hit(path) => Some(path),
+            _ => None,
+        }
+    }
+
+    pub fn inspect_renderer(
+        &self,
+        compile_hash: &str,
+        target: &str,
+        fingerprints: &[InputFingerprint],
+    ) -> RendererInspect {
         let dir = self.renderer_dir(compile_hash);
         let manifest_path = dir.join("manifest.json");
         if !manifest_path.is_file() {
-            return None;
+            return RendererInspect::Missing;
         }
-        let manifest_str = fs::read_to_string(&manifest_path).ok()?;
-        let mut manifest: Manifest = serde_json::from_str(&manifest_str).ok()?;
+        let Some(manifest_str) = fs::read_to_string(&manifest_path).ok() else {
+            return RendererInspect::Missing;
+        };
+        let Some(mut manifest) = serde_json::from_str::<Manifest>(&manifest_str).ok() else {
+            let _ = fs::remove_dir_all(&dir);
+            return RendererInspect::Corrupt;
+        };
         let expected_name = if target == "wasm32" {
             "components.wasm"
         } else {
@@ -124,12 +154,12 @@ impl TwoTierCache {
         let artifact_path = dir.join(expected_name);
         if !artifact_path.is_file() {
             let _ = fs::remove_dir_all(&dir);
-            return None;
+            return RendererInspect::Corrupt;
         }
 
         let Ok(bytes) = fs::read(&artifact_path) else {
             let _ = fs::remove_dir_all(&dir);
-            return None;
+            return RendererInspect::Corrupt;
         };
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
@@ -143,12 +173,17 @@ impl TwoTierCache {
             || manifest.artifact_sha256.as_deref() != Some(&actual_sha256)
         {
             let _ = fs::remove_dir_all(&dir);
-            return None;
+            return RendererInspect::Corrupt;
+        }
+
+        let stored_fps = read_fingerprints(&dir);
+        if let Some(detail) = InputFingerprint::drift_from(fingerprints, &stored_fps) {
+            return RendererInspect::Stale { detail };
         }
 
         manifest.touch();
         let _ = write_atomic_manifest(&dir, &manifest);
-        Some(artifact_path)
+        RendererInspect::Hit(artifact_path)
     }
 
     pub fn store_renderer(
@@ -253,6 +288,13 @@ pub fn compute_compile_hash(
     hasher.update(b"\n");
     hasher.update(host_version.as_bytes());
     hex_sha256(hasher)
+}
+
+fn read_fingerprints(dir: &std::path::Path) -> Vec<InputFingerprint> {
+    let Ok(text) = fs::read_to_string(dir.join("fingerprints.json")) else {
+        return Vec::new();
+    };
+    serde_json::from_str(&text).unwrap_or_default()
 }
 
 fn hex_sha256(hasher: Sha256) -> String {

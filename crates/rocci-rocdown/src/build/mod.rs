@@ -116,24 +116,50 @@ fn build_loaded_with_host(
     };
 
     let apply_bin = workspace.join(if is_wasm { "components.wasm" } else { "apply" });
-    let (apply_path, recompiled, compile_ms) =
-        if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
+    let fingerprints = staged_fingerprints(&plan, is_wasm);
+    let host_label = if is_wasm { "wasm" } else { "native" };
+    let hash_short = &staged.roc_hash[..8.min(staged.roc_hash.len())];
+    let (apply_path, recompiled, compile_ms) = match cache.inspect_renderer(
+        &staged.roc_hash,
+        &target,
+        &fingerprints,
+    ) {
+        rocci_roc_host::RendererInspect::Hit(cached) => {
             eprintln!(
                 "{}",
                 rocci_cli::style::cli_line(&format!(
-                    "rocdown: using cached {} renderer for {}",
-                    if is_wasm { "wasm" } else { "native" },
-                    &staged.roc_hash[..8.min(staged.roc_hash.len())]
+                    "rocdown: using cached {host_label} renderer for {hash_short} ({} inputs)",
+                    fingerprints.len()
                 ))
             );
             (cached, false, 0)
-        } else {
+        }
+        miss => {
+            match miss {
+                rocci_roc_host::RendererInspect::Stale { detail } => {
+                    eprintln!(
+                        "{}",
+                        rocci_cli::style::cli_line(&format!(
+                            "rocdown: cached {host_label} renderer {hash_short} stale ({detail})"
+                        ))
+                    );
+                }
+                rocci_roc_host::RendererInspect::Corrupt => {
+                    eprintln!(
+                        "{}",
+                        rocci_cli::style::cli_line(&format!(
+                            "rocdown: cached {host_label} renderer {hash_short} corrupt"
+                        ))
+                    );
+                }
+                rocci_roc_host::RendererInspect::Missing
+                | rocci_roc_host::RendererInspect::Hit(_) => {}
+            }
             eprintln!(
                 "{}",
                 rocci_cli::style::cli_line(&format!(
-                    "rocdown: generated {} of Roc, compiling ({}) with roc",
-                    rocci_cli::style::human_bytes(staged.generated_roc_bytes as u64),
-                    if is_wasm { "wasm32" } else { "native" }
+                    "rocdown: generated {} of Roc, compiling ({host_label}) with roc",
+                    rocci_cli::style::human_bytes(staged.generated_roc_bytes as u64)
                 ))
             );
             let roc_started = Instant::now();
@@ -153,10 +179,10 @@ fn build_loaded_with_host(
                 eprint!("{roc_output}");
             }
             let bytes = fs::read(&apply_bin)?;
-            let fp = staged_fingerprints(&plan, is_wasm);
-            let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
+            let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fingerprints)?;
             (stored, true, roc_ms)
-        };
+        }
+    };
 
     let roc_started = Instant::now();
     let roc_output = apply_html(&workspace, &staging, &maps, is_wasm, &apply_path, &plan)
@@ -257,8 +283,11 @@ impl BuildSession {
         } else {
             format!("native:{}", env::consts::ARCH)
         };
+        let fingerprints = staged_fingerprints(&plan, is_wasm);
+        let host_label = if is_wasm { "wasm" } else { "native" };
+        let hash_short = &staged.roc_hash[..8.min(staged.roc_hash.len())];
         let mut recompiled = false;
-        let compile_ms;
+        let mut compile_ms = 0;
         let apply_bin = if self.roc_hash.as_deref() == Some(&staged.roc_hash)
             && self.apply_bin.is_file()
         {
@@ -266,51 +295,74 @@ impl BuildSession {
                 "{}",
                 rocci_cli::style::cli_line("rocdown: content changed, applying without recompile")
             );
-            compile_ms = 0;
             self.apply_bin.clone()
-        } else if let Some(cached) = cache.lookup_renderer(&staged.roc_hash, &target) {
-            eprintln!(
-                "{}",
-                rocci_cli::style::cli_line(&format!(
-                    "rocdown: using cached {} renderer for {}",
-                    if is_wasm { "wasm" } else { "native" },
-                    &staged.roc_hash[..8.min(staged.roc_hash.len())]
-                ))
-            );
-            self.roc_hash = Some(staged.roc_hash.clone());
-            compile_ms = 0;
-            cached
         } else {
-            eprintln!(
-                "{}",
-                rocci_cli::style::cli_line(&format!(
-                    "rocdown: generated {} of Roc, compiling ({}) with roc",
-                    rocci_cli::style::human_bytes(staged.generated_roc_bytes as u64),
-                    if is_wasm { "wasm32" } else { "native" }
-                ))
-            );
-            let roc_started = Instant::now();
-            let roc_output = if is_wasm {
-                invoke_roc_wasm_build(&self.workspace, &self.apply_bin, &maps)
-                    .with_context(|| format!("workspace {}", self.workspace.display()))?
-            } else {
-                invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
-                    .with_context(|| format!("workspace {}", self.workspace.display()))?
-            };
-            compile_ms = roc_started.elapsed().as_millis();
-            eprintln!(
-                "{}",
-                rocci_cli::style::cli_line(&format!("rocdown: roc finished in {compile_ms}ms"))
-            );
-            if !roc_output.is_empty() {
-                eprint!("{roc_output}");
+            match cache.inspect_renderer(&staged.roc_hash, &target, &fingerprints) {
+                rocci_roc_host::RendererInspect::Hit(cached) => {
+                    eprintln!(
+                        "{}",
+                        rocci_cli::style::cli_line(&format!(
+                            "rocdown: using cached {host_label} renderer for {hash_short} ({} inputs)",
+                            fingerprints.len()
+                        ))
+                    );
+                    self.roc_hash = Some(staged.roc_hash.clone());
+                    cached
+                }
+                miss => {
+                    match miss {
+                        rocci_roc_host::RendererInspect::Stale { detail } => {
+                            eprintln!(
+                                "{}",
+                                rocci_cli::style::cli_line(&format!(
+                                    "rocdown: cached {host_label} renderer {hash_short} stale ({detail})"
+                                ))
+                            );
+                        }
+                        rocci_roc_host::RendererInspect::Corrupt => {
+                            eprintln!(
+                                "{}",
+                                rocci_cli::style::cli_line(&format!(
+                                    "rocdown: cached {host_label} renderer {hash_short} corrupt"
+                                ))
+                            );
+                        }
+                        rocci_roc_host::RendererInspect::Missing
+                        | rocci_roc_host::RendererInspect::Hit(_) => {}
+                    }
+                    eprintln!(
+                        "{}",
+                        rocci_cli::style::cli_line(&format!(
+                            "rocdown: generated {} of Roc, compiling ({host_label}) with roc",
+                            rocci_cli::style::human_bytes(staged.generated_roc_bytes as u64)
+                        ))
+                    );
+                    let roc_started = Instant::now();
+                    let roc_output = if is_wasm {
+                        invoke_roc_wasm_build(&self.workspace, &self.apply_bin, &maps)
+                            .with_context(|| format!("workspace {}", self.workspace.display()))?
+                    } else {
+                        invoke_roc_build(&self.workspace, &self.apply_bin, &maps)
+                            .with_context(|| format!("workspace {}", self.workspace.display()))?
+                    };
+                    compile_ms = roc_started.elapsed().as_millis();
+                    eprintln!(
+                        "{}",
+                        rocci_cli::style::cli_line(&format!(
+                            "rocdown: roc finished in {compile_ms}ms"
+                        ))
+                    );
+                    if !roc_output.is_empty() {
+                        eprint!("{roc_output}");
+                    }
+                    self.roc_hash = Some(staged.roc_hash.clone());
+                    let bytes = fs::read(&self.apply_bin)?;
+                    let stored =
+                        cache.store_renderer(&staged.roc_hash, &target, &bytes, &fingerprints)?;
+                    recompiled = true;
+                    stored
+                }
             }
-            self.roc_hash = Some(staged.roc_hash.clone());
-            let bytes = fs::read(&self.apply_bin)?;
-            let fp = staged_fingerprints(&plan, is_wasm);
-            let stored = cache.store_renderer(&staged.roc_hash, &target, &bytes, &fp)?;
-            recompiled = true;
-            stored
         };
 
         let roc_started = Instant::now();

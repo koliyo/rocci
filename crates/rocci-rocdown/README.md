@@ -388,6 +388,11 @@ deployment-level redirects or terminal responses remain an origin concern.
 - `rocdown inspect ast FILE.rocdown`: Inspect AST.
 - `rocdown inspect artifacts DIR`: Inspect the publish report (page kinds, Datastar, service routes, planned files).
 
+`view` / `build` reuse a compiled apply binary from `~/.rocci/cache` when the
+generated Roc hash and input fingerprints match. The cache does not look at
+`git status`. Hit, stale-input, and corrupt reasons are logged; the strategy
+is in [`rocci-roc-host`](../rocci-roc-host/README.md).
+
 ## Tree spec
 
 The owned parse-tree shape lives in [`Rocdown.AST.ungram`](Rocdown.AST.ungram).
