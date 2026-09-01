@@ -98,14 +98,9 @@ section_key = |prefix, title|
 
 @component NestedGroupInner = |{ group, route }| {
     <summary class="nav-category">
-        @if group.href == "" {
-            <span class="nav-link nav-category nav-child">{group.title}</span>
-        } @else {
-            <a
-                class={if group.href == route { "nav-link nav-category nav-child is-current" } else { "nav-link nav-category nav-child" }}
-                href={group.href}
-            >{group.title}</a>
-        }
+        <span
+            class={if group.href == route { "nav-link nav-category nav-child is-current" } else { "nav-link nav-category nav-child" }}
+        >{group.title}</span>
     </summary>
     <div class="nav-fold">
         <div class="nav-items">
@@ -122,14 +117,9 @@ section_key = |prefix, title|
 
 @component NavGroupInner = |{ group, route, key_prefix }| {
     <summary class="nav-category">
-        @if group.href == "" {
-            <span class="nav-link nav-category">{group.title}</span>
-        } @else {
-            <a
-                class={if group.href == route { "nav-link nav-category is-current" } else { "nav-link nav-category" }}
-                href={group.href}
-            >{group.title}</a>
-        }
+        <span
+            class={if group.href == route { "nav-link nav-category is-current" } else { "nav-link nav-category" }}
+        >{group.title}</span>
     </summary>
     <div class="nav-fold">
         <div class="nav-items">
