@@ -110,6 +110,14 @@ impl InputFingerprint {
     }
 }
 
+fn hex_sha256(hasher: Sha256) -> String {
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::InputFingerprint;
@@ -147,12 +155,4 @@ mod tests {
             Some("missing fingerprints.json")
         );
     }
-}
-
-fn hex_sha256(hasher: Sha256) -> String {
-    hasher
-        .finalize()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
 }
