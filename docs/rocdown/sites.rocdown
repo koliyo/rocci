@@ -268,9 +268,10 @@ prefix = "project"
 ```
 
 `source` is a directory of `.rocdown` pages, not a nested site. Rocdown does
-not load the target's `rocdown.toml` or mounts. A missing peer directory fails
-`check` and site load the same way a missing mount does. `rocdown check` and
-the editor use the same owned-plus-peer route index; a typo such as
+not load the target's `rocdown.toml` or mounts. A missing peer directory is
+skipped; links to those routes are `RD2101`. Stage generated peer trees such
+as `dist/example-docs` before expecting those routes to resolve. `rocdown check`
+and the editor use the same owned-plus-peer route index; a typo such as
 `Cosunter-rocci` is `RD2101` / `unknown Rocdown route`.
 
 - `source`: Relative path to the mounted content directory.

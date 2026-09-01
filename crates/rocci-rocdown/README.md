@@ -362,9 +362,9 @@ still warn.
 A catalog that stays standalone (`docs/`) but links at another tree's published
 routes declares `[[peer]]` with the same `source` / `prefix` shape. Peers are
 link inventory only: `check` and the language server resolve those routes;
-`build` does not emit them. A missing peer directory fails load. Stage
-`dist/example-docs` before `rocdown check docs` when `docs/rocdown.toml` peers
-that tree.
+`build` does not emit them. A missing peer directory is skipped, so links to
+those routes fail as `RD2101`. Stage `dist/example-docs` before
+`rocdown check docs` when `docs/rocdown.toml` peers that tree.
 
 The catalog owns routes, navigation, breadcrumbs, journeys, and visibility.
 Project `.rocci` layouts own the visible frame. A site may validate named
