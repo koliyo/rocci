@@ -33,13 +33,9 @@ label = "Docs"
 label = "Start"
 items = [
     "docs/index",
+    "docs/the-stack",
     "docs/install",
     "docs/five-minutes",
-    "docs/the-stack",
-    "docs/appendix/index",
-    "docs/appendix/roc-for-rocci",
-    "docs/appendix/web-foundations",
-    "docs/appendix/glossary",
 ]
 
 [[nav.groups]]
@@ -111,6 +107,15 @@ items = [
     "docs/troubleshooting/compile",
     "docs/troubleshooting/runtime",
     "docs/troubleshooting/preview",
+]
+
+[[nav.groups]]
+label = "Appendix"
+items = [
+    "docs/appendix/index",
+    "docs/appendix/roc-for-rocci",
+    "docs/appendix/web-foundations",
+    "docs/appendix/glossary",
 ]
 
 [[nav]]

@@ -2,55 +2,45 @@
     layout: "docs",
     meta: {
         title: "Rocci in five minutes",
-        description: "Lower and preview a tiny component from the cataloged styling example, then inspect one compile boundary.",
+        description: "Type a tiny greeting component, preview it, and see Hello, Ada.",
     },
 }
 
 # Rocci in five minutes
 
-Preview a checked-in component: lower `Hello` from the styling example and
-open it in the native window. Then read [the stack](/docs/the-stack/) or
-continue into [templates](/docs/templates/).
+You will type a tiny greeting component, preview it, and see
+**Hello, Ada** in the window. Inspecting the generated Roc comes after
+that.
 
-The preview shows **Hello, Ada**.
+Until an installed `rocci` exists, prefix each `rocci` command with
+`cargo run -q -p rocci-cli --` from the repository root.
 
-## Lower the module
+## Type a greeting
 
-From the repository root:
+From the clone, create `Hello.rocci` with this complete module:
 
-```sh
-cargo run -q -p rocci-cli -- build \
-  examples/rocci/standalone/styling/Styling.rocci
+```rocci
+import Html
+
+@component
+Hello = |{ name }|
+    <p>Hello, <strong>{name}</strong></p>
 ```
 
-Stdout is ordinary Roc. Find `hello = |{ name }|`. The PascalCase component
-`Hello` became a camelCase function. `@css` became scoped CSS metadata.
-Rocci did not type-check the module; Roc will, when you run or view it.
-
-## Preview one component
+Preview it:
 
 ```sh
-cargo run -q -p rocci-cli -- view \
-  examples/rocci/standalone/styling/Styling.rocci \
-  --component Hello --arg name=Ada
+rocci view Hello.rocci --component Hello --arg name=Ada
 ```
 
-Rocci compiles the module, starts a local HTTP server, prints the URL, and
-opens the native preview window. Add `--no-window` and open the URL yourself
-if you do not want the webview.
+Rocci compiles the module, starts a local HTTP server, prints the URL,
+and opens the native preview window. Add `--no-window` and open the URL
+yourself if you do not want the webview.
 
 The greeting should read **Hello, Ada**.
 
-## One boundary
-
-| Authored | Generated |
-| --- | --- |
-| `@component Hello = \|{ name ?? "Roc" }\|` | `hello : { name : Str ?? "Roc" } -> Html` and `hello = \|{ name }\|` |
-| `<p class="greeting">` | `Html.element("p", [Html.attribute("class", "greeting")], …)` |
-| `{name}` | `Html.text(name)` — must be `Str` |
-
-`??` defaults are a Rocci convenience. Roc still rejects `??` in patterns, so
-lowering puts the default on the generated type. That status is **experimental**.
+A larger cataloged file with scoped CSS lives at
+[Styling.rocci](/examples/styling/source/Styling-rocci/).
 
 ## If it failed
 
@@ -60,8 +50,21 @@ lowering puts the default on the generated type. That status is **experimental**
 | Unknown component | Name mismatch | Use `Hello` or `hello` |
 | No window | Webview / display | Rerun with `--no-window` and open the printed URL |
 
-Complete source: [Styling](/examples/styling/) ·
-[Styling.rocci](/examples/styling/source/Styling-rocci/).
+## Inspect the generated Roc
 
-Next: [the stack](/docs/the-stack/) for composition, or
-[templates](/docs/templates/components/) for inspect and CSS.
+This heading is optional. Lower the file you typed:
+
+```sh
+rocci build Hello.rocci
+```
+
+Stdout is ordinary Roc. Find `hello = |{ name }|`. The PascalCase
+component `Hello` became a camelCase function. Rocci did not type-check
+the module; Roc will, when you run or view it.
+
+| Authored | Generated |
+| --- | --- |
+| `@component Hello = \|{ name }\|` | `hello : { name : Str } -> Html` and `hello = \|{ name }\|` |
+| `<p>Hello, <strong>{name}</strong></p>` | `Html.element` calls; `{name}` becomes `Html.text(name)` and must be `Str` |
+
+Next: [Components](/docs/templates/components/).

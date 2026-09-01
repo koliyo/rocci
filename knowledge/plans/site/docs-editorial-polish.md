@@ -209,8 +209,8 @@ Write to a person who will type.
 > A component is a function that takes props and returns HTML. This one
 > greets whoever you pass as `name`:
 
-Then the example, then one paragraph of rules, then “The exact grammar is
-in [Components](/docs/reference/language/components/).”
+Then the example, then one paragraph of rules, then a pointer to the
+Components language reference.
 
 **Before:**
 

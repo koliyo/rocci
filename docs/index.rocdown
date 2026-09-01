@@ -2,76 +2,35 @@
     layout: "section",
     meta: {
         title: "Overview",
-        description: "The Rocci stack: Roc and Datastar, Rocci templates, applications, and optional Rocdown documents.",
+        description: "Write HTML in Roc, run a small app from .rocci files, or publish Markdown on the same stack.",
     },
 }
 
 # Overview
 
-Roc plus Datastar host a web application. Rocci templates are HTML for Roc.
-Applications add server structure — standalone or custom. Rocdown is an
-optional document layer on that same stack.
+Rocci lets you write HTML in Roc, run a small app from `.rocci` files,
+and optionally publish Markdown on that same stack. This manual is for
+a programmer who can use a terminal.
 
-This manual describes **development** `main`. Behavior is experimental;
-check commands against the source you built.
+Preview a component, or run a standalone app. Rocdown documents are
+optional and experimental.
 
-:note[title: "Maturity"] {{
-    macOS and Linux development are tested in CI. Windows development uses the
-    system webview and is documented only to that level. Production signing,
-    installers, and a versioned release channel are not the install path yet.
-}}
-
-## Start here
-
-Stop at the layer you need.
-
-:card-grid.begin
-    :link-card[href: "/docs/five-minutes/", title: "Preview a template", summary: "Lower and view a checked-in @component. No server required."]
-    :link-card[href: "/docs/applications/standalone/", title: "Run an application", summary: "Standalone .rocci server, or custom main.roc that reuses modules."]
-    :link-card[href: "/docs/rocdown/", title: "Author a document", summary: "Markdown-first pages. Experimental; live pages reuse Applications."]
-:card-grid.end
-
-Read [the stack](/docs/the-stack/) for the composition. Install the
-toolchain on [Install](/docs/install/) if this machine is new.
-
-## What does the code feel like?
-
-A component is a PascalCase `@component` that lowers to a pure Roc function
-returning `Html`. This `Hello` is from the cataloged styling example:
+A component looks like this:
 
 ```rocci
+import Html
+
 @component
-Hello = |{ name ?? "Roc" }| {
-    @css {
-        .greeting {
-            margin: 0;
-            color: #c9d8d2;
-        }
-    }
-    <p class="greeting">Hello, <strong>{name}</strong></p>
-}
+Hello = |{ name }|
+    <p>Hello, <strong>{name}</strong></p>
 ```
 
-Preview it after [install](/docs/install/):
-
-```sh
-cargo run -q -p rocci-cli -- view \
-  examples/rocci/standalone/styling/Styling.rocci \
-  --component Hello --arg name=Ada
-```
-
-Complete source: [Styling.rocci](/examples/styling/source/Styling-rocci/).
-
-## Where is the exact answer?
+macOS and Linux development are tested in CI. There is no crates.io
+package or installer yet; [build from this repository](/docs/install/).
 
 :card-grid.begin
-    :link-card[href: "/docs/reference/language/", title: "Language", summary: "File structure, components, directives, CSS, and server declarations."]
-    :link-card[href: "/docs/reference/cli/", title: "CLI", summary: "rocci validate, build, run, view, browse, inspect, bundle, and Datastar pins."]
-    :link-card[href: "/docs/reference/configuration/", title: "Configuration", summary: "rocci.toml fields, defaults, and validation failures."]
-    :link-card[href: "/docs/applications/", title: "Applications", summary: "Standalone vs custom, handlers, inspect, package."]
-    :link-card[href: "/docs/troubleshooting/", title: "Troubleshooting", summary: "Install, compile, runtime, and preview failures."]
+    :link-card[href: "/docs/the-stack/", title: "The stack", summary: "Four layers. Stop when you have what you need."]
+    :link-card[href: "/docs/install/", title: "Install", summary: "Rust, Roc, and a checkout. Then verify with one preview."]
+    :link-card[href: "/docs/five-minutes/", title: "Five minutes", summary: "Type a greeting and see Hello, Ada in the window."]
+    :link-card[href: "/docs/applications/standalone/", title: "Run an application", summary: "Declare state, a page, and a button. Rocci generates the server."]
 :card-grid.end
-
-[Examples](/examples/) are generated from `examples/rocci/apps.toml`.
-Styling is the first static component; Counter is the first stateful app.
-Status labels are on Project status (`/project/status/` on the public site).

@@ -204,8 +204,8 @@ Keep these. Do not reopen them to “fix voice.”
   channel, Windows documented as unverified.[^install][^docs-index]
 - **One fact, one owner (as intent).** Language forms live under
   `/docs/reference/language/`. Guides are supposed to summarize.[^lang-components]
-- **Some pages already teach.** [Web foundations](../../../docs/appendix/web-foundations.rocdown)
-  shows a request, a handler, and a button. Troubleshooting is
+- **Some pages already teach.** Web foundations shows a request, a handler,
+  and a button. Troubleshooting is
   symptom-led. The stack page is the one place the composition should be
   explained.[^the-stack]
 
