@@ -192,15 +192,10 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
     }
 
     let mut peer_pages = Vec::new();
-    for (index, peer) in config.peers.iter().enumerate() {
+    for peer in &config.peers {
         let peer_dir = root.join(&peer.source);
         if !peer_dir.is_dir() {
-            bail!(
-                "peer[{}] source `{}` does not exist or is not a directory in {}",
-                index + 1,
-                peer.source,
-                root.display()
-            );
+            continue;
         }
         peer_pages.extend(index_prefixed_page_refs(&peer_dir, &peer.prefix)?);
     }
@@ -971,15 +966,10 @@ fn discover_site_page_paths(root: &Path) -> Result<Vec<(PathBuf, String)>> {
         }
         pages.extend(discover_prefixed_paths(&mount_dir, &mount.prefix)?);
     }
-    for (index, peer) in config.peers.iter().enumerate() {
+    for peer in &config.peers {
         let peer_dir = root.join(&peer.source);
         if !peer_dir.is_dir() {
-            bail!(
-                "peer[{}] source `{}` does not exist or is not a directory in {}",
-                index + 1,
-                peer.source,
-                root.display()
-            );
+            continue;
         }
         pages.extend(discover_prefixed_paths(&peer_dir, &peer.prefix)?);
     }
@@ -1371,7 +1361,7 @@ debug = true
     }
 
     #[test]
-    fn check_peer_typo_is_rd2101_and_missing_peer_fails_load() {
+    fn check_peer_typo_is_rd2101_and_missing_peer_is_empty() {
         let root = temp("check-peer");
         fs::create_dir_all(root.join("docs")).unwrap();
         fs::create_dir_all(root.join("examples/counter/source")).unwrap();
@@ -1409,9 +1399,12 @@ debug = true
         assert!(rendered.contains("Cosunter-rocci"), "{rendered}");
 
         let _ = fs::remove_dir_all(root.join("examples"));
-        let err = load_site(&root.join("docs")).unwrap_err().to_string();
-        assert!(err.contains("peer[1]"), "{err}");
-        assert!(err.contains("does not exist"), "{err}");
+        let loaded = load_site(&root.join("docs")).unwrap();
+        assert!(loaded.peer_pages.is_empty());
+        let report = check(&root.join("docs")).unwrap();
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(report.has_errors(), "{rendered}");
+        assert!(rendered.contains("RD2101"), "{rendered}");
         let _ = fs::remove_dir_all(root);
     }
 

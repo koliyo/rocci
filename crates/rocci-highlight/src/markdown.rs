@@ -145,13 +145,13 @@ fn highlight_prose_line(source: &str, start: usize, spans: &mut Vec<HighlightSpa
             break;
         }
         let rest = &source[pos..eol];
-        if rest.starts_with('[') || rest.starts_with("![") {
-            if let Some((label, dest)) = inline_link_at(source, pos, eol) {
-                push_span(source, spans, label.0, label.1, HighlightKind::Variable, 50);
-                push_span(source, spans, dest.0, dest.1, HighlightKind::Keyword, 52);
-                pos = dest.1;
-                continue;
-            }
+        if (rest.starts_with('[') || rest.starts_with("!["))
+            && let Some((label, dest)) = inline_link_at(source, pos, eol)
+        {
+            push_span(source, spans, label.0, label.1, HighlightKind::Variable, 50);
+            push_span(source, spans, dest.0, dest.1, HighlightKind::Keyword, 52);
+            pos = dest.1;
+            continue;
         }
         if rest.starts_with("**") || rest.starts_with("__") || rest.starts_with("~~") {
             let marker = &rest[..2];

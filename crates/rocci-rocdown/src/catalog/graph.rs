@@ -27,7 +27,16 @@ pub(crate) fn resolve_graph(
             let is_image = source.image_urls.iter().any(|url| url == raw)
                 && !source.outgoing_links.iter().any(|url| url == raw);
             match resolve_ref(
-                raw, page, pages, peer_pages, &by_id, &by_route, files, is_image,
+                raw,
+                page,
+                &RefIndexes {
+                    pages,
+                    peer_pages,
+                    by_id: &by_id,
+                    by_route: &by_route,
+                    files,
+                },
+                is_image,
             ) {
                 Ok(Some(edge)) => {
                     if edge.kind == EdgeKind::Page
@@ -57,14 +66,18 @@ pub(crate) fn resolve_graph(
     graph
 }
 
+struct RefIndexes<'a> {
+    pages: &'a [ResolvedPage],
+    peer_pages: &'a [PageRef],
+    by_id: &'a BTreeMap<&'a str, &'a ResolvedPage>,
+    by_route: &'a BTreeMap<&'a str, &'a ResolvedPage>,
+    files: &'a BTreeSet<String>,
+}
+
 fn resolve_ref(
     raw: &str,
     page: &ResolvedPage,
-    pages: &[ResolvedPage],
-    peer_pages: &[PageRef],
-    by_id: &BTreeMap<&str, &ResolvedPage>,
-    by_route: &BTreeMap<&str, &ResolvedPage>,
-    files: &BTreeSet<String>,
+    indexes: &RefIndexes<'_>,
     is_image: bool,
 ) -> Result<Option<Edge>, CatalogDiagnostic> {
     if raw.is_empty() {
@@ -82,7 +95,12 @@ fn resolve_ref(
     }
     if path.starts_with("/assets/") || (is_image && path.starts_with('/') && looks_like_asset(path))
     {
-        return asset_edge(page, raw, path.strip_prefix('/').unwrap_or(path), files);
+        return asset_edge(
+            page,
+            raw,
+            path.strip_prefix('/').unwrap_or(path),
+            indexes.files,
+        );
     }
     if path == "/sitemap.xml"
         || path == "/robots.txt"
@@ -96,10 +114,11 @@ fn resolve_ref(
         return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
     }
     if path.starts_with('/') {
-        if let Some(target) = page_for_abs_route(by_route, path) {
+        if let Some(target) = page_for_abs_route(indexes.by_route, path) {
             return page_or_heading_edge(page, raw, target, fragment);
         }
-        if let Some(peer) = peer_pages
+        if let Some(peer) = indexes
+            .peer_pages
             .iter()
             .find(|peer| routes_match(&peer.route, path))
         {
@@ -119,10 +138,10 @@ fn resolve_ref(
                 format!("relative link `{raw}` escapes the content root"),
             ));
         };
-        if let Some(target) = page_for_path(pages, &normalized) {
+        if let Some(target) = page_for_path(indexes.pages, &normalized) {
             return page_or_heading_edge(page, raw, target, fragment);
         }
-        if files.contains(&normalized) {
+        if indexes.files.contains(&normalized) {
             return Ok(Some(edge(
                 page,
                 raw,
@@ -144,9 +163,9 @@ fn resolve_ref(
         ));
     }
     if is_image {
-        return asset_edge(page, raw, path, files);
+        return asset_edge(page, raw, path, indexes.files);
     }
-    match wiki_target(path, pages, by_id) {
+    match wiki_target(path, indexes.pages, indexes.by_id) {
         WikiMatch::One(target) => page_or_heading_edge(page, raw, target, fragment),
         WikiMatch::None => Err(CatalogDiagnostic::error(
             "RD2101",
