@@ -2,290 +2,68 @@
     layout: "docs",
     meta: {
         title: "Rocdown site configuration",
-        description: "Configure rocci.dev-style documentation metadata, output, assets, and curated navigation in rocdown.toml.",
+        description: "A small rocdown.toml: title, nav, output, then check and build.",
     },
 }
 
 # Rocdown site configuration
 
-Place `rocdown.toml` at the documentation content root when you need site metadata,
-hashed assets, or curated navigation. The file is optional: a directory of
-`.rocdown` pages, or a single `.rocdown` file whose parent is the content root,
-is enough for `rocdown build`, `rocdown check`, and `rocdown view`.
-
-```sh
-cargo run -p rocci-rocdown-cli -- build report.rocdown --output dist
-cargo run -p rocci-rocdown-cli -- run report.rocdown
-```
-
-## Example
+Place `rocdown.toml` at the documentation content root when you need site
+metadata, hashed assets, or curated navigation. The file is optional: a
+directory of `.rocdown` pages is enough for `rocdown check`,
+`rocdown build`, and `rocdown view`.
 
 ```toml
 [site]
-title = "Rocci"
-description = "Rocci — Composable authoring for applications and content"
-base_url = "https://rocci.dev"
-language = "en"
-repository = "https://github.com/koliyo/rocci"
-social_image = "/assets/og.png"
-subtitle = "Composable authoring for applications and content"
-footer = "Rocci is experimental software."
+title = "My docs"
+description = "A small Rocdown site"
 
 [build]
-output = "../dist/rocci.dev"
+output = "dist"
 assets = "assets"
 
 [[nav]]
-label = "Start here"
-items = ["index", "five-minutes"]
-
-[[nav]]
-label = "Reference"
-items = ["reference/rocci", "reference/rocdown"]
+label = "Guide"
+items = ["index", "install"]
 ```
 
 Unknown keys are errors.
 
-## Snippets and examples
-
-Optional snippet roots are resolved relative to the content root. They still
-cannot escape the repository parent, and include paths cannot contain `..`,
-NUL, or absolute locations.
-
-```toml
-[snippets]
-roots = ["snippets", "../examples"]
-
-[examples]
-timeout_ms = 30000
-allow_network = false
-```
-
-`:include` reads a file as nested Rocdown (`.rocdown`, no `@page`) or as a
-code literal. Named regions use `docs-region: NAME` / `docs-region-end: NAME`
-markers. Line ranges emit warning `RD2504`. Cycles are `RD2505`. Included files
-are watch inputs for `rocdown view`.
-
-`rocdown check` validates components and includes without Roc. Untested
-`:example` records warn (`RD2601`). Example commands never run during
-`rocdown build` or `rocdown check`.
-
 ```sh
-cargo run -p rocci-rocdown-cli -- test docs
-cargo run -p rocci-rocdown-cli -- test docs --update
+rocdown check .
+rocdown build .
 ```
 
-`rocdown test` runs declared `test` argument lists with cwd at the content root, a
-timeout, no extra environment, and no shell expansion. `--update` rewrites
-golden files. Failures are diagnostics (`RD2603`); `dist/` is not written.
-Fenced code is never executed. Default CSP allows the hashed Cmd/Ctrl-K
-palette (`script-src 'self'; connect-src 'self'`) and still forbids
-`unsafe-eval` and `unsafe-inline`. Tab panels are stacked sections, not a
-JavaScript tablist.
+`check` validates links, nav ids, includes, and assets without compiling
+Roc. `build` writes the output tree atomically: a failed build leaves the
+previous tree in place.
 
-## Site fields
+## `[site]`
 
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `title` | `Documentation` | Header, metadata, and generated index title |
-| `description` | Empty | Default page and agent-index description |
+| `description` | Empty | Default page description |
 | `base_url` | Empty | Canonical, sitemap, and absolute discovery URLs |
 | `language` | `en` | Document language |
 | `repository` | Empty | Source link in the header |
 | `social_image` | Empty | Site-relative Open Graph image path |
-| `favicon` | Empty | Site-relative favicon path, typically an SVG |
+| `favicon` | Empty | Site-relative favicon path |
 | `apple_touch_icon` | Empty | Site-relative Apple touch icon path |
-| `subtitle` | Empty | Short header tagline beside the brand |
+| `subtitle` | Empty | Short header tagline |
 | `footer` | Empty | Article footer text |
 | `csp` | Strict static default | Content-Security-Policy for generated HTML |
 
 `base_url` must use HTTP or HTTPS. A trailing slash is normalized away.
-Empty `subtitle` and `footer` omit those chrome pieces. Leave `csp` empty to use
-the default policy: hashed `goto.js` from `'self'`, fetches of `pages.json` and
-same-origin HTML from `'self'`, no `unsafe-eval` or `unsafe-inline`, styles and
-images from `'self'`. `live` pages override that page's CSP so Datastar can load
-and connect to the island service.
 
-## HTTP fields
+`output` is resolved relative to the content root unless `--output`
+overrides it. `assets` names a directory whose files are content-hashed
+into `/assets/`.
 
-Optional `[http]` configures the island service used by `live` pages.
+## `[[nav]]`
 
-| Field | Default | Meaning |
-| --- | --- | --- |
-| `service_origin` | Empty | Absolute origin for Datastar `connect-src` and `@post` URLs. Empty means same-origin (the operator reverse-proxies `/actions/` to the service). |
-| `service` | Empty | Sibling `.rocci` app to run instead of the generated island dispatcher. |
-
-`service_origin` must be empty or start with `http://` or `https://`. A trailing
-slash is normalized away.
-
-## Page kinds
-
-Each published page is one of:
-
-| Kind | Meaning | CDN | Datastar |
-| --- | --- | --- | --- |
-| `static` | Markdown / `@page` / `:name[params]` only | Widget forest HTML and hashed assets | No |
-| `hydrate` | Pure Rocci (`@component`, `@render`, `@css`, `@roc`) plus Markdown `@{expr}` | Initial island HTML spliced at build | No |
-| `live` | Rocci plus `@get:view` / `@method:fragment` / `@method:command` / `@context` / `@init` or `import Datastar` | Initial HTML plus Datastar.js | Yes |
-
-`rocdown check` accepts all three. Default `rocdown build` accepts `live` and
-emits the island service manifest. `rocdown build --cdn-only` errors with
-`RD2302` when any published page is `live`, so a CDN publish cannot ship action
-buttons with no service.
-
-## Two-artifact publish
-
-A hybrid site emits:
-
-1. **CDN tree** — page HTML, hashed `/assets/` files, discovery files. `static`
-   and `hydrate` pages include hashed `goto.js` (Cmd/Ctrl-K) with
-   `script-src 'self'; connect-src 'self'`. They do not include Datastar.
-   `live` pages include hashed Datastar.js and a loosened CSP (`connect-src`
-   is `'self'` or `http.service_origin`).
-2. **Island service** — `rocdown serve-islands DIR` for colocated handlers
-   handlers, or `rocci run` on `[http].service`. The CDN file is a snapshot; the
-   service owns durable state.
-
-A site with no `live` pages emits only (1). Start the service beside the static
-tree; do not serve Markdown from it.
-
-### Cache advice
-
-Hashed `/assets/*` files (theme CSS, images, Datastar.js, `goto.js`) are content-addressed
-and can be cached indefinitely. HTML documents, `pages.json`, `islands.json`,
-`llms.txt`, `sitemap.xml`, and `robots.txt` should be revalidated: they name the
-current hashes and service routes. `pages.json` is the page list used by Cmd/Ctrl-K
-fuzzy navigation; it is not full-text site search.
-
-## Build fields
-
-`output` is resolved relative to the content root unless `--output` overrides
-it. `assets` names a directory whose files are content-hashed into `/assets/`
-in the published tree (`og.png` becomes `og.<hash>.png`). Markdown and `:img`
-URLs under that tree are rewritten whether they are authored as
-`/assets/foo.png` or `assets/foo.png`. `social_image`, `favicon`, and
-`apple_touch_icon` are rewritten the same way.
-
-Local image paths resolve against the source file directory. Missing files fail
-`rocdown check` with `RD2103`. Validated page and heading links are rewritten to
-emitted routes after catalog resolve, so a passing check implies a usable href.
-
-Rocdown writes into a staging directory and atomically replaces the output only
-after a successful build. A failed build leaves the previous output tree in
-place. Rebuilding with unchanged inputs produces byte-identical files.
-
-`--host auto|native|wasm` selects how apply runs on the **build machine**.
-Native apply uses `basic-cli` without Roc `--target`. Wasm apply is a renderer
-only: it does not produce a hosted Wasm server, and platforms such as
-`basic-cli` / `basic-webserver` have no `wasm32`, so native apply remains
-required. `--target x64musl` / `arm64musl` is the native ISA/OS for island and
-app **process** binaries that will run elsewhere (Linux containers). Match the
-container CPU (`arm64musl` for Apple Silicon Docker Desktop; `x64musl` for
-most amd64 hosts)—not the Mac host (`arm64mac`). Musl is the portable Linux
-container target. Do not pass musl `--target` into Mac apply. See
-`docker/README.md`.
-
-The first-party `RocdownBase` article CSS is extracted once, hashed, and linked
-from every page, including sites with a project-local `theme/`. Project chrome
-and named layouts compile beside it. Generated HTML declares the CSP with a
-`<meta>` tag. Article HTML must be a component body parameter; a record field
-named `content` is escaped as text.
-
-`build.theme` names a directory or `SiteShell.rocci` file relative to the
-content root. When omitted, Rocdown uses `theme/` if it contains `.rocci`
-files, otherwise the builtin documentation shell.
-
-## Article block packs
-
-`theme/Blocks.rocci`, or `theme/blocks/*.rocci` when that file is absent, can
-replace builtin article-block painters (`Note`, `Tabs`, …) by exporting the
-same `@component` names. Packs may `import DocsComponents` and wrap a builtin.
-`[blocks]` in `rocdown.toml` selects a pack path and optional kind remaps:
-
-```toml
-[blocks]
-pack = "theme/widgets"
-debug = false
-
-[blocks.override]
-note = "Callout"
-```
-
-- `pack`: optional path, relative to the content root, to a `.rocci` file or a
-  directory of `.rocci` files. When set, it replaces the `theme/Blocks.rocci` /
-  `theme/blocks/` convention.
-- `debug`: when `true`, `rocdown build` and `rocdown check` paint a first-party
-  debug placeholder (`data-rocci-block-debug`) for kinds that have a schema but
-  no renderer. `rocdown view` always uses that placeholder in preview. Unknown
-  kinds stay errors.
-- `[blocks.override]`: maps a builtin widget kind (`note`) to a pack or
-  `DocsComponents` component name (`Callout`). Unknown kinds fail config load.
-  Unknown component names fail theme compile.
-
-A pack `@component` whose name does not match a builtin painter becomes a
-custom article kind: PascalCase `Callout` is authored as `:callout`. The
-inferred schema uses the `@component` header (`??` defaults and an extra body
-parameter). Child policy is fragment plus any children. Helpers and other
-non-kind functions must not live in the block pack; they become kinds or
-collide with reserved names (`page`, `use`, …).
-
-## Composable content mounts
-
-Sites can mount external documentation catalogs or content trees using `[[mount]]` tables in `rocdown.toml`. This allows maintaining standalone documentation at repository root (`docs/`) while mounting it into a full website (`site/`):
-
-```toml
-[[mount]]
-source = "../docs"
-prefix = "docs"
-layout = "docs"
-
-[[mount]]
-source = "../dist/example-docs"
-prefix = "examples"
-layout = "docs"
-visibility = "linked-detail"
-```
-
-`dist/example-docs` is produced by `rocci-docs` (`cargo run -q -p rocci-docs --
---catalog examples/rocci/apps.toml --output dist/example-docs`). Run that
-before `rocdown check site`, `rocdown check docs`, `rocdown view site`, or
-`rocdown package site`. Rocdown does not import `rocci-docs`. Generated example
-pages use the docs layout. `/docs/examples/` is an alias of `/examples/`
-during the move.
-
-A standalone docs catalog that links at those published routes declares
-**peers** (link inventory only). Peers do not become pages of this site and
-are not written by `rocdown build docs`:
-
-```toml
-[[peer]]
-source = "../dist/example-docs"
-prefix = "examples"
-
-[[peer]]
-source = "../site/project"
-prefix = "project"
-```
-
-`source` is a directory of `.rocdown` pages, not a nested site. Rocdown does
-not load the target's `rocdown.toml` or mounts. A missing peer directory is
-skipped; links to those routes are `RD2101`. Stage generated peer trees such
-as `dist/example-docs` before expecting those routes to resolve. `rocdown check`
-and the editor use the same owned-plus-peer route index; a typo such as
-`Cosunter-rocci` is `RD2101` / `unknown Rocdown route`.
-
-- `source`: Relative path to the mounted content directory.
-- `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `five-minutes` to ID `docs/five-minutes` and route `/docs/five-minutes/`).
-- `layout`: Optional default layout applied to pages in this mount.
-- `visibility`: `navigable` by default. `linked-detail` keeps intentionally
-  linked generated details out of navigation without `RD2202` warning noise;
-  inspection still reports them as unlisted. Do not use it to hide authored
-  pages that should be discoverable.
-
-## Navigation
-
-Each navigation item is a stable page ID derived from the content-root-relative
-path without `.rocdown`:
+Each item is a page ID: the content-root-relative path without
+`.rocdown`.
 
 | Source | Page ID | Route |
 | --- | --- | --- |
@@ -293,125 +71,16 @@ path without `.rocdown`:
 | `guides/index.rocdown` | `guides/index` | `/guides/` |
 | `guides/build.rocdown` | `guides/build` | `/guides/build/` |
 
-Navigation order is explicit. Unknown IDs and duplicate items fail the build.
-Published authored pages omitted from navigation emit `RD2202`. Generated
-detail mounts may opt into the explicit `linked-detail` policy above.
+Unknown IDs and duplicates fail the build. Published authored pages
+omitted from navigation emit `RD2202`. Use `[[nav.groups]]` under a
+top-level `[[nav]]` for curated lanes. Directory landings, Overview rows,
+and `RD2205` live on the
+[contributor checklist](/docs/reference/contributor/checklist/).
 
-A directory with `index.rocdown` is a **section**. The sidebar heading is a
-fold control only: clicking it opens or closes the group and does not
-navigate. Peel-by-id still binds the first listed `…/index` as the section
-landing (even when the page title is Overview and the group label is
-Start). The first child is a reserved **Overview** row to that URL. Do
-not print `INDEX` or repeat the section title as that row. A nested
-`dir/nested/index.rocdown` is a named subsection titled from that page, with
-the same Overview-first child. A directory without an index is not a
-section; its pages stay flat in the parent. Two or more listed pages in an
-indexless directory warn `RD2205` (warning, not an error). Visible nesting
-stops at group → subsection → pages. Same-level members share one indent.
+A static catalog is Markdown, `@page`, and article blocks. Hydrate and
+live pages, `service_origin`, and `--cdn-only` are
+[hybrid publish](/docs/rocdown/hybrid/). Page-kind lookup is the
+[language reference](/docs/rocdown/language/).
 
-Use `[[nav.groups]]` under a top-level `[[nav]]` for curated lanes (Docs →
-Start, Templates, …): one header fold per group, landing via Overview. Do not add
-a group merely to recreate a folder; add `index.rocdown` instead. Group items
-are the same page IDs. A section with only groups and no `items` is valid.
-List each subsection index immediately before its members. Folds and
-sibling pages keep that list order; the sidebar does not collect folds
-after leaves. Sidebar groups
-share the same expandable shape and open independently under user control.
-The short transition honors reduced-motion preferences, and explicit
-open/closed choices persist while the user navigates in the same browser tab.
-The Examples group lists generated application overview pages; generated
-source pages remain linked details.
-
-Each page also gets a right-hand “On this page” outline from heading levels 2
-and 3. That rail is documentation-site chrome. A single `.rocdown` file opened
-with `rocdown view` uses the standalone left navigator instead; see
-[Rocdown](/docs/rocdown/language/).
-
-## Layout and site-surface ownership
-
-The catalog validates layout names and supplies page, navigation, breadcrumb,
-journey, and outline data. The project theme owns the visible frame. On
-rocci.dev, `home` is the only sidebar-free layout. Every other published
-page, including FAQ, uses the shared navigated frame. FAQ uses the responsive
-page outline for its questions, while Home keeps authored path cards and its
-live island in source order.
-
-rocci.dev has no News collection, feed, lane, card, or route in the generated
-site. Historical URL redirects and terminal `410` responses are configured at
-the production origin, not encoded as catalog prose or theme behavior.
-
-## Repository validation
-
-From the repository root, the complete local content workflow is:
-
-```sh
-uv run rocci-ops site
-```
-
-It stages `dist/example-docs`, then runs `rocdown check site`, `rocdown test
-site`, and `rocdown build site`. Use those focused commands directly while
-iterating. Rust changes also require `cargo fmt --all -- --check` and the
-narrow owning-crate tests; cross-cutting changes require `cargo test
---workspace`. Knowledge changes require `okmate check
-knowledge --profile base`. Build and rebuild failure tests assert that an
-existing output tree remains intact when catalog validation, CDN-only policy,
-or a watched rebuild fails.
-
-## Generated artifacts
-
-In addition to page HTML, a configured build emits hashed `/assets/` files, a
-themed `404.html`, alias redirect HTML, `llms.txt`, and `pages.json`. When
-`base_url` is set, it also emits `sitemap.xml` and `robots.txt`. `pages.json`
-is the page list used by Cmd/Ctrl-K go-to-page (preview and hosted); it is not
-full-text site search. Same-origin in-page links swap already-rendered HTML
-unless the target is `live` or otherwise needs a full load. Each entry includes
-`kind` (`static`, `hydrate`, or `live`) and `datastar` when Datastar.js was
-emitted for that page. Custom `SiteShell` themes should render
-`view.resources.chrome_script` so the palette ships.
-
-Sites with `live` pages also emit `islands.json`: `service_origin`, the live
-page ids and routes, and the mutation routes the island service serves.
-
-`rocdown inspect artifacts` prints the publish report without invoking Roc:
-page kinds, whether Datastar was emitted, service origin and routes, and the
-planned output tree including hashed asset paths.
-
-`rocdown package` writes that report as `publish.json` in the output tree, plus
-`site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a
-sibling `islands` binary and record live routes plus the binary fingerprint
-unless `--cdn-only` (then `RD2302`). `rocdown serve DIST` hosts the CDN tree
-without rebuilding.
-
-Build this site's content from the repository root with:
-
-```sh
-cargo run -p rocci-rocdown-cli -- build docs
-```
-
-`docs/` is a `static` catalog. Hybrid fixtures such as
-`examples/rocdown/hybrid` and `examples/rocdown/counter` emit CDN HTML plus
-`islands.json`; pass `--cdn-only` only when the publish has no island service.
-The SQLite counter runbook is [Publish a hybrid Rocdown site](/docs/rocdown/hybrid/).
-
-Preview with watch and live reload:
-
-```sh
-cargo run -p rocci-rocdown-cli -- run docs
-cargo run -p rocci-rocdown-cli -- run examples/rocdown/hybrid
-```
-
-`rocdown view` writes to a temp directory by default so it does not replace
-`build.output`. Pass `--output` to keep the preview files. `--no-window` serves
-in the browser only. Static content reloads after a successful rebuild. Hybrid
-sites with colocated handlers proxy the island service on the same origin, and
-handler edits restart that service. A sibling `[http].service` app is still
-started with `rocdown serve-islands` or `rocci run`.
-
-## Open Knowledge Format (OKF)
-
-Knowledge bundles are managed with [okmate](https://github.com/koliyo/okmate) rather than the documentation site generator:
-
-```sh
-okmate check knowledge --profile base
-okmate view knowledge
-```
+Next: [Hybrid](/docs/rocdown/hybrid/) if you need live islands, otherwise
+the [language reference](/docs/rocdown/language/).

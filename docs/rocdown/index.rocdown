@@ -2,52 +2,50 @@
     layout: "docs",
     meta: {
         title: "Rocdown",
-        description: "Experimental Markdown-first document layer. Static pages stay Markdown; live pages reuse Applications.",
+        description: "Write Markdown pages, then optionally configure a site. Live islands are an advanced extra.",
     },
 }
 
 # Rocdown
 
-Rocdown is the optional document layer on the Rocci stack. Write pages in
-Markdown, declare metadata with `@page`, and keep presentation in `.rocci`
-layouts. Rust owns the catalog; Rocci owns the visible shell.
+Rocdown is Markdown with an optional `@page` header. Write documentation
+that way, then add a `rocdown.toml` when you want a site. Live pages that
+reuse Applications are an experimental extra.
 
-This layer is **experimental** — more so than templates. You do not need
-Rocdown to ship an application. Static pages are Markdown-first. Live pages
-reuse the [application](/docs/applications/) layer: same handlers,
-same Datastar transport.
+Until an installed `rocdown` exists, prefix each `rocdown` command with
+`cargo run -q -p rocci-rocdown-cli --` from the repository root.
+
+````rocdown
+@page {
+    meta: {
+        title: "Hello",
+        description: "A small Markdown page",
+    },
+}
+
+# Hello
+
+This paragraph is ordinary Markdown.
+
+:note[title: "Optional"] {{
+    Asides, figures, and tabs are article blocks. They stay Markdown-first.
+}}
+````
+
+Static pages stay Markdown. Hydrate and live pages come later.
+
+You do not need Rocdown to ship an application. This layer is
+**experimental** — more so than templates.
 
 :figure[caption: "A static Rocdown site is catalogued in Rust and wrapped in one compiled theme."] {{
     :img[src: "/assets/diagrams/rocdown-site.svg", alt: "Discover .rocdown pages, resolve the catalog in Rust, render article HTML from Markdown and article blocks, compile the theme once, plan hashed assets CSP and 404, then commit the output tree. Ordinary prose is not type-checked by Roc.", loading: "lazy", decoding: "async"]
 }}
 
-:note[title: "Static pages stay Markdown-first"] {{
-    Ordinary `.rocdown` site pages cannot include `@roc` or `@component`
-    islands yet. Use article blocks such as `:note` and Markdown here; put
-    chrome in a project theme.
-}}
-
-## What to author next
-
 :card-grid.begin
-    :link-card[href: "/docs/rocdown/pages/", title: "Pages", summary: "Declarations, islands, and page links."]
-    :link-card[href: "/docs/rocdown/blocks/", title: "Blocks", summary: "Notes, tabs, figures, and includes."]
-    :link-card[href: "/docs/rocdown/sites/", title: "Sites", summary: "rocdown.toml, navigation, and assets."]
-    :link-card[href: "/docs/rocdown/hybrid/", title: "Hybrid", summary: "CDN HTML plus a live island service. Experimental."]
-    :link-card[href: "/docs/rocdown/language/", title: "Language", summary: "Rocdown lookup: metadata, Markdown, links, themes."]
-    :link-card[href: "/docs/rocdown/cli/", title: "CLI", summary: "check, build, run, and inspect."]
+    :link-card[href: "/docs/rocdown/pages/", title: "Pages", summary: "Write a page, preview it, link it on a site."]
+    :link-card[href: "/docs/rocdown/blocks/", title: "Blocks", summary: "Notes, figures, and tabs."]
+    :link-card[href: "/docs/rocdown/sites/", title: "Sites", summary: "A small rocdown.toml, then check and build."]
+    :link-card[href: "/docs/rocdown/hybrid/", title: "Hybrid", summary: "Two-artifact publish. Experimental."]
+    :link-card[href: "/docs/rocdown/language/", title: "Language", summary: "Lookup: metadata, Markdown, links, kinds."]
+    :link-card[href: "/docs/rocdown/cli/", title: "CLI", summary: "check, build, view, and inspect."]
 :card-grid.end
-
-## Page metadata
-
-```rocdown
-@page {
-    layout: "docs",
-    meta: {
-        title: "Getting Started",
-        description: "Orientation and first success with Rocci",
-    },
-}
-```
-
-Named layouts currently available: `home`, `faq`, `product`, `section`, `docs`, `plain`, and `not-found`.

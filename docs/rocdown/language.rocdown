@@ -120,9 +120,9 @@ kinds belong in the compiled theme.
 | `example` | Display sample with optional `test` metadata |
 | `api-operation` | Reserved; Rocdown reports `RD2406` (not shipped) |
 
-See [Write documentation components](/docs/rocdown/blocks/) for a working
-page. Includes, snippet roots, and `rocdown test` are documented in
-[Rocdown site](/docs/rocdown/sites/).
+See [Article blocks](/docs/rocdown/blocks/) for a working
+page. Includes, snippet roots, and `rocdown test` stay on this lookup
+page and the [Rocdown CLI](/docs/rocdown/cli/).
 
 ## Page metadata
 
@@ -153,8 +153,6 @@ page. Includes, snippet roots, and `rocdown test` are documented in
 Rocdown uses CommonMark with GFM tables, strikethrough, task lists, extended
 URL autolinks, and footnotes. It adds deterministic heading IDs, stable `rd-*`
 classes, language classes on fenced code, wiki links, and page-link resolution.
-When site chrome JavaScript is present, fenced code blocks expose a
-copy-to-clipboard control; the code remains selectable without JavaScript.
 When site chrome JavaScript is present, fenced code blocks expose a
 copy-to-clipboard control; the code remains selectable without JavaScript.
 
@@ -263,7 +261,7 @@ on the Markdown-first path; they do not make a page hydrate or live.
 `:note` (or other article-block) body are errors. `docs/` is a `static` catalog.
 `rocdown view DIR` serves the CDN tree and, for `live` pages, proxies the island
 service on the same local origin. `rocdown serve-islands` runs the mutation
-service by itself. See [Rocdown site configuration](/docs/rocdown/sites/)
+service by itself. See [hybrid publish](/docs/rocdown/hybrid/)
 for the two-artifact publish, `service_origin`, and `--cdn-only`. Draft pages
 are excluded from production builds.
 

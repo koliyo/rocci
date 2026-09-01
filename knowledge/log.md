@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-01
 
+- Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 3: Rocdown user path split — small `sites.rocdown`, blocks is notes/figures/tabs, hybrid absorbs publish, duplicated clipboard sentence removed. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 2: templates and applications guides rewritten; standalone is the Counter teaching page; handlers open from a click-to-update goal; no `templates/first-component`. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 1: Start order is Overview, The stack, Install, Five minutes; Appendix is its own last nav group. Portal, stack, install, and five-minutes rewritten; the reader types `Hello.rocci` and should see **Hello, Ada**. Exploratory; do not log complete until CI and Knowledge succeed.
