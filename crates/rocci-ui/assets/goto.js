@@ -48,7 +48,7 @@
         if (section.getAttribute("data-rocci-nav-section") !== key) {
           continue;
         }
-        if (sectionIsCurrent(section) || section.open) {
+        if (section.open) {
           return true;
         }
       }
@@ -71,7 +71,7 @@
       if (!key) {
         return;
       }
-      writeSectionState(key, sectionIsCurrent(section) || sectionOpenForKey(key));
+      writeSectionState(key, sectionOpenForKey(key));
     };
 
     const rememberAllSections = () => {
@@ -84,9 +84,7 @@
           continue;
         }
         seen[key] = true;
-        if (sectionOpenForKey(key)) {
-          state[key] = true;
-        }
+        state[key] = sectionOpenForKey(key);
       }
       try {
         sessionStorage.setItem(storageKey(), JSON.stringify(state));
@@ -100,12 +98,12 @@
       for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
         const key = section.getAttribute("data-rocci-nav-section");
-        if (sectionIsCurrent(section) || (key && state[key])) {
-          section.open = true;
-          continue;
-        }
         if (key && Object.prototype.hasOwnProperty.call(state, key)) {
           section.open = !!state[key];
+          continue;
+        }
+        if (sectionIsCurrent(section)) {
+          section.open = true;
         }
       }
     };
@@ -165,7 +163,7 @@
             copies[i].open = section.open;
           }
         }
-        writeSectionState(key, sectionIsCurrent(section) || section.open);
+        writeSectionState(key, section.open);
       },
       true
     );
@@ -652,7 +650,12 @@
   };
 
   const syncKeptNav = (nextNav, keepNav) => {
+    const previouslyCurrent = {};
     keepNav.querySelectorAll("[data-rocci-nav-current]").forEach((el) => {
+      const key = el.getAttribute("data-rocci-nav-section");
+      if (key) {
+        previouslyCurrent[key] = true;
+      }
       el.removeAttribute("data-rocci-nav-current");
     });
     keepNav.querySelectorAll(".is-current").forEach((el) => {
@@ -680,7 +683,9 @@
         .querySelectorAll('details[data-rocci-nav-section="' + attrEscape(key) + '"]')
         .forEach((keep) => {
           keep.setAttribute("data-rocci-nav-current", "");
-          keep.open = true;
+          if (!previouslyCurrent[key]) {
+            keep.open = true;
+          }
         });
     });
   };
@@ -1095,6 +1100,9 @@
       }
       const link = closest(event.target, "a[href]");
       if (!link || link.hasAttribute("download") || (link.getAttribute("target") || "") === "_blank") {
+        return;
+      }
+      if (link.closest("details.nav-section > summary")) {
         return;
       }
       const href = link.getAttribute("href") || "";

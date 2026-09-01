@@ -151,6 +151,8 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("rememberAllSections"));
     assert!(GOTO_SCRIPT.contains("sectionOpenForKey"));
     assert!(GOTO_SCRIPT.contains("writeSectionState"));
+    assert!(GOTO_SCRIPT.contains("previouslyCurrent"));
+    assert!(GOTO_SCRIPT.contains("details.nav-section > summary"));
     assert!(GOTO_SCRIPT.contains(".sidebar, .okf-chrome"));
     assert!(GOTO_SCRIPT.contains("#okf-nav, #site-nav"));
     assert!(GOTO_SCRIPT.contains("#okf-main, #main-content"));
@@ -213,4 +215,14 @@ fn test_chrome_templates_compile() {
             compiled.roc
         );
     }
+}
+
+#[test]
+fn nav_list_fold_summary_is_not_a_link() {
+    assert!(
+        !chrome::NAV_LIST.contains("<summary class=\"nav-category\">\n        @if group.href"),
+        "fold titles must toggle only; Overview is the landing link"
+    );
+    assert!(chrome::NAV_LIST.contains("<summary class=\"nav-category\">"));
+    assert!(chrome::NAV_LIST.contains("<span"));
 }
