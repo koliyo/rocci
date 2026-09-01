@@ -1,4 +1,5 @@
 name: Cut release
+run-name: "Cut release: ${{ inputs.spec }}"
 
 on:
   workflow_dispatch:
