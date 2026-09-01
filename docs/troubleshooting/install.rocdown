@@ -28,4 +28,3 @@ documented channel. GitHub Release tarballs are **experimental**.
 Windows development uses the system webview and is **not** in the CI matrix.
 Treat failures there as unverified. Prefer macOS or Linux for first success.
 
-**Related:** [Compatibility](/docs/reference/compatibility/).

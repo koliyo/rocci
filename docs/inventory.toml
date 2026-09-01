@@ -5,7 +5,7 @@
 #
 # Approval (2026-08-22, confirmed Phase 0; not reopened):
 # - Nav labels: Start, Templates, Applications, Rocdown, Reference,
-#   Troubleshooting.
+#   Troubleshooting, Appendix.
 # - Rocdown lives at /docs/rocdown/. No top-level /rocdown/ lane.
 # - Clean-cut URLs: no @page aliases, no vanity prefixes, no redirects.
 # - Academy chrome (Kind / Prerequisites / You will / Time / Next) is banned
@@ -38,6 +38,7 @@ nav_labels = [
     "Rocdown",
     "Reference",
     "Troubleshooting",
+    "Appendix",
 ]
 examples_lane = "/examples/"
 playground_lane = "/playground/"

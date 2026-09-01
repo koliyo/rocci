@@ -2,40 +2,33 @@
     layout: "docs",
     meta: {
         title: "Custom applications",
-        description: "Own main.roc after the generated standalone boundary. Reuse .rocci modules; Datastar stays transport.",
+        description: "Own main.roc after the generated standalone boundary. Reuse .rocci modules.",
     },
 }
 
 # Custom applications
 
-Generated standalone apps are the right default. Switch to authored `main.roc`
-when you need custom routing, extra platform effects, or a shape the
-generator does not cover. Reuse `.rocci` components either way.
+Start with a standalone app. Switch to authored `main.roc` when you need
+custom routing, extra platform effects, or a shape the generator does not
+cover. Reuse `.rocci` components either way.
 
-Start with [Notes](/examples/notes/) for Roc-centered custom development
-(`main.roc` plus Rocci templates). The [Datastar gallery](/examples/datastar/)
-is the pattern gallery. [Snake](/examples/snake/) is the advanced
-custom-runtime ceiling. [Rocci Blocks](/examples/blocks/) stays standalone;
-it is not a `main.roc` app.
+The default custom app is [Notes](/examples/notes/) (`main.roc` plus
+Rocci templates). The [Datastar gallery](/examples/datastar/) is the
+pattern gallery. [Snake](/examples/snake/) is an advanced multiplayer
+stress demo. [Rocci Blocks](/examples/blocks/) stays standalone; it is
+not a `main.roc` app.
 
-`rocci run examples/rocci/custom/notes --no-window` serves `/`.
-
-## Directory apps
+## Run Notes
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/rocci/custom/notes --no-window
-curl -s http://127.0.0.1:8000/ | grep -E 'notes|Add'
+rocci run examples/rocci/custom/notes --no-window
 ```
 
-`rocci run` on a directory that contains `main.roc` is a custom app: it
-compiles sibling `.rocci` modules and starts the authored Roc program.
-`@get:view` / `@method:fragment` on those modules are not the generated
-standalone dispatcher; `main.roc` owns HTTP. A directory without `main.roc`
-is a [standalone app](/docs/applications/standalone/).
-
-Open [Notes](/examples/notes/) and use the sidebar source list.
-
-The server still owns HTML. Datastar remains transport.
+Open `/`. You should see the notes UI. A directory that contains
+`main.roc` is a custom app: `rocci run` compiles sibling `.rocci` modules
+and starts the authored Roc program. Those modules are not the generated
+standalone dispatcher; `main.roc` owns HTTP. A directory without
+`main.roc` is a [standalone app](/docs/applications/standalone/).
 
 ## Pattern gallery
 
@@ -50,15 +43,13 @@ interaction patterns with authored `main.roc`:
 | `/tabs` | lazy tabs |
 | `/validate` | inline validation |
 
-## Snake is the ceiling
+## Advanced demo
 
-[Snake](/examples/snake/) is an explicitly advanced **Datastar + Rocci
-multiplayer stress demo**: a hand-written SSE unfold that morphs a full board
-at ~8 Hz so you can watch live stream bandwidth. Do not copy that unfold into
-ordinary apps; generated `@get:live` already emits the poll loop. Use Snake
-when you need a custom ceiling the generator does not cover, or when you want
-to measure morph cost. Do not treat [Rocci Blocks](/examples/blocks/) as a
-custom-main example.
+[Snake](/examples/snake/) is a Datastar + Rocci multiplayer stress demo:
+a hand-written SSE unfold that morphs a full board at about 8 Hz so you
+can watch live stream bandwidth. Do not copy that unfold into ordinary
+apps; generated `@get:live` already emits the poll loop. Use it when you
+need a custom runtime the generator does not cover, or when you want to
+measure morph cost.
 
-**Related:** [Applications](/docs/applications/),
-[Package](/docs/applications/package/).
+Next: [Workflow](/docs/applications/tooling/).

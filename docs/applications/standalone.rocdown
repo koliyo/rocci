@@ -2,34 +2,24 @@
     layout: "docs",
     meta: {
         title: "Standalone applications",
-        description: "A standalone app is a directory of modules. rocci run generates the server. Counter is the first app.",
+        description: "Run Counter: SQLite init, a document, an increment patch, and what you should see.",
     },
 }
 
 # Standalone applications
 
-A standalone **app** is a directory of `.rocci` **modules**. Process
-`@context` / `@init` occur at most once in that tree (or not at all).
-`rocci run <dir>` picks the unique entry; `rocci run File.rocci` still
-names the primary and loads siblings. `rocci.toml` may set `[app].entry`.
-You do not write `main`. `apps.toml` is the site catalog, not a run
-manifest.
+You will run Counter: a SQLite count, a page with Increment, and a patch
+that updates the card. Rocci generates the server. You do not write
+`main`.
 
-Canonical source: [Counter](/examples/counter/) ·
+Complete source: [Counter](/examples/counter/) ·
 [Counter.rocci](/examples/counter/source/Counter-rocci/).
-Do not copy the file into `docs/`.
 
-GET `/` contains `#counter`. POST increment returns a
-`datastar-patch-elements` event.
+## Open SQLite
 
-This first app is **one-shot**. Increment morphs `#counter` in the acting tab
-only. Shared streams are [handlers](/docs/applications/handlers/).
-
-## State and initialization
-
-`@context` declares the value generated `main` threads through handlers.
-`@init` opens SQLite and creates the row. Failures here exit the process.
-Components stay pure.
+`@context` is the value generated `main` threads through handlers.
+`@init` opens the database and creates the row. Failures here exit the
+process. Components stay pure.
 
 ```rocci
 @context { db : Sqlite.Db }
@@ -40,18 +30,21 @@ Components stay pure.
 }
 ```
 
-## The document
+The cataloged file also creates the `counter` table and a starting row.
+
+## Return a document
 
 `@get:view("/")` returns a full HTML document. The increment control is a
-real `<button>` with an unquoted Rocci action:
+real `<button>` with an unquoted Rocci action. The card uses
+`id="counter"` so the later patch has a morph target.
 
 ```rocci
-data-on:click=@post("/actions/counter/increment")
+<button data-on:click=@post("/actions/counter/increment")>
+    Increment
+</button>
 ```
 
-The card uses `id="counter"` so the later patch has a morph target.
-
-## The one-shot patch
+## Patch the card
 
 ```rocci
 @post:fragment("/actions/counter/increment") = |{ db }| {
@@ -63,25 +56,21 @@ The card uses `id="counter"` so the later patch has a morph target.
 `?` on SQLite becomes a 500 if the query fails. There is no `@log` and no
 logging from `@component`.
 
+This first app is **one-shot**. Increment morphs `#counter` in the acting
+tab only. Shared streams are [handlers](/docs/applications/handlers/).
+
+## Run it
+
 ```sh
-cargo run -q -p rocci-cli -- run \
-  examples/rocci/standalone/counter --no-window --log-handlers
-cargo run -q -p rocci-cli -- run \
-  examples/rocci/standalone/counter/Counter.rocci --no-window --log-handlers
+rocci run examples/rocci/standalone/counter --no-window --log-handlers
 ```
 
-## Composition stays standalone
+Open the printed URL (default `http://127.0.0.1:8000/`). You should see
+the Counter page, GET `/` is 200, and the card has `id="counter"`. Click
+**Increment**: the number in the card goes up. Drop `--no-window` to use
+the native preview.
 
-Split components, render lists with `@for`, variants with `@match`, and forms
-without leaving generated dispatch. Point `rocci run` and
-`rocci build --http-module` at the **entry** `.rocci` (the file with `@init`
-and routes). Sibling `.rocci` files and authored `.roc` helpers in the
-standalone tree are compiled in; do not pass a directory or a file list.
-[Live counter](/examples/live-counter/) is `LiveCounter.rocci` plus
-`LiveCounterUi.rocci` and `Origin.roc`. Nested apps such as
-[Rocci Blocks](/examples/blocks/) put handlers in `backend/` and markup in
-`ui/` behind an app-root `rocci.toml`. Custom `main.roc` is a later ownership
-step, not a requirement for composition.
+`rocci run` on that directory picks the unique entry. `rocci run
+Counter.rocci` still names the primary and loads sibling modules.
 
-**Related:** [Handlers](/docs/applications/handlers/),
-[Server](/docs/reference/language/server/).
+Next: [Handlers](/docs/applications/handlers/).

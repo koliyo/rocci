@@ -8,8 +8,8 @@
 
 # Compatibility
 
-This is the public **support matrix**. **Status:** development `main`. Claims
-are as tested in this repository, not a stability promise.
+As tested in this repository, not a stability promise. Development
+`main`.
 
 | Surface | As tested |
 | --- | --- |
@@ -30,4 +30,3 @@ are as tested in this repository, not a stability promise.
 GitHub Release archives (macOS aarch64, Linux x86_64) are **experimental**.
 crates.io is not an install path (**removed** / absent).
 
-**Related:** [Install](/docs/install/), [Project status](/project/status/).

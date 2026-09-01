@@ -8,7 +8,11 @@
 
 # Comments, escaping, and whitespace
 
-**Status:** current.
+```rocci
+## Greeting used by the page.
+@component Hello = |{ name }|
+    <p>Hello, {name}</p>
+```
 
 | Form | Where | Effect |
 | --- | --- | --- |
@@ -25,4 +29,3 @@ pages.
 Indentation-only whitespace around tags is discarded. Inline spaces in
 `Hello, {name}` are kept.
 
-**Related:** [Examples declaration docs](/examples/).

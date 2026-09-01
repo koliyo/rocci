@@ -2,25 +2,28 @@
     layout: "docs",
     meta: {
         title: "Templates",
-        description: "When .rocci templates are enough: components, markup, directives, and scoped CSS.",
+        description: "Write HTML in Roc: components, markup, directives, and scoped CSS.",
     },
 }
 
 # Templates
 
-`.rocci` templates are HTML for Roc: `@component`, `@css`,
-markup, and directives. A PascalCase component lowers to a pure Roc `Html`
-function.
+A `.rocci` file is HTML for Roc. You declare a PascalCase `@component`,
+it lowers to a pure function that returns `Html`, and you preview it
+without a server.
 
-Stop here if you only preview components into an existing `main.roc`. You do
-not need the Applications layer until you want generated dispatch or you
-own routing yourself.
+Until an installed `rocci` exists, prefix each `rocci` command with
+`cargo run -q -p rocci-cli --` from the repository root.
 
 :card-grid.begin
-    :link-card[href: "/docs/templates/components/", title: "Components", summary: "Declare, call, and preview. Cataloged styling example."]
+    :link-card[href: "/docs/templates/components/", title: "Components", summary: "Declare, call, preview, and fixtures."]
     :link-card[href: "/docs/templates/markup/", title: "Markup", summary: "Tags, attributes, interpolations, scoped CSS, stable ids."]
     :link-card[href: "/docs/templates/directives/", title: "Directives", summary: "@if, @for, @match, @let."]
 :card-grid.end
+
+Stop here if you only preview components into an existing `main.roc`. You
+do not need Applications until you want generated dispatch or you own
+routing yourself.
 
 Exact forms: [language reference](/docs/reference/language/).
 When you need HTTP: [Applications](/docs/applications/).

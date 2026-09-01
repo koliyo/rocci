@@ -31,5 +31,5 @@ cargo run -q -p rocci-rocdown-cli -- COMMAND
 
 `rocdown` refuses OKF knowledge records; use [okmate](https://github.com/koliyo/okmate).
 
-See [Write Rocdown pages](/docs/rocdown/pages/), [Article blocks](/docs/rocdown/blocks/),
+See [Write a Rocdown page](/docs/rocdown/pages/), [Article blocks](/docs/rocdown/blocks/),
 and [Site configuration](/docs/rocdown/sites/).

@@ -1,23 +1,18 @@
 @page {
     layout: "docs",
     meta: {
-        title: "Write Rocdown pages",
-        description: "Author Markdown-first pages with explicit metadata, Roc values, components, rendered regions, and links.",
+        title: "Write a Rocdown page",
+        description: "Author a Markdown page, preview it, and link it on a site.",
     },
 }
 
 # Write a Rocdown page
 
-Rocdown keeps prose portable and makes executable regions visible. Start with
-ordinary Markdown, then add a document-root declaration only where the page
-needs structure or behavior.
-
-## Start with page metadata
+Start with ordinary Markdown. Add `@page` when you need a title, layout,
+or a stable route.
 
 ````rocdown
 @page {
-    route: "/guides/hello/",
-    draft: False,
     meta: {
         title: "Hello from Rocdown",
         description: "A small Markdown-first page",
@@ -29,48 +24,48 @@ needs structure or behavior.
 This paragraph is ordinary Markdown.
 ````
 
-Rocdown can derive routes from file paths, so documentation sites usually omit
-`route`. Use an explicit route when an existing URL must stay stable.
+Rocdown can derive routes from file paths, so documentation sites usually
+omit `route`. Use an explicit route when an existing URL must stay
+stable.
 
-On a catalog site, `index.rocdown` is the section landing for its directory
-(`guides/index` → `/guides/`). The sidebar heading only opens or closes the
-fold; the first child is a reserved Overview row to that landing (not a
-second authored file). A nested directory needs its own index to become a
-named subsection. See [Rocdown site configuration](/docs/rocdown/sites/).
-
-## Display code safely
-
-Fenced code is always display-only, even if the language is `roc`, `rocci`, or
-`rocdown`:
-
-````markdown
-```roc
-answer = 42
-```
-````
-
-This rule prevents a documentation example from silently becoming build-time
+Fenced code is always display-only, even if the language is `roc`,
+`rocci`, or `rocdown`. A documentation example does not become build-time
 or runtime code.
 
-## Add Roc values and components
+## Preview
 
-For standalone Rocdown preview, a page can colocate Roc and Rocci:
+```sh
+rocdown view hello.rocdown
+```
 
-````rocdown
-@roc {
-published = "2026-08-16"
-}
+Standalone preview uses the default reading shell. Pages with H2 or H3
+headings get an “On this page” navigator. Site builds keep a separate
+outline inside documentation chrome.
 
-@component Byline = |{ date }|
-    <p>Published {date}</p>
+## Links that work on a site
 
-# Article title
+On a Rocdown site, prefer stable absolute routes:
 
-<Byline date={published} />
-````
+```markdown
+Read the [Rocdown language](/docs/rocdown/language/).
+```
 
-Or splice the same `Str` into Markdown prose with `@{expr}` (the page is
-`hydrate`; do not use this on static `docs/` catalog pages):
+Sibling preview also understands `[[Page]]` and `[label](Page.rocdown)`.
+Do not point user docs at a knowledge bundle.
+
+On a catalog site, `index.rocdown` is the section landing for its
+directory. Nested directories and Overview rows are in
+[site configuration](/docs/rocdown/sites/) and the
+[contributor checklist](/docs/reference/contributor/checklist/).
+
+For asides, figures, and tabs, see
+[Article blocks](/docs/rocdown/blocks/).
+
+## Hydrate a value into Markdown
+
+This heading is optional. `@{expr}` splices a Roc `Str` from `@roc` into
+prose. The page becomes `hydrate`. Do not use it on static `docs/`
+catalog pages (`RD2303`).
 
 ````rocdown
 @roc {
@@ -80,54 +75,7 @@ published = "2026-08-16"
 Published @{published}.
 ````
 
-`@roc` holds Roc values and helpers. On `live` pages, import `pf.Sqlite` in
-`@roc` and call those helpers from `@method:fragment` / `@method:command` / `@init`. Document-root component
-tags and directives are explicit islands in the Markdown stream. Inline HTML in
-a Markdown paragraph is disabled by default.
+Live pages that run handlers are
+[hybrid publish](/docs/rocdown/hybrid/).
 
-`rocdown build` accepts `static` pages (Markdown, `@page`, and article blocks),
-splices pure Rocci on `hydrate` pages, and emits Datastar plus an island
-service for `live` pages. `@use` stays a site-build error. See
-[Publish a hybrid Rocdown site](/docs/rocdown/hybrid/).
-
-For asides, steps, includes, and tabs, see
-[Write documentation components](/docs/rocdown/blocks/).
-
-## Link pages
-
-Standalone previews understand wiki links, Rocdown file links, and nested
-relative Markdown links:
-
-```markdown
-See [[Interactive]] or [the interactive guide](Interactive.rocdown).
-
-This plan follows [the product-boundary decision](knowledge/decisions/consolidate-rocdown-product-boundary.md).
-```
-
-For a Rocdown site, stable absolute routes are the clearest current form:
-
-```markdown
-Read the [Rocdown reference](/docs/rocdown/language/).
-```
-
-## Preview and publish
-
-Preview one page and the documents it links to:
-
-```sh
-cargo run -p rocci-rocdown-cli -- run docs/guide.rocdown
-```
-
-Standalone preview uses the default Paper (or selected) reading shell. Pages
-with H2 or H3 headings get a left “On this page” navigator that scrolls to the
-same heading IDs. Rocdown site builds keep a separate right-hand outline inside
-documentation chrome.
-
-Build a static documentation tree:
-
-```sh
-cargo run -p rocci-rocdown-cli -- build docs
-```
-
-Rocdown reads `docs/rocdown.toml`, validates its curated navigation, compiles the
-Rocdown site theme, and writes the configured output directory atomically.
+Next: [Article blocks](/docs/rocdown/blocks/).

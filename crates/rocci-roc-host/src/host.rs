@@ -77,7 +77,10 @@ impl NativeHost {
         fingerprints: &[InputFingerprint],
     ) -> Result<(PathBuf, bool)> {
         let target = format!("native:{}", env::consts::ARCH);
-        if let Some(cached_bin) = self.cache.lookup_renderer(compile_hash, &target) {
+        if let Some(cached_bin) = self
+            .cache
+            .lookup_renderer(compile_hash, &target, fingerprints)
+        {
             return Ok((cached_bin, false));
         }
 
@@ -139,7 +142,7 @@ impl WasmHost {
         fingerprints: &[InputFingerprint],
     ) -> Result<(PathBuf, bool)> {
         let target = "wasm32";
-        if let Some(cached_bin) = cache.lookup_renderer(compile_hash, target) {
+        if let Some(cached_bin) = cache.lookup_renderer(compile_hash, target, fingerprints) {
             return Ok((cached_bin, false));
         }
 

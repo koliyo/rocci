@@ -4,7 +4,7 @@ title: Restructure rocci.dev docs around the layered stack
 description: Replace the Diátaxis academy chrome and Rocci-only learning path with a stack-first /docs/ corpus. Rocdown lives at /docs/rocdown/. Clean-cut URLs; no aliases.
 tags: [domain/rocci, domain/rocdown, concern/publication, concern/developer-experience, concern/architecture, concern/navigation]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T12:52:00Z }
+generated: { by: process:cursor, at: 2026-09-01T11:55:00Z }
 stale_after: 2026-11-22
 authority: exploratory
 owners: [human:nils]
@@ -64,6 +64,16 @@ sources:
     title: Rocci stack composition rules
     author: process:git
     last_modified: 2026-08-22
+  - id: editorial-audit
+    resource: ../../audits/site/docs-editorial-quality.md
+    title: Public Rocci docs editorial review
+    author: process:cursor
+    last_modified: 2026-09-01
+  - id: editorial-plan
+    resource: docs-editorial-polish.md
+    title: Polish public Rocci documentation prose and page jobs
+    author: process:cursor
+    last_modified: 2026-09-01
 ---
 
 # Restructure rocci.dev docs around the layered stack
@@ -91,6 +101,14 @@ The current seven-group sidebar, sibling Rocdown lane, and Rocci-only
 portal/inventory vocabulary are the baseline this rewrite replaces.[^docs-nav][^site-nav][^docs-index][^inventory]
 
 The record is exploratory. Writing it does not start a phase.
+
+Follow-on: the landed corpus followed this writing contract and is
+accurate, but reads as compressed coverage. Editorial rewrite of page
+jobs and sentences is [polish public Rocci documentation](docs-editorial-polish.md)
+(audit: [editorial review](/audits/site/docs-editorial-quality.md)). Phase 0
+of that plan amends the writing contract below: teaching pages may open
+with what the reader will do and close with one Next link. It does not
+reopen stack-layer nav, Kind / Time / difficulty badges, or aliases.[^editorial-audit][^editorial-plan]
 
 ## Goal
 
@@ -128,7 +146,7 @@ Give a programmer one `/docs/` manual that:
 | --- | --- |
 | Stack story | Public docs describe the four layers in the research. Standalone and custom are two depths of Applications, not two products. Rocdown is optional and experimental. |
 | One docs corpus | `/docs/` covers templates, applications, and Rocdown. The layer path is `/docs/rocdown/`. There is no top-level `/rocdown/` lane. |
-| No academy chrome | Page bodies do not open with Prerequisites, Kind, You will learn/do, Time, or Next. Catalog journey may still render previous/next. |
+| No academy chrome | Page bodies do not use Prerequisites, Kind, Time, or difficulty badges. Teaching pages may open with what the reader will do and close with one Next link. Catalog journey may still render previous/next. Do not restore academy URL aliases. |
 | Clean-cut URLs | No `@page` aliases, no vanity prefixes, no redirects from retired academy or product-lane routes. Rewrite every internal link in the same change. Old URLs 404. |
 | One fact, one owner | Each contract has one canonical reference page. Guides summarize and link. |
 | Truth | Current behavior comes from code, tests, crate READMEs, and runnable examples. |
@@ -192,13 +210,23 @@ the tutorial" framing. Do not also keep `/docs/start/five-minutes/`.
 
 ### Writing contract
 
-- First paragraph states the layer and the job of the page.
-- No `Kind:` line. No handwritten course metadata.
-- `Verify` only where a command is specified.
-- Layer landings say when to stop (you do not need Rocdown to ship an
-  app; you do not need Applications if you only preview components into
-  an existing `main.roc`).
+Amended by [editorial polish](docs-editorial-polish.md). Keep the
+stack-layer map; change page jobs and sentence shape.
+
+- Teaching pages open with what the reader will do, or with a complete
+  small example, not “this page is the X-layer guide.”
+- Teaching pages may close with one Next link. Do not grow Kind, Time,
+  difficulty badges, or a Prerequisites course.
+- Reference pages open with syntax or a table. Status notes come after
+  the form, and only when experimental or removed.
+- Layer landings may say when to stop, after the example or as a
+  landing-only note (you do not need Rocdown to ship an app; you do not
+  need Applications if you only preview components into an existing
+  `main.roc`).
 - Guides use one cataloged example. Reference owns forms and errors.
+- `Verify` only where a command is specified.
+- Do not start user pages with coverage diction (“this section is not
+  reviewed”, “do not copy the file into `docs/`”).
 
 ### Home
 
@@ -488,8 +516,9 @@ Still required before Phase 1 if not already accepted:
 ## Acceptance
 
 - `/docs/` leads with the stack. Rocdown is a layer, not a warning.
-- No public page uses Kind / Prerequisites / You will / Time / Next
-  chrome.
+- No public page uses Kind / Prerequisites / Time / difficulty chrome.
+  Teaching pages may use a You-will opener and one Next closer per
+  [editorial polish](docs-editorial-polish.md).
 - A reader can preview a component, understand standalone versus custom,
   and open `/docs/rocdown/` without changing site lanes.
 - Reference remains the Rocci lookup owner. Rocdown language and CLI live
@@ -508,3 +537,5 @@ Still required before Phase 1 if not already accepted:
 [^docs-index]: Portal text that sends Rocdown out of the learning path.
 [^site-home]: Peer cards for Getting started versus Rocdown.
 [^stack-skill]: Authoritative layer ownership used as the public composition source.
+[^editorial-audit]: Landed `/docs/` is accurate but reads as generated coverage; stack nav is not the failure.
+[^editorial-plan]: Follow-on: rewrite page jobs and sentences; do not restore academy groups.

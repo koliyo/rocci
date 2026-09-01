@@ -8,7 +8,11 @@
 
 # Attributes and actions
 
-**Status:** current.
+```rocci
+<button class="primary" disabled data-on:click=@post("/actions/x")>
+    Save
+</button>
+```
 
 | Form | Meaning |
 | --- | --- |
@@ -32,4 +36,3 @@ when missing. A second argument is a `List` of option tags and lowers to
 
 **Errors:** `@post('/x')` with single quotes is a parse error.
 
-**Related:** [Server declarations](/docs/reference/language/server/), [Runtime](/docs/reference/runtime/).

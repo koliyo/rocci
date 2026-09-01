@@ -8,8 +8,6 @@
 
 # Tests
 
-**Status:** current.
-
 ```rocci
 @test helloNamePresent = Bool.true
 
@@ -30,5 +28,3 @@ file. Files with no `@test` exit 0.
 **Errors:** `@test` inside a component body; unknown `fixture` name; unknown
 attribute; missing name or `=`.
 
-**Related:** [Fixtures](/docs/reference/language/fixtures/),
-[CLI test](/docs/reference/cli/#test).

@@ -47,6 +47,42 @@ impl InputFingerprint {
         }
     }
 
+    pub fn drift_from(expected: &[Self], stored: &[Self]) -> Option<String> {
+        if expected.is_empty() {
+            return None;
+        }
+        if stored.is_empty() {
+            return Some("missing fingerprints.json".into());
+        }
+        let mut expected_sorted = expected.to_vec();
+        let mut stored_sorted = stored.to_vec();
+        expected_sorted.sort_by(|a, b| a.path.cmp(&b.path));
+        stored_sorted.sort_by(|a, b| a.path.cmp(&b.path));
+        let mut expected_i = 0;
+        let mut stored_i = 0;
+        while expected_i < expected_sorted.len() || stored_i < stored_sorted.len() {
+            match (expected_sorted.get(expected_i), stored_sorted.get(stored_i)) {
+                (Some(want), Some(have)) if want.path == have.path => {
+                    if want.sha256 != have.sha256 {
+                        return Some(format!("{} changed", want.path));
+                    }
+                    expected_i += 1;
+                    stored_i += 1;
+                }
+                (Some(want), Some(have)) if want.path < have.path => {
+                    return Some(format!("{} added", want.path));
+                }
+                (Some(_), Some(have)) => {
+                    return Some(format!("{} removed", have.path));
+                }
+                (Some(want), None) => return Some(format!("{} added", want.path)),
+                (None, Some(have)) => return Some(format!("{} removed", have.path)),
+                (None, None) => break,
+            }
+        }
+        None
+    }
+
     pub fn matches_file(&self, base_dir: &Path) -> bool {
         let full_path = base_dir.join(&self.path);
         let Ok(meta) = fs::metadata(&full_path) else {
@@ -80,4 +116,43 @@ fn hex_sha256(hasher: Sha256) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::InputFingerprint;
+
+    fn fp(path: &str, sha: &str) -> InputFingerprint {
+        InputFingerprint {
+            path: path.into(),
+            len: 0,
+            mtime_ns: 0,
+            sha256: sha.into(),
+        }
+    }
+
+    #[test]
+    fn drift_reports_changed_and_added_inputs() {
+        let stored = [fp("NavList.rocci", "aaa"), fp("Views.roc", "bbb")];
+        let same = [fp("Views.roc", "bbb"), fp("NavList.rocci", "aaa")];
+        assert_eq!(InputFingerprint::drift_from(&same, &stored), None);
+        let changed = [fp("NavList.rocci", "ccc"), fp("Views.roc", "bbb")];
+        assert_eq!(
+            InputFingerprint::drift_from(&changed, &stored).as_deref(),
+            Some("NavList.rocci changed")
+        );
+        let added = [
+            fp("NavList.rocci", "aaa"),
+            fp("Views.roc", "bbb"),
+            fp("Html.roc", "ddd"),
+        ];
+        assert_eq!(
+            InputFingerprint::drift_from(&added, &stored).as_deref(),
+            Some("Html.roc added")
+        );
+        assert_eq!(
+            InputFingerprint::drift_from(&same, &[]).as_deref(),
+            Some("missing fingerprints.json")
+        );
+    }
 }

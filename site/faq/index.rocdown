@@ -8,41 +8,49 @@
 
 # Frequently Asked Questions
 
-:caution {{
-    This page was automatically generated. Treat answers as orientation, not a
-    reviewed contract.
-}}
-
-Use this page for orientation. Follow the linked guide when you need the full contract.
+Short answers. Follow the linked page when you need the contract.
 
 ## What is Rocci?
 
-Rocci is an experimental toolchain for writing HTML interfaces in Roc. `.rocci` templates lower to ordinary Roc; standalone server declarations can produce HTTP applications. Start with [the stack](/docs/the-stack/).
+Rocci lets you write HTML in Roc, run a small app from `.rocci` files, and
+optionally publish Markdown on that same stack. Start with
+[the stack](/docs/the-stack/).
 
 ## Is Rocci a client-side JavaScript framework?
 
-No. Rocci renders semantic HTML from Roc. Interactive applications can use Datastar as a browser transport for requests, HTML patches, commands, and shared streams; durable state remains on the server. Read [Handlers](/docs/applications/handlers/).
+No. Rocci renders HTML from Roc. Datastar is the browser transport for
+requests, patches, commands, and streams. Durable state stays on the
+server. Read [Handlers](/docs/applications/handlers/).
 
 ## When should I use `.rocci` or `.rocdown`?
 
-Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when prose leads, then use `.rocci` for the visible site shell and reusable painters. See [Rocdown pages](/docs/rocdown/pages/).
+Use `.rocci` when view structure and Roc logic lead. Use `.rocdown` when
+prose leads, then `.rocci` for the site shell. See
+[Rocdown pages](/docs/rocdown/pages/).
 
 ## Can Rocdown publish interactive pages?
 
-Yes. A hybrid site can publish CDN HTML and run a sibling island service for pages with server handlers. The current v1 path uses existing component and handler declarations; the reserved `@island` syntax is not implemented. See [Publish a hybrid site](/docs/rocdown/hybrid/).
+Yes, as an experimental extra. A hybrid site publishes CDN HTML and runs
+a sibling island service for pages with handlers. The reserved `@island`
+syntax is not implemented. See
+[Publish a hybrid site](/docs/rocdown/hybrid/).
 
 ## Can I build desktop applications?
 
-`rocci run` can open a Tao/Wry preview window, and `rocci bundle` can create a local, ad-hoc-signed macOS application bundle. Production signing, installers, updates, and broad native APIs are not shipped. See [Runtime compatibility](/docs/reference/compatibility/).
+`rocci run` can open a preview window, and `rocci bundle` can create a
+local, ad-hoc-signed macOS `.app`. Production signing, installers, and
+updates are not shipped. See
+[Compatibility](/docs/reference/compatibility/).
 
 ## Is Rocci ready for production adoption?
 
-Treat it as an active experiment. Evaluate the implemented surface and current limitations in [Project status](/project/status/); do not infer support from an uncited platform or performance claim.
+Treat it as an active experiment. Current limits are on
+[Project status](/project/status/).
 
 ## How do I send feedback?
 
-Use GitHub issues as the single public feedback URL:
+Use GitHub issues:
 [github.com/koliyo/rocci/issues](https://github.com/koliyo/rocci/issues).
 Pick the **bug** or **docs** form. Do not open a pull request expecting a
-merge. Security reports go to [SECURITY.md](https://github.com/koliyo/rocci/blob/main/SECURITY.md),
-not the issue tracker.
+merge. Security reports go to
+[SECURITY.md](https://github.com/koliyo/rocci/blob/main/SECURITY.md).

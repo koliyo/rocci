@@ -27,4 +27,3 @@ Hard-reload the browser tab after a failed compile.
 `rocci browse` is the component gallery only. It does not open a project
 picker or launch other products.
 
-**Related:** [Compatibility](/docs/reference/compatibility/).

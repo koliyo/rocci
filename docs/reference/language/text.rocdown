@@ -8,7 +8,9 @@
 
 # Text and interpolation
 
-**Status:** current.
+```rocci
+<p>Hello, <strong>{name}</strong></p>
+```
 
 `{expr}` in text or attribute position is a Roc expression. Markup is not
 allowed inside it.
@@ -22,4 +24,3 @@ allowed inside it.
 **Errors:** `{if active { <Icon /> }}` is rejected. Use `@if` or a named
 render function.
 
-**Related:** [Directives](/docs/reference/language/directives/).

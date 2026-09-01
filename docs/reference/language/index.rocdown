@@ -8,8 +8,8 @@
 
 # Rocci language reference
 
-A `.rocci` file is a Roc module with explicit template and server declarations.
-Everything outside recognized `@` forms stays Roc. This page is the map; each
+A `.rocci` file is a Roc module with explicit template and server
+declarations. Everything outside recognized `@` forms stays Roc. Each
 subpage is the canonical contract.
 
 | Page | Covers |

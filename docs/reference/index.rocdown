@@ -2,25 +2,26 @@
     layout: "docs",
     meta: {
         title: "Reference",
-        description: "Look up Rocci language, runtime, CLI, configuration, diagnostics, and status contracts.",
+        description: "Look up Rocci language, runtime, CLI, configuration, diagnostics, and compatibility.",
     },
 }
 
 # Reference
 
-This section is **not reviewed**. Treat it as a lookup index, not a
-first-read path. Each contract has one owner. Guides summarize and link here.
+Look up exact forms here. Guides show one worked case and link.
 
 - [Language](/docs/reference/language/) — `.rocci` syntax
 - [Runtime and HTTP](/docs/reference/runtime/) — handler responses and lifecycle
-- [CLI](/docs/reference/cli/) — `rocci` commands only
+- [CLI](/docs/reference/cli/) — `rocci` commands
 - [Configuration](/docs/reference/configuration/) — `rocci.toml`
 - [Compatibility](/docs/reference/compatibility/) — platforms and toolchains
-- [Diagnostics](/docs/reference/diagnostics/) — failure phases and messages
-- [Contributor](/docs/reference/contributor/) — tree specs and the docs-PR checklist
-- [Rocdown language](/docs/rocdown/language/) and [Rocdown CLI](/docs/rocdown/cli/) — document-layer lookup
+- [Diagnostics](/docs/reference/diagnostics/) — `RCxxxx` codes
+
+Rocdown lookup lives under [Rocdown language](/docs/rocdown/language/) and
+[Rocdown CLI](/docs/rocdown/cli/).
 
 Guides: [Templates](/docs/templates/), [Applications](/docs/applications/).
 Composition: [the stack](/docs/the-stack/).
 Terms: [Glossary](/docs/appendix/glossary/).
-Known limits: Project status on the public site (`/project/status/`).
+
+Maintainers: [Contributor](/docs/reference/contributor/).

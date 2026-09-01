@@ -8,11 +8,13 @@
 
 # Applications
 
-Applications add HTTP structure around `.rocci` templates. Standalone and
-custom are two depths of this layer, not two products.
+Applications add HTTP around `.rocci` templates. Start standalone: you
+declare state, a page, and a button action; Rocci generates the server.
+Switch to `main.roc` when you need routes or a platform that generator
+does not give you.
 
-Stop here if you only preview components. You do not need Rocdown to ship
-an app.
+Until an installed `rocci` exists, prefix each `rocci` command with
+`cargo run -q -p rocci-cli --` from the repository root.
 
 :figure[caption: "rocci run serves one HTTP origin. Datastar morphs HTML. Ship a server or an ad-hoc app."] {{
     :img[src: "/assets/diagrams/runtime.svg", alt: "rocci run compiles .rocci modules, writes generated or authored main.roc, and roc compiles a loopback HTTP origin. The preview window loads that origin. GET view returns a document, POST fragment morphs HTML by id, POST command returns empty SSE or 204, and GET live polls a stream. rocci build --release writes a server plus assets; rocci bundle writes an ad-hoc macOS app.", loading: "lazy", decoding: "async"]
@@ -23,17 +25,13 @@ an app.
 | Standalone | `@context`, `@init`, `@get:view`, optional fragment / command / live routes | Generate dispatch, `/assets`, `/health`, and authored live paths |
 | Custom | `main.roc` plus `.rocci` modules | Compile sibling modules and start your Roc program |
 
-Stay standalone until generated dispatch is in the way: extra routes, a
-different platform, or a runtime the dispatcher does not express. Reuse
-components; do not re-implement `Html`. How a request moves is the
-[runtime matrix](/docs/reference/runtime/).
+Reuse components; do not re-implement `Html`. You do not need Rocdown to
+ship an app. Stop at templates if you only preview components.
 
 :card-grid.begin
     :link-card[href: "/docs/applications/standalone/", title: "Standalone", summary: "First app: Counter, SQLite, one-shot fragment."]
     :link-card[href: "/docs/applications/handlers/", title: "Handlers", summary: "Documents, fragments, commands, live streams."]
-    :link-card[href: "/docs/applications/custom/", title: "Custom", summary: "Own main.roc. Notes first; Datastar gallery; Snake is the ceiling."]
-    :link-card[href: "/docs/applications/tooling/", title: "Workflow", summary: "run, view, browse, inspect, playground, editors, rocci-ops."]
-    :link-card[href: "/docs/applications/package/", title: "Package", summary: "Cross-platform Roc binary, loopback config, desktop application."]
+    :link-card[href: "/docs/applications/custom/", title: "Custom", summary: "Own main.roc. Notes first; Datastar gallery; Snake is an advanced demo."]
+    :link-card[href: "/docs/applications/tooling/", title: "Workflow", summary: "run, view, inspect, then editors and rocci-ops."]
+    :link-card[href: "/docs/applications/package/", title: "Package", summary: "Validate, release server, ad-hoc macOS app."]
 :card-grid.end
-
-**Related:** [The stack](/docs/the-stack/), [Runtime](/docs/reference/runtime/).

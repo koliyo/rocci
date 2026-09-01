@@ -4,7 +4,7 @@ title: Dependabot security updates for Rocci lockfiles
 description: GitHub Dependabot alerts on koliyo/rocci should be closed with in-range lockfile pins; glib 0.18 cannot move to 0.20 without a wry/tao GTK4 generation bump.
 tags: [domain/rocci, concern/ci, concern/security, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T00:20:00Z }
+generated: { by: process:cursor, at: 2026-09-01T11:20:00Z }
 stale_after: 2026-11-25
 authority: exploratory
 owners: [human:nils]
@@ -68,6 +68,10 @@ sources:
     resource: https://crates.io/crates/glib/versions
     title: Published glib crate versions
     author: organization:crates-io
+  - id: alert-1
+    resource: https://github.com/koliyo/rocci/security/dependabot/1
+    title: Dependabot alert 1 glib GHSA-wrw7-89jp-8q8g
+    author: organization:github
 ---
 
 # Dependabot security updates for Rocci lockfiles
@@ -98,13 +102,15 @@ Open alerts on `koliyo/rocci` at the time of this note (1 high, 3 moderate):
 | --- | --- | --- | --- | --- |
 | 4, 5 | `serialize-javascript` | `editors/vscode/package-lock.json` | 7.0.5 | mocha still declares `^6.0.2`; npm `overrides` forces 7.0.5. Dev-only (mocha worker serialization), not the VSIX runtime.[^vscode-pkg][^ghsa-serialize-rce][^ghsa-serialize-dos] |
 | 2 | `ring` | `Cargo.lock` | >= 0.17.12 | Transitive via `rustls` / `ureq` in `rocci-cli`. Precise bump on the 0.17 line.[^cargo-lock][^ghsa-ring] |
-| 1 | `glib` | `Cargo.lock` | >= 0.20.0 | Locked at 0.18.5 with gtk-rs 0.18 (`gtk`, `webkit2gtk`) through `tao`, `wry`, and `muda`. No 0.18.6 was published. 0.20 is a gtk-rs generation cut, not an in-range patch.[^cargo-lock][^desktop-toml][^workspace-toml][^ghsa-glib][^crates-glib] |
+| 1 | `glib` | `Cargo.lock` | >= 0.20.0 | Locked at 0.18.5 with gtk-rs 0.18 (`gtk`, `webkit2gtk`) through `tao`, `wry`, and `muda`. No 0.18.6 was published. 0.20 is a gtk-rs generation cut, not an in-range patch. Dismissed `tolerable_risk` on 2026-09-01 (alert 1).[^cargo-lock][^desktop-toml][^workspace-toml][^ghsa-glib][^crates-glib][^alert-1] |
 
 The glib advisory is unsoundness in `VariantStrIter` (`RUSTSEC-2024-0429`).
 Rocci does not call that iterator; Linux desktop still compiles the 0.18
-bindings. Closing the GitHub alert requires `glib` >= 0.20, which needs wry/tao
-on GTK4 and WebKitGTK 6 (`webkit6`), plus matching system packages. That is a
-desktop-stack migration, not a Dependabot pin.[^rustsec-glib][^ghsa-glib][^desktop-toml]
+bindings. A lockfile pin cannot reach the patched range. Closing the alert
+for real still needs wry/tao on GTK4 and WebKitGTK 6 (`webkit6`), plus matching
+system packages. Until that migration, the GitHub reason is
+`tolerable_risk`, not `not_used`: the 0.18 crate is still compiled on Linux,
+even though the unsound iterator is unused.[^rustsec-glib][^ghsa-glib][^desktop-toml][^alert-1]
 
 ## Agent workflow
 
@@ -125,3 +131,4 @@ lockfile.[^skill]
 [^ghsa-serialize-rce]: High-severity RCE, patched in 7.0.3.
 [^ghsa-serialize-dos]: Moderate DoS, patched in 7.0.5.
 [^crates-glib]: No 0.18.6; 0.18 line ends at 0.18.5.
+[^alert-1]: Alert 1 dismissed `tolerable_risk` on 2026-09-01.

@@ -31,5 +31,3 @@ route shape.
 `?` in a handler is a 500. Datastar gets an HTML overlay; other clients get
 `{"error":"…"}`. `@init` failure exits the process instead.
 
-**Related:** [Runtime](/docs/reference/runtime/),
-[Handlers](/docs/applications/handlers/).

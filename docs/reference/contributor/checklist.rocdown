@@ -33,20 +33,41 @@ removed; do not relabel `@on` as current.
 
 Do not duplicate generated `/examples/` source. Link the cataloged app.
 
-Do not open a page with Prerequisites, Kind, You will, Time, or Next. Do not
-add `@page aliases` or redirects from retired academy or `/rocdown/` routes.
+Do not open a page with Prerequisites, Kind, Time, or difficulty badges.
+Teaching pages may start with what the reader will do and close with one
+Next link. Do not grow a Prerequisites course. Catalog previous/next chrome
+may remain.
+
+Do not start a user-facing page with “this page is the … guide”, “this
+section is not reviewed”, “automatically generated”, or “do not copy the
+file into `docs/`.” Keep coverage maps, CI commands, and “do not copy”
+rules on this checklist, not on user pages.
+
+Do not add `@page aliases` or redirects from retired academy or `/rocdown/`
+routes.
 
 Do not teach OKF or planned work as shipped. Rocdown is experimental and
 lives at `/docs/rocdown/`.
 
 Nav groups stay Start, Templates, Applications, Rocdown, Reference,
-Troubleshooting.
+Troubleshooting, Appendix.
 
 A new directory of listed pages needs `index.rocdown` in the same change, and
 that id must appear in `docs/rocdown.toml` and `site/rocdown.toml` immediately
 before the members. The sidebar landing row is Overview; do not add a second
 `overview.rocdown` unless it is a distinct page. Two or more listed pages
-without an index warn `RD2205`.
+without an index warn `RD2205`. Peel-by-id binds the first listed `…/index` as
+the section landing. Nested `[[mount]]` / `[[peer]]` as used by **this**
+repository (`docs/` into `site/`, `dist/example-docs` as a peer) stay here:
+`source` is a directory of `.rocdown` pages, not a nested site. A missing peer
+directory is skipped; links to those routes are `RD2101`. Stage
+`dist/example-docs` before `rocdown check site`.
+
+Historical News URLs return `410` at the production origin; do not encode that
+table in user site docs.
+
+Musl `--target` values and `uv run rocci-ops site` / `serve hybrid` live in
+`docker/README.md`. Do not put them on the user sites page.
 
 ## Examples
 
@@ -71,5 +92,5 @@ Example prose links into [Templates](/docs/templates/) or
 Blocking broken examples or missing canonical pages fail CI. Theme contrast
 bugs belong in the Rocdown theme, not a second checker.
 
-**Related:** [The stack](/docs/the-stack/).
 Search fixtures: `docs/search-queries.toml`.
+

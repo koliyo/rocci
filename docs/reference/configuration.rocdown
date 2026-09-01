@@ -8,8 +8,8 @@
 
 # Application configuration
 
-**Status:** current. Unknown fields are errors (`deny_unknown_fields`).
-The complete-shape example is illustrative; the tables are canonical.
+Unknown fields are errors (`deny_unknown_fields`). The complete-shape
+example is illustrative; the tables are canonical.
 
 ```toml
 [app]
@@ -137,4 +137,3 @@ Key is `[development]`, not `[dev]`.
 `ROCCI_CONFIG` overrides the config path. `rocci validate` is the check
 command.
 
-**Related:** [CLI validate](/docs/reference/cli/#validate), [Package](/docs/applications/package/).

@@ -2,84 +2,61 @@
     layout: "docs",
     meta: {
         title: "Workflow",
-        description: "Run, preview, browse, inspect, playground, editors, and rocci-ops from one checkout.",
+        description: "Day-to-day run, view, and inspect, then editors and rocci-ops.",
     },
 }
 
 # Workflow
 
-This page is how you develop a Rocci application from the source checkout.
-Command flags live in the [CLI](/docs/reference/cli/). Repository automation
-and local ops live in `rocci-ops` (`uv run rocci-ops`): `check`, `install`,
-`promote-branch`, CI helpers, site package, and container sketches under
-`docker/`.
+Day to day you `run` the app, `view` a component, and `inspect` lowering.
+Command flags live in the [CLI](/docs/reference/cli/).
 
-`rocci inspect FILE` prints components and source-map segments.
-
-## Run the app
+## Run
 
 ```sh
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter --no-window
-cargo run -q -p rocci-cli -- run examples/rocci/standalone/counter --no-live-reload
+rocci run examples/rocci/standalone/counter
+rocci run examples/rocci/standalone/counter --no-window
+rocci run examples/rocci/standalone/counter --no-live-reload
 ```
 
-`--no-window` prints a URL; the HTTP origin is the same as the preview webview.
-`--no-live-reload` pauses automatic refresh; watch still rebuilds.
-`--log-handlers` prints matched routes.
+`--no-window` prints a URL; the HTTP origin is the same as the preview
+webview. `--no-live-reload` pauses automatic refresh; watch still
+rebuilds. `--log-handlers` prints matched routes.
 
-## Preview and browse
+## View
 
 ```sh
-cargo run -q -p rocci-cli -- view \
-  examples/rocci/standalone/styling/Styling.rocci \
+rocci view examples/rocci/standalone/styling/Styling.rocci \
   --component Hello --arg name=Ada
-cargo run -q -p rocci-cli -- browse examples/rocci/standalone/styling
+rocci browse examples/rocci/standalone/styling
 ```
 
 `view` ignores HTTP declarations. `browse` is the component gallery.
 
-## Inspect lowering
+## Inspect
 
 ```sh
-cargo run -q -p rocci-cli -- inspect examples/rocci/standalone/styling/Styling.rocci
-cargo run -q -p rocci-cli -- inspect --ast examples/rocci/standalone/styling/Styling.rocci
+rocci inspect examples/rocci/standalone/styling/Styling.rocci
+rocci inspect --ast examples/rocci/standalone/styling/Styling.rocci
 ```
 
-`inspect` always prints source-map segments. `--ast` adds the S-expression tree.
+`inspect` always prints source-map segments. `--ast` adds the
+S-expression tree.
 
-## Playground
-
-```sh
-cargo run -q -p rocci-cli -- playground examples/rocci/standalone/styling/Styling.rocci
-```
-
-WASM mode shows lowered Roc; it does not snapshot HTML. `--mode local` needs
-the [install](/docs/install/) toolchain.
-
-## Editors
+## Editors and rocci-ops
 
 Editor support is **current** in this repository. There is no Marketplace
 install path yet. The server binary is `rocci-language-server`
-(`cargo build -p rocci-rocdown-lsp`). The VS Code and Zed extensions are thin
-LSP clients. Opening a `.rocci` file should show diagnostics and semantic
-highlighting. After `uv run rocci-ops package vscode`, install the `.vsix`
-with `uv run rocci-ops install vscode` or `uv run rocci-ops install cursor`.
-Zed checks live under `uv run rocci-ops check zed`.
+(`cargo build -p rocci-rocdown-lsp`). Opening a `.rocci` file should show
+diagnostics and semantic highlighting. After `uv run rocci-ops package
+vscode`, install the `.vsix` with `uv run rocci-ops install vscode` or
+`uv run rocci-ops install cursor`.
 
-## Dev panel
+`uv run rocci-ops` also runs `check`, `install`, `promote-branch`, CI
+helpers, and container sketches under `docker/`.
 
-In the preview window, open Dev. **Performance**, **Source**, and **Console**
-are host tools. Console shows runtime lines and teed Roc stderr, not
-`@component` logs.
+In the preview window, open Dev. **Performance**, **Source**, and
+**Console** are host tools. Console shows runtime lines and teed Roc
+stderr, not `@component` logs.
 
-| Moment | Work |
-| --- | --- |
-| Edit | Watch rebuilds the lowered module |
-| Compile | Roc toolchain on generated source |
-| Document GET | `@get:view` returns a full document |
-| One-shot mutation | fragment HTML over SSE; Datastar morphs one tab |
-| Live poll | authored `@get:live` path; unchanged HTML is skipped |
-
-**Related:** [Diagnostics](/docs/reference/diagnostics/),
-[Runtime](/docs/reference/runtime/).
+Next: [Package](/docs/applications/package/).

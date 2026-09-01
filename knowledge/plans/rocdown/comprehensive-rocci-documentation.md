@@ -4,7 +4,7 @@ title: Comprehensive Rocci documentation for rocci.dev
 description: Build a Rocdown-authored Rocci manual that takes a programmer from first contact through production authoring, while giving experienced authors complete, searchable, tested reference material.
 tags: [domain/rocci, concern/publication, concern/developer-experience, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-22T12:52:00Z }
+generated: { by: process:cursor, at: 2026-09-01T12:00:00Z }
 stale_after: 2026-11-21
 authority: exploratory
 owners: [human:nils]
@@ -148,6 +148,16 @@ sources:
     title: Restructure rocci.dev docs around the layered stack
     author: process:cursor
     last_modified: 2026-08-22
+  - id: editorial-audit
+    resource: ../../audits/site/docs-editorial-quality.md
+    title: Public Rocci docs editorial review
+    author: process:cursor
+    last_modified: 2026-09-01
+  - id: editorial-plan
+    resource: ../site/docs-editorial-polish.md
+    title: Polish public Rocci documentation prose and page jobs
+    author: process:cursor
+    last_modified: 2026-09-01
 ---
 
 # Comprehensive Rocci documentation for rocci.dev
@@ -172,6 +182,12 @@ sessions are not a gate for that rewrite.[^stack-ia-research][^stack-ia-plan]
 The record is exploratory. Phases 0–6 of the original curriculum are in the
 tree. Writing the plan did not, and this revision does not, start the
 stack-first rewrite.
+
+Editorial quality of the landed `/docs/` prose is a later pair:
+[review](/audits/site/docs-editorial-quality.md) and
+[polish](/plans/site/docs-editorial-polish.md). Do not execute this
+plan’s tutorial/how-to tree to fix that; keep coverage and example
+ownership rules.[^editorial-audit][^editorial-plan]
 
 ## Goal
 
@@ -1131,3 +1147,5 @@ Human approval is required before implementation for:
 [^rust-docs]: Separate learning, example, tool, API, error, and advanced-reference shelves for programmers with different needs.
 [^stack-ia-research]: Later review: visible Diátaxis curriculum and Rocci-only `/docs/` scope hide the layered stack.
 [^stack-ia-plan]: Follow-on implementation: stack-layer nav, `/docs/rocdown/`, academy-chrome removal, clean-cut URLs.
+[^editorial-audit]: Landed `/docs/` after this curriculum plus stack IA: accurate, meta, constraint-first.
+[^editorial-plan]: Editorial polish of page jobs and sentences; does not execute this plan’s how-to tree.
