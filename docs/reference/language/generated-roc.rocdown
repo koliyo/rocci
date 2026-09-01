@@ -33,5 +33,3 @@ Golden pair: `test/AllSyntax.rocci` and
 `crates/rocci-template/tests/fixtures/all_syntax.roc`. `@test` bindings stay
 out of that body; `rocci test` appends `expect` after `wrap_type_module`.
 
-**Related:** [Tests](/docs/reference/language/tests/),
-[CLI inspect](/docs/reference/cli/#inspect).

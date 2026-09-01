@@ -38,4 +38,3 @@ trailing `json` are **removed**.
 `@post:command(path)`, or `@get:live(path)` as in
 [grammar](/docs/reference/language/grammar/).
 
-**Related:** [Diagnostics](/docs/reference/diagnostics/).

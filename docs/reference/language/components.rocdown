@@ -35,5 +35,3 @@ There is no magic `children` field and no runtime component registry.
 
 **Example:** [Styling Hello](/examples/styling/source/Styling-rocci/).
 
-**Related:** [Tags](/docs/reference/language/tags/),
-[Components guide](/docs/templates/components/).

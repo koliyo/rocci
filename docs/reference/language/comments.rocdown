@@ -29,4 +29,3 @@ pages.
 Indentation-only whitespace around tags is discarded. Inline spaces in
 `Hello, {name}` are kept.
 
-**Related:** [Examples declaration docs](/examples/).

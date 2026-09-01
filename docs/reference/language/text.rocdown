@@ -24,4 +24,3 @@ allowed inside it.
 **Errors:** `{if active { <Icon /> }}` is rejected. Use `@if` or a named
 render function.
 
-**Related:** [Directives](/docs/reference/language/directives/).

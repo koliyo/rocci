@@ -77,4 +77,3 @@ One code per closed condition.
 through instead of rewriting it to `RD1001` / `RD1002`. Those two codes stay
 the fallback for uncoded Rocdown `@page` / parse errors.
 
-**Related:** [Troubleshooting](/docs/troubleshooting/), [Grammar](/docs/reference/language/grammar/).

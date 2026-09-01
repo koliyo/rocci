@@ -137,4 +137,3 @@ Key is `[development]`, not `[dev]`.
 `ROCCI_CONFIG` overrides the config path. `rocci validate` is the check
 command.
 
-**Related:** [CLI validate](/docs/reference/cli/#validate), [Package](/docs/applications/package/).

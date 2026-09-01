@@ -92,5 +92,5 @@ Example prose links into [Templates](/docs/templates/) or
 Blocking broken examples or missing canonical pages fail CI. Theme contrast
 bugs belong in the Rocdown theme, not a second checker.
 
-**Related:** [The stack](/docs/the-stack/).
 Search fixtures: `docs/search-queries.toml`.
+

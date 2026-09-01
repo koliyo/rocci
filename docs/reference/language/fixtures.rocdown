@@ -22,5 +22,3 @@ declarations. `@test{fixture: name}` pairs a test with a fixture binding.
 
 **Errors:** `@fixture` inside a component body; missing local target.
 
-**Related:** [Tests](/docs/reference/language/tests/),
-[CLI view](/docs/reference/cli/#view).

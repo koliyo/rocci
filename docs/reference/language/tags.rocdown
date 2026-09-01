@@ -31,5 +31,3 @@ as the second argument.
 
 **Limits:** no dynamic tag names.
 
-**Related:** [Components](/docs/reference/language/components/), [Attributes](/docs/reference/language/attributes/),
-[Markup](/docs/templates/markup/).

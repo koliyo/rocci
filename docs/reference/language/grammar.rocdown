@@ -44,4 +44,3 @@ declaration in `.rocci` files. See [Tests](/docs/reference/language/tests/).
 The public grammar view is this reference plus `Rocci.AST.ungram` for
 contributors. `AllSyntax.rocci` is coverage, not prose.
 
-**Related:** [Contributor tree](/docs/reference/contributor/rocci-tree/).

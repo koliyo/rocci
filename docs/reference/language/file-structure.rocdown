@@ -33,6 +33,3 @@ records in directive headers so `{` is not read as the body opener.
 **Errors:** unrecognized `@` at top-level stays invalid; `@` inside Markdown
 is a Rocdown concern, not this file type.
 
-**Related:** [Components](/docs/reference/language/components/),
-[Tests](/docs/reference/language/tests/),
-[Generated Roc](/docs/reference/language/generated-roc/).

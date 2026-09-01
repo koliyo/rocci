@@ -48,5 +48,3 @@ local streams require explicit `data-init` subscriptions.
 
 Complete matrix: [Handler matrix](/examples/handler-matrix/).
 
-**Related:** [Runtime](/docs/reference/runtime/),
-[Handlers](/docs/applications/handlers/).
