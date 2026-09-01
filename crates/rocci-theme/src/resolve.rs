@@ -284,6 +284,8 @@ mod tests {
         assert!(theme.css.contains(".rd-toc-menu"));
         assert!(theme.css.contains("--rocci-nav-width"));
         assert!(theme.css.contains(".rocci-col-resizer"));
+        assert!(theme.css.contains("grid-column: 1 / 2"));
+        assert!(theme.css.contains("grid-column: -2 / -1"));
         assert!(theme.css.contains(".rd-toc-link.is-current"));
         assert!(theme.css.contains(".rd-toc-menu {\n    display: block"));
         assert!(theme.css.contains(".rd-toc,\n  .rd-toc-menu"));

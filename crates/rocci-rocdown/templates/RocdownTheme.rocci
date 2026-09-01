@@ -137,6 +137,7 @@ import PageOutline
     .site-grid.is-plain {
         grid-template-columns: minmax(0, 1fr);
     }
+    .site-grid.is-plain .rocci-col-resizer { display: none; }
     .sidebar {
         position: sticky;
         top: var(--header-height);
@@ -150,10 +151,25 @@ import PageOutline
         top: 0;
         bottom: 0;
         width: 11px;
+        max-width: 11px;
         z-index: 5;
         cursor: col-resize;
         touch-action: none;
         background: transparent;
+        justify-self: start;
+        box-sizing: border-box;
+    }
+    .rocci-col-resizer[data-rocci-resize="nav"] {
+        grid-column: 1 / 2;
+        grid-row: 1 / -1;
+        left: auto;
+        right: -5px;
+    }
+    .rocci-col-resizer[data-rocci-resize="outline"] {
+        grid-column: -2 / -1;
+        grid-row: 1 / -1;
+        left: -5px;
+        right: auto;
     }
     .rocci-col-resizer::after {
         content: "";

@@ -113,17 +113,13 @@
   function placeHandle(handle) {
     var kind = handle.getAttribute("data-rocci-resize");
     var host = document.querySelector(kind === "nav" ? NAV_HOSTS : OUTLINE_HOSTS);
-    var shell = handle.parentElement;
-    if (!host || !visible(host) || !shell) {
+    if (!host || !visible(host) || !handle.parentElement) {
       handle.style.display = "none";
       return;
     }
     handle.style.display = "";
-    var shellBox = shell.getBoundingClientRect();
-    var hostBox = host.getBoundingClientRect();
-    var edge = kind === "nav" ? hostBox.right : hostBox.left;
-    handle.style.left = Math.round(edge - shellBox.left - handle.offsetWidth / 2) + "px";
-    handle.style.right = "auto";
+    handle.style.left = "";
+    handle.style.right = "";
   }
 
   function placeAll() {

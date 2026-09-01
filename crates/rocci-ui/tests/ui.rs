@@ -122,6 +122,8 @@ fn chrome_script_includes_copy_hooks() {
     assert!(chrome.contains("rd-code-block"));
     assert!(chrome.contains("window.__rocciResize"));
     assert!(chrome.contains("rocci-col-resizer"));
+    assert!(chrome.contains("handle.style.left = \"\""));
+    assert!(!chrome.contains("handle.offsetWidth"));
     assert!(chrome.contains(".rd-shell, .layout-navigated, .site-grid"));
     assert!(chrome.contains("layout:"));
     assert!(chrome.contains("__ROCCI_LAYOUT__"));

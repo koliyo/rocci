@@ -182,10 +182,25 @@ import PageOutline
         top: 0;
         bottom: 0;
         width: 11px;
+        max-width: 11px;
         z-index: 5;
         cursor: col-resize;
         touch-action: none;
         background: transparent;
+        justify-self: start;
+        box-sizing: border-box;
+    }
+    :scope .rocci-col-resizer[data-rocci-resize="nav"] {
+        grid-column: 1 / 2;
+        grid-row: 1 / -1;
+        left: auto;
+        right: -5px;
+    }
+    :scope .rocci-col-resizer[data-rocci-resize="outline"] {
+        grid-column: -2 / -1;
+        grid-row: 1 / -1;
+        left: -5px;
+        right: auto;
     }
     :scope .rocci-col-resizer::after {
         content: "";
@@ -199,7 +214,7 @@ import PageOutline
     :scope .rocci-col-resizer:hover::after,
     :scope .rocci-col-resizer:focus-visible::after,
     :scope .rocci-col-resizer.is-active::after { background: var(--accent); }
-    :scope.is-col-resizing { cursor: col-resize; user-select: none; }
+    :scope.is-col-resizing { user-select: none; }
     @media (max-width: 48rem) {
         :scope .rocci-col-resizer { display: none; }
     }
