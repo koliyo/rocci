@@ -265,7 +265,7 @@ export function hostPreviewHtml(state: HostState): string {
       }
       window.addEventListener('message', event => {
         const data = event.data;
-        if (data && data.type === 'rocci-inspector') {
+        if (data && (data.type === 'h35-inspector' || data.type === 'rocci-inspector')) {
           vscode.postMessage({ type: 'inspector', tab: data.tab, view: data.view });
         }
       });

@@ -46,6 +46,27 @@ impl CatalogDiagnostic {
     pub fn is_error(&self) -> bool {
         self.severity == Severity::Error
     }
+
+    pub fn wrap_template(
+        diagnostic: &rocci_template::Diagnostic,
+        path: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            code: diagnostic.code.unwrap_or(if diagnostic.is_error() {
+                "RD1001"
+            } else {
+                "RD1002"
+            }),
+            severity: if diagnostic.is_error() {
+                Severity::Error
+            } else {
+                Severity::Warning
+            },
+            path: path.into(),
+            message: message.into(),
+        }
+    }
 }
 
 impl std::fmt::Display for CatalogDiagnostic {
@@ -186,6 +207,7 @@ pub struct ResolvedSite {
 pub struct ResolveOptions {
     pub navigation: Vec<NavConfig>,
     pub files: BTreeSet<String>,
+    pub peer_pages: Vec<crate::PageRef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

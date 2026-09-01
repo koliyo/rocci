@@ -9,8 +9,9 @@
 # Troubleshooting
 
 Start with the exact error and the smallest command that reproduces it. Rocci
-maps parser diagnostics to source; Roc type errors map back from generated
-code where source-map segments exist.
+maps parser diagnostics to source and prints `error[RCxxxx]:` for template
+parse and validate. Roc type errors map back from generated code where
+source-map segments exist.
 
 | Symptom | Page |
 | --- | --- |
@@ -20,8 +21,9 @@ code where source-map segments exist.
 | Preview window, WebKitGTK, Dev Console empty | [Preview](/docs/troubleshooting/preview/) |
 
 Rocdown catalog codes (`RD2101`, …) and `rocdown check` failures belong on the
-[Rocdown](/docs/rocdown/) pages.
+[Rocdown](/docs/rocdown/) pages. Template codes are `RCxxxx`; do not invent
+codes that are not in the [diagnostics](/docs/reference/diagnostics/) catalog.
 
 If the issue persists, reduce it to one `.rocci` file and include the command,
-platform, Roc nightly (`docker/install-roc.sh`), and complete diagnostic in a
-repository issue.
+platform, Roc nightly (`docker/install-roc.sh`), the `RCxxxx` code, and the
+complete diagnostic in a repository issue.

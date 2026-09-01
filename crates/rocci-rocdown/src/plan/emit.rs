@@ -351,7 +351,9 @@ fn escape_xml(value: &str) -> String {
 pub(crate) fn pages_roc(pages: &[PlannedPage]) -> String {
     let mut pages = pages.to_vec();
     pages.sort_by(|a, b| a.output_path.cmp(&b.output_path));
-    let mut out = String::from("RocdownPages := [].{\n    pages = [\n");
+    let mut out = String::from(
+        "import Views\n\nRocdownPages := [].{\n    pages : List(Views.Page(_))\n    pages = [\n",
+    );
     for page in &pages {
         out.push_str("        {\n            article_path: ");
         push_roc_string(&mut out, &page.article_path);
@@ -471,10 +473,14 @@ pub(crate) fn pages_roc(pages: &[PlannedPage]) -> String {
         push_roc_string(&mut out, &page.view.previous.title);
         out.push_str(", href: ");
         push_roc_string(&mut out, &page.view.previous.href);
+        out.push_str(", class_name: ");
+        push_roc_string(&mut out, &page.view.previous.class_name);
         out.push_str(" },\n                next: { title: ");
         push_roc_string(&mut out, &page.view.next.title);
         out.push_str(", href: ");
         push_roc_string(&mut out, &page.view.next.href);
+        out.push_str(", class_name: ");
+        push_roc_string(&mut out, &page.view.next.class_name);
         out.push_str(" },\n                resources: {\n                    stylesheet: ");
         push_roc_string(&mut out, &page.view.resources.stylesheet);
         out.push_str(",\n                    csp: ");
@@ -596,7 +602,7 @@ fn emit_nav_group(out: &mut String, group: &NavGroupView, indent: &str, with_chi
         out.push_str(indent);
         out.push_str("] },\n");
     } else {
-        out.push_str("] },\n");
+        out.push_str("], children: [] },\n");
     }
 }
 

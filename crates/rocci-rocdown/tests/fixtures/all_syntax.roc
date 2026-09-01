@@ -132,7 +132,7 @@ rocci_content = |{}| {
                                 "a",
                                 [
                                     Html.attribute("class", "rd-link"),
-                                    Html.attribute("href", "/guides/syntax-v2/"),
+                                    Html.attribute("href", "/guides/syntax-v2"),
                                     Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
                                 ],
                                 [
@@ -144,7 +144,7 @@ rocci_content = |{}| {
                                 "a",
                                 [
                                     Html.attribute("class", "rd-link"),
-                                    Html.attribute("href", "/guides/syntax-v2/"),
+                                    Html.attribute("href", "/guides/syntax-v2"),
                                     Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
                                 ],
                                 [
@@ -378,7 +378,7 @@ rocci_content = |{}| {
                                 "a",
                                 [
                                     Html.attribute("class", "rd-link"),
-                                    Html.attribute("href", "/guides/syntax-v2/"),
+                                    Html.attribute("href", "/guides/syntax-v2"),
                                     Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
                                 ],
                                 [

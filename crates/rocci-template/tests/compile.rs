@@ -45,7 +45,10 @@ fn compile_err(src: &str) -> Vec<String> {
     out.diagnostics
         .into_iter()
         .filter(|d| d.is_error())
-        .map(|d| d.message)
+        .map(|d| match d.code {
+            Some(code) => format!("{code}: {}", d.message),
+            None => d.message,
+        })
         .collect()
 }
 
@@ -192,9 +195,65 @@ fn rejects_unparenthesized_header_record() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unparenthesized record")),
+            .any(|msg| msg.contains("RC1007") && msg.contains("unparenthesized record")),
         "{errors:?}"
     );
+}
+
+#[test]
+fn parse_families_cover_rc1001_through_rc1007() {
+    let cases = [
+        (
+            r#"
+@test
+= Bool.true
+"#,
+            "RC1001",
+            "expected test name",
+        ),
+        (
+            r#"
+@component Hello = |{}| {
+    <p>Hi</p>
+"#,
+            "RC1002",
+            "unclosed template block",
+        ),
+        (
+            r#"@component Hello = |{}| { @fi True { <p>x</p> } }"#,
+            "RC1003",
+            "unknown directive",
+        ),
+        (
+            r#"@on:get("/") { Html.text("x") }"#,
+            "RC1004",
+            "`@on` was removed",
+        ),
+        (
+            r#"@component Hello = |{}| { <div></span> }"#,
+            "RC1005",
+            "does not match",
+        ),
+        (
+            r#"@component Hello = |{}| { <button data-on:click=@steer("/x") /> }"#,
+            "RC1006",
+            "unknown Datastar action",
+        ),
+        (
+            r#"@component Hello = |{}| { @view("/") { Html.text("no") } <p>x</p> }"#,
+            "RC1007",
+            "only valid at document root",
+        ),
+    ];
+    for (src, code, needle) in cases {
+        let errors = compile_err(src);
+        assert!(
+            errors
+                .iter()
+                .any(|msg| msg.contains(code) && msg.contains(needle)),
+            "{code} {needle}: {errors:?}"
+        );
+    }
 }
 
 #[test]
@@ -225,7 +284,9 @@ fn unknown_directive_suggests_if() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("did you mean `@if`")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1003") && msg.contains("did you mean `@if`")),
         "{errors:?}"
     );
 }
@@ -332,7 +393,7 @@ fn defaulted_tag_without_type_is_an_error() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("defaulted field `tone`")),
+            .any(|msg| msg.contains("RC2006") && msg.contains("defaulted field `tone`")),
         "{errors:?}"
     );
 }
@@ -414,10 +475,9 @@ hello = @component |{ name }| {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("start of the declaration")
-                && msg.contains("@component Name = |params|")),
+        errors.iter().any(|msg| msg.contains("RC1001")
+            && msg.contains("start of the declaration")
+            && msg.contains("@component Name = |params|")),
         "{errors:?}"
     );
 }
@@ -432,9 +492,9 @@ fn rejects_camel_case_component_names() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("PascalCase") && msg.contains("@component Hello")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003") && msg.contains("PascalCase") && msg.contains("@component Hello")
+        }),
         "{errors:?}"
     );
 }
@@ -449,9 +509,11 @@ fn rejects_ambiguous_component_names() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("ambiguous component name") && msg.contains("HtmlShell")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003")
+                && msg.contains("ambiguous component name")
+                && msg.contains("HtmlShell")
+        }),
         "{errors:?}"
     );
 }
@@ -469,9 +531,9 @@ sample = { name: "Ada" }
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("PascalCase") && msg.contains("Hello")),
+        errors.iter().any(|msg| msg.contains("RC2018")
+            && msg.contains("PascalCase")
+            && msg.contains("Hello")),
         "{errors:?}"
     );
 }
@@ -517,9 +579,9 @@ fn braceless_rejects_sibling_tags() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("one HTML tag") && msg.contains("{ ... }")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1001") && msg.contains("one HTML tag") && msg.contains("{ ... }")
+        }),
         "{errors:?}"
     );
 }
@@ -534,8 +596,9 @@ fn preamble_and_directives_still_require_braces() {
 "#,
     );
     assert!(
-        css.iter()
-            .any(|msg| msg.contains("expected `{`") || msg.contains("one HTML tag")),
+        css.iter().any(|msg| {
+            msg.contains("RC1001") && (msg.contains("expected `{`") || msg.contains("one HTML tag"))
+        }),
         "{css:?}"
     );
 
@@ -548,7 +611,8 @@ fn preamble_and_directives_still_require_braces() {
 "#,
     );
     assert!(
-        dir.iter().any(|msg| msg.contains("expected `{`")),
+        dir.iter()
+            .any(|msg| msg.contains("RC1001") && msg.contains("expected `{`")),
         "{dir:?}"
     );
 }
@@ -674,7 +738,7 @@ sample = { name: "Ada" }
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unknown fixture target `Missing`")),
+            .any(|msg| msg.contains("RC2013") && msg.contains("unknown fixture target `Missing`")),
         "{errors:?}"
     );
 }
@@ -687,7 +751,9 @@ sample = { name: "Ada" }
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("{target: ...}")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1001") && msg.contains("{target: ...}")),
         "{errors:?}"
     );
 }
@@ -704,9 +770,9 @@ sample = { name: "Ada" }
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown `@fixture` attribute `name`")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003") && msg.contains("unknown `@fixture` attribute `name`")
+        }),
         "{errors:?}"
     );
 }
@@ -772,7 +838,9 @@ fn rejects_missing_test_name() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors.iter().any(|msg| msg.contains("expected test name")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1001") && msg.contains("expected test name")),
         "{errors:?}"
     );
 }
@@ -787,7 +855,7 @@ helloRenders Bool.true
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("expected `=` after test name")),
+            .any(|msg| msg.contains("RC1001") && msg.contains("expected `=` after test name")),
         "{errors:?}"
     );
 }
@@ -800,9 +868,9 @@ helloRenders = Bool.true
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown `@test` attribute `target`")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1003") && msg.contains("unknown `@test` attribute `target`")
+        }),
         "{errors:?}"
     );
 }
@@ -824,7 +892,7 @@ helloRenders = Bool.true
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("duplicate `fixture` attribute")),
+            .any(|msg| msg.contains("RC1003") && msg.contains("duplicate `fixture` attribute")),
         "{errors:?}"
     );
 }
@@ -839,7 +907,7 @@ helloRenders = Bool.true
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unknown fixture name `missing`")),
+            .any(|msg| msg.contains("RC2014") && msg.contains("unknown fixture name `missing`")),
         "{errors:?}"
     );
 }
@@ -855,9 +923,9 @@ fn rejects_test_inside_component_body() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@test` is only valid at document root")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1007") && msg.contains("`@test` is only valid at document root")
+        }),
         "{errors:?}"
     );
 }
@@ -873,9 +941,9 @@ fn rejects_fixture_inside_component_body() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@fixture` is only valid at document root")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1007") && msg.contains("`@fixture` is only valid at document root")
+        }),
         "{errors:?}"
     );
 }
@@ -942,9 +1010,9 @@ fn rejects_datastar_action_with_js_single_quotes() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("Roc strings") && msg.contains("@post(\"/x\")")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1006") && msg.contains("Roc strings") && msg.contains("@post(\"/x\")")
+        }),
         "{errors:?}"
     );
 }
@@ -958,9 +1026,9 @@ fn rejects_unknown_datastar_action() {
 "#;
     let errors = compile_err(src);
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("unknown Datastar action `@steer`")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1006") && msg.contains("unknown Datastar action `@steer`")
+        }),
         "{errors:?}"
     );
 }
@@ -976,7 +1044,7 @@ fn datastar_action_in_text_is_still_unknown_directive() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("unknown directive `@post`")),
+            .any(|msg| msg.contains("RC1003") && msg.contains("unknown directive `@post`")),
         "{errors:?}"
     );
 }
@@ -1411,9 +1479,10 @@ fn rejects_css_after_markup_and_inside_if() {
 "#,
     );
     assert!(
-        after_markup
-            .iter()
-            .any(|msg| msg.contains("`@css` must appear before render-producing items")),
+        after_markup.iter().any(|msg| {
+            msg.contains("RC2017")
+                && msg.contains("`@css` must appear before render-producing items")
+        }),
         "{after_markup:?}"
     );
 
@@ -1428,9 +1497,10 @@ fn rejects_css_after_markup_and_inside_if() {
 "#,
     );
     assert!(
-        nested
-            .iter()
-            .any(|msg| msg.contains("`@css` is only valid at the start of a component body")),
+        nested.iter().any(|msg| {
+            msg.contains("RC2016")
+                && msg.contains("`@css` is only valid at the start of a component body")
+        }),
         "{nested:?}"
     );
 }
@@ -1579,7 +1649,7 @@ fn rejects_handler_with_more_than_two_params() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("at most two parameters")),
+            .any(|msg| msg.contains("RC2007") && msg.contains("at most two parameters")),
         "{errors:?}"
     );
 }
@@ -1596,7 +1666,94 @@ fn rejects_init_without_context() {
     assert!(
         errors
             .iter()
-            .any(|msg| msg.contains("`@init` requires `@context`")),
+            .any(|msg| msg.contains("RC2003") && msg.contains("`@init` requires `@context`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_duplicate_context() {
+    let errors = compile_err(
+        r#"
+@context { count : I64 }
+@init { { count: 0 } }
+@context { other : I64 }
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC2001") && msg.contains("duplicate `@context`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_duplicate_init() {
+    let errors = compile_err(
+        r#"
+@context { count : I64 }
+@init { { count: 0 } }
+@init { { count: 1 } }
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC2002") && msg.contains("duplicate `@init`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_context_without_init() {
+    let errors = compile_err(
+        r#"
+@context { count : I64 }
+"#,
+    );
+    assert!(
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC2004") && msg.contains("`@context` requires `@init`")),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_record_handler_without_context() {
+    let errors = compile_err(
+        r#"
+@get:view("/") = |{ db }| {
+    Html.text("x")
+}
+"#,
+    );
+    assert!(
+        errors.iter().any(|msg| {
+            msg.contains("RC2005")
+                && msg.contains("route handlers that destructure a record require `@context`")
+        }),
+        "{errors:?}"
+    );
+}
+
+#[test]
+fn rejects_let_after_render() {
+    let errors = compile_err(
+        r#"
+@component Hello = |{}| {
+    <p>Hi</p>
+    @let x = 1
+    <span></span>
+}
+"#,
+    );
+    assert!(
+        errors.iter().any(|msg| {
+            msg.contains("RC2015")
+                && msg.contains("`@let` must appear before render-producing items")
+        }),
         "{errors:?}"
     );
 }
@@ -1615,9 +1772,11 @@ fn rejects_duplicate_handlers() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@post:fragment(\"/x\")")),
+        errors.iter().any(|msg| {
+            msg.contains("RC2011")
+                && msg.contains("duplicate")
+                && msg.contains("@post:fragment(\"/x\")")
+        }),
         "{errors:?}"
     );
 }
@@ -1635,9 +1794,9 @@ fn rejects_view_inside_component() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@view` is only valid at document root")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1007") && msg.contains("`@view` is only valid at document root")
+        }),
         "{errors:?}"
     );
 }
@@ -1695,9 +1854,9 @@ fn rejects_duplicate_live() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@get:live")),
+        errors.iter().any(|msg| msg.contains("RC2011")
+            && msg.contains("duplicate")
+            && msg.contains("@get:live")),
         "{errors:?}"
     );
 }
@@ -1712,9 +1871,9 @@ fn rejects_removed_on_get_json() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("`@on` was removed") && msg.contains("@get:view")),
+        errors.iter().any(|msg| {
+            msg.contains("RC1004") && msg.contains("`@on` was removed") && msg.contains("@get:view")
+        }),
         "{errors:?}"
     );
 }
@@ -1729,7 +1888,9 @@ fn rejects_removed_on_unknown_respond() {
 "#,
     );
     assert!(
-        errors.iter().any(|msg| msg.contains("`@on` was removed")),
+        errors
+            .iter()
+            .any(|msg| msg.contains("RC1004") && msg.contains("`@on` was removed")),
         "{errors:?}"
     );
 }
@@ -1851,9 +2012,9 @@ fn rejects_live_and_authored_sse_route() {
 "#,
     );
     assert!(
-        errors
-            .iter()
-            .any(|msg| msg.contains("duplicate `@get:view(\"/sse\")` handler")),
+        errors.iter().any(|msg| {
+            msg.contains("RC2011") && msg.contains("duplicate `@get:view(\"/sse\")` handler")
+        }),
         "{errors:?}"
     );
 }

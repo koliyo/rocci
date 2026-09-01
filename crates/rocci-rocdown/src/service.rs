@@ -105,22 +105,23 @@ pub fn plan_island_service(root: &Path) -> Result<IslandServicePlan> {
     }
 }
 
+fn catalog_has_live_page(site: &ResolvedSite) -> bool {
+    site.pages
+        .iter()
+        .any(|page| !page.draft && page.kind == PageKind::Live)
+}
+
 pub fn generated_island_plan(root: &Path) -> Result<Option<IslandServicePlan>> {
     let loaded = load_site(root)?;
     if !loaded.config.http.service.is_empty() {
         return Ok(None);
     }
     let result = resolve_loaded(&loaded);
+    if !catalog_has_live_page(&result.site) {
+        return Ok(None);
+    }
     if result.has_errors() {
         bail!("{}", result.error_summary());
-    }
-    if !result
-        .site
-        .pages
-        .iter()
-        .any(|page| !page.draft && page.kind == PageKind::Live)
-    {
-        return Ok(None);
     }
     Ok(Some(plan_island_service_from(&loaded, &result.site)?))
 }
@@ -137,16 +138,11 @@ pub fn configured_service_app_plan(root: &Path) -> Result<Option<ConfiguredServi
         return Ok(None);
     }
     let result = resolve_loaded(&loaded);
+    if !catalog_has_live_page(&result.site) {
+        return Ok(None);
+    }
     if result.has_errors() {
         bail!("{}", result.error_summary());
-    }
-    if !result
-        .site
-        .pages
-        .iter()
-        .any(|page| !page.draft && page.kind == PageKind::Live)
-    {
-        return Ok(None);
     }
 
     let service = loaded.root.join(&loaded.config.http.service);
@@ -790,6 +786,26 @@ RevealTip = |{ open }| {
         )
         .unwrap();
         assert!(generated_island_plan(&sibling).unwrap().is_none());
+
+        let broken_peer = temp("static-broken-peer");
+        fs::create_dir_all(broken_peer.join("docs")).unwrap();
+        fs::write(
+            broken_peer.join("docs/rocdown.toml"),
+            "[site]\ntitle = \"Docs\"\n\n[[peer]]\nsource = \"../missing\"\nprefix = \"examples\"\n",
+        )
+        .unwrap();
+        fs::write(
+            broken_peer.join("docs/index.rocdown"),
+            "# Home\n\nSee [example](/examples/counter/).\n",
+        )
+        .unwrap();
+        assert!(
+            generated_island_plan(&broken_peer.join("docs"))
+                .unwrap()
+                .is_none()
+        );
+        let _ = fs::remove_dir_all(&broken_peer);
+
         let err = plan_island_service(&sibling).unwrap_err().to_string();
         assert!(err.contains("[http].service"), "{err}");
         let _ = fs::remove_dir_all(sibling);

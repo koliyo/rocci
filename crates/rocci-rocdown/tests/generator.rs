@@ -211,6 +211,7 @@ fn test_site_catalog_resolution() {
             groups: Vec::new(),
         }],
         files: BTreeSet::new(),
+        peer_pages: Vec::new(),
     };
 
     let resolved = resolve(&pages, &options);
@@ -231,8 +232,8 @@ fn test_site_catalog_resolution() {
         .expect("guide page");
 
     assert_eq!(home.route, "/");
-    assert_eq!(guide.route, "/guide/");
-    assert_eq!(guide.aliases, vec!["/getting-started/"]);
+    assert_eq!(guide.route, "/guide");
+    assert_eq!(guide.aliases, vec!["/getting-started"]);
     assert_eq!(resolved.site.navigation.len(), 1);
     assert_eq!(resolved.site.navigation[0].items.len(), 2);
 }
@@ -316,9 +317,9 @@ Back to [Home](/) or [Relative Home](../).
         .unwrap();
 
     assert_eq!(home.route, "/");
-    assert_eq!(docs_page.route, "/docs/getting-started/");
+    assert_eq!(docs_page.route, "/docs/getting-started");
     assert_eq!(docs_page.layout, "docs");
-    assert_eq!(docs_page.aliases, vec!["/getting-started/"]);
+    assert_eq!(docs_page.aliases, vec!["/getting-started"]);
 
     assert_eq!(result.site.navigation.len(), 2);
     assert_eq!(
@@ -327,7 +328,7 @@ Back to [Home](/) or [Relative Home](../).
     );
     assert_eq!(
         result.site.navigation[1].items[0].route,
-        "/docs/getting-started/"
+        "/docs/getting-started"
     );
 
     let _ = std::fs::remove_dir_all(&temp_root);

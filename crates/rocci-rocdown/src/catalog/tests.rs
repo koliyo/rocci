@@ -46,7 +46,7 @@ fn derives_index_and_named_routes() {
         page("index", "index.rocdown", RouteHint::Derived, "Home"),
     ]);
     assert!(!result.has_errors(), "{}", result.error_summary());
-    assert_eq!(result.site.pages[0].route, "/guide/");
+    assert_eq!(result.site.pages[0].route, "/guide");
     assert_eq!(result.site.pages[0].output_path, "guide/index.html");
     assert_eq!(result.site.pages[1].route, "/");
     assert_eq!(result.site.pages[1].output_path, "index.html");
@@ -73,7 +73,7 @@ fn copies_page_kind_onto_resolved_pages() {
 #[test]
 fn derives_nested_index_routes() {
     assert_eq!(derived_route("guides/index"), "/guides/");
-    assert_eq!(derived_route("guides/build"), "/guides/build/");
+    assert_eq!(derived_route("guides/build"), "/guides/build");
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn explicit_id_is_independent_of_route() {
     let result = resolved(&[source]);
     assert!(!result.has_errors(), "{}", result.error_summary());
     assert_eq!(result.site.pages[0].id, "guides.install");
-    assert_eq!(result.site.pages[0].route, "/setup/");
+    assert_eq!(result.site.pages[0].route, "/setup");
 }
 
 #[test]
@@ -103,14 +103,15 @@ fn duplicate_ids_are_errors() {
 }
 
 #[test]
-fn explicit_route_gets_trailing_slash_and_sorts_by_output() {
+fn explicit_document_route_drops_trailing_slash_and_sorts_by_output() {
     let result = resolved(&[
         page("b", "b.rocdown", RouteHint::Explicit("/zeta".into()), "Z"),
         page("a", "a.rocdown", RouteHint::Explicit("/alpha/".into()), "A"),
     ]);
     assert_eq!(result.site.pages[0].output_path, "alpha/index.html");
     assert_eq!(result.site.pages[1].output_path, "zeta/index.html");
-    assert_eq!(result.site.pages[1].route, "/zeta/");
+    assert_eq!(result.site.pages[0].route, "/alpha");
+    assert_eq!(result.site.pages[1].route, "/zeta");
 }
 
 #[test]
@@ -131,7 +132,7 @@ fn duplicate_routes_name_both_sources() {
     ]);
     let message = result.error_summary();
     assert!(codes(&result).contains(&"RD2002"));
-    assert!(message.contains("duplicate route `/same/`"), "{message}");
+    assert!(message.contains("duplicate route `/same`"), "{message}");
     assert!(message.contains("alpha.rocdown"), "{message}");
     assert!(message.contains("beta.rocdown"), "{message}");
 }
@@ -217,6 +218,7 @@ fn resolves_configured_navigation_by_stable_id() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());
@@ -258,6 +260,7 @@ fn examples_nav_skips_unstaged_page_ids() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());
@@ -286,6 +289,7 @@ fn linked_detail_is_unlisted_without_warning_noise() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
 
@@ -309,6 +313,7 @@ fn authored_unlisted_page_still_warns() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
 
@@ -365,6 +370,7 @@ fn indexless_listed_cluster_warns_rd2205() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());
@@ -419,6 +425,7 @@ fn listed_index_clears_rd2205() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());
@@ -452,6 +459,7 @@ fn directory_navigation_lists_index_first() {
                 groups: Vec::new(),
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());
@@ -506,6 +514,7 @@ fn resolves_nested_navigation_groups() {
                 }],
             }],
             files: BTreeSet::new(),
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());
@@ -534,6 +543,46 @@ fn resolves_nested_navigation_groups() {
             .unlisted
             .contains(&"docs/tutorials/first-component".to_string())
     );
+}
+
+#[test]
+fn docs_prefixed_and_slashless_document_links_resolve() {
+    let mut home = page("index", "index.rocdown", RouteHint::Derived, "Home");
+    home.outgoing_links = vec![
+        "/docs/applications/handlers/".into(),
+        "/docs/applications/handlers".into(),
+        "/applications/handlers/".into(),
+        "/applications/".into(),
+        "/docs/applications/".into(),
+    ];
+    let handlers = page(
+        "applications/handlers",
+        "applications/handlers.rocdown",
+        RouteHint::Derived,
+        "Handlers",
+    );
+    let section = page(
+        "applications/index",
+        "applications/index.rocdown",
+        RouteHint::Derived,
+        "Applications",
+    );
+    let result = resolved(&[home, handlers, section]);
+    assert!(!result.has_errors(), "{}", result.error_summary());
+    let handlers_page = result
+        .site
+        .pages
+        .iter()
+        .find(|page| page.id == "applications/handlers")
+        .unwrap();
+    assert_eq!(handlers_page.route, "/applications/handlers");
+    let section_page = result
+        .site
+        .pages
+        .iter()
+        .find(|page| page.id == "applications/index")
+        .unwrap();
+    assert_eq!(section_page.route, "/applications/");
 }
 
 #[test]
@@ -612,25 +661,51 @@ fn accepts_valid_absolute_and_same_page_heading_links() {
 }
 
 #[test]
-fn allows_missing_sibling_product_lanes() {
+fn peer_routes_resolve_and_undeclared_prefixes_error() {
     let mut home = page("index", "index.rocdown", RouteHint::Derived, "Home");
     home.outgoing_links = vec![
         "/examples/styling/".into(),
-        "/rocdown/".into(),
+        "/examples/counter/source/Cosunter-rocci/".into(),
         "/project/status/".into(),
+        "/rocdown/".into(),
         "/missing/".into(),
     ];
-    let result = resolved(&[home]);
-    assert!(result.error_summary().contains("/missing/"));
-    assert!(!result.error_summary().contains("/examples/styling/"));
-    assert!(!result.error_summary().contains("/rocdown/"));
-    assert!(!result.error_summary().contains("/project/status/"));
+    let result = resolve(
+        &[home],
+        &ResolveOptions {
+            peer_pages: vec![
+                crate::PageRef {
+                    stem: "index".into(),
+                    file_name: "index.rocdown".into(),
+                    path: "examples/styling/index.rocdown".into(),
+                    route: "/examples/styling".into(),
+                    explicit_route: false,
+                    heading_ids: Vec::new(),
+                },
+                crate::PageRef {
+                    stem: "status".into(),
+                    file_name: "status.rocdown".into(),
+                    path: "project/status.rocdown".into(),
+                    route: "/project/status".into(),
+                    explicit_route: false,
+                    heading_ids: Vec::new(),
+                },
+            ],
+            ..ResolveOptions::default()
+        },
+    );
+    let summary = result.error_summary();
+    assert!(summary.contains("Cosunter-rocci"), "{summary}");
+    assert!(summary.contains("/rocdown/"), "{summary}");
+    assert!(summary.contains("/missing/"), "{summary}");
+    assert!(!summary.contains("/examples/styling/"), "{summary}");
+    assert!(!summary.contains("/project/status/"), "{summary}");
     assert!(
         result
             .site
             .graph
             .iter()
-            .any(|edge| edge.kind == EdgeKind::Asset && edge.raw == "/examples/styling/")
+            .any(|edge| edge.kind == EdgeKind::Page && edge.raw == "/examples/styling/")
     );
 }
 
@@ -647,6 +722,7 @@ fn resolves_relative_wiki_and_asset_links() {
         &ResolveOptions {
             navigation: Vec::new(),
             files,
+            peer_pages: Vec::new(),
         },
     );
     assert!(!result.has_errors(), "{}", result.error_summary());

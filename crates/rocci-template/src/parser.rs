@@ -5,6 +5,7 @@ use crate::ast::{
     MatchDirective, ModuleItem, RouteDecl, TemplateBlock, TemplateItem, TestDecl, TextNode,
     ViewDecl,
 };
+use crate::codes;
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{self, Cursor, is_ident_start};
 use crate::resolve::{component_name_error, component_roc_name, is_ambiguous_pascal};
@@ -146,8 +147,37 @@ impl<'a> Parser<'a> {
         self.cur.src
     }
 
-    fn error(&mut self, span: Span, message: impl Into<String>) {
-        self.diagnostics.push(Diagnostic::error(span, message));
+    fn error(&mut self, code: &'static str, span: Span, message: impl Into<String>) {
+        self.diagnostics
+            .push(Diagnostic::error_code(code, span, message));
+    }
+
+    fn expected(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1001, span, message);
+    }
+
+    fn unterminated(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1002, span, message);
+    }
+
+    fn unexpected(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1003, span, message);
+    }
+
+    fn removed(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1004, span, message);
+    }
+
+    fn html(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1005, span, message);
+    }
+
+    fn datastar(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1006, span, message);
+    }
+
+    fn directive(&mut self, span: Span, message: impl Into<String>) {
+        self.error(codes::RC1007, span, message);
     }
 
     fn parse_document(&mut self) -> Document {
@@ -284,7 +314,7 @@ impl<'a> Parser<'a> {
 
     fn scan_css_block(&mut self) -> Span {
         if !self.cur.eat('{') {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 "expected `{` to open a `@css` block",
             );
@@ -310,7 +340,7 @@ impl<'a> Parser<'a> {
             }
         }
         if depth != 0 {
-            self.error(
+            self.unterminated(
                 Span::new(body_start.saturating_sub(1), self.cur.pos),
                 "unterminated `@css` block; expected `}`",
             );
@@ -360,7 +390,7 @@ impl<'a> Parser<'a> {
         self.cur.skip_trivia();
         let ty = self.scan_roc_type();
         if ty.is_empty() {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 "expected a Roc type after `@context`",
             );
@@ -400,7 +430,7 @@ impl<'a> Parser<'a> {
         let body = match self.scan_roc_block_inner() {
             Some(span) => span,
             None => {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     "expected `{` to open an `@init` block",
                 );
@@ -463,7 +493,7 @@ impl<'a> Parser<'a> {
         if self.cur.peek() == Some('[') {
             let bracket_start = self.cur.pos;
             self.cur.skip_balanced_brackets();
-            self.error(
+            self.unexpected(
                 Span::new(bracket_start, self.cur.pos),
                 format!(
                     "selector brackets are not part of `{}`; write `{}(path)`",
@@ -476,7 +506,7 @@ impl<'a> Parser<'a> {
 
         self.cur.skip_trivia();
         let Some(args) = self.scan_paren_inner() else {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 format!(
                     "expected `(\"path\")` after `{}`",
@@ -496,7 +526,7 @@ impl<'a> Parser<'a> {
         let (path, path_span) = match string_literal(args.of(self.src()), args) {
             Some((path, path_span)) => (path, path_span),
             None => {
-                self.error(
+                self.expected(
                     args,
                     format!(
                         "expected a string literal path, e.g. `@{}(\"/actions/...\")`",
@@ -517,7 +547,7 @@ impl<'a> Parser<'a> {
             if let Some(span) = self.cur.scan_ident() {
                 let _ = span;
             }
-            self.error(
+            self.unexpected(
                 Span::new(arrow_start, self.cur.pos),
                 format!(
                     "`->` does not select a response; the role is already explicit in `{}`",
@@ -532,12 +562,12 @@ impl<'a> Parser<'a> {
         {
             let name = self.cur.ident_text(span).to_string();
             if name == "json" {
-                self.error(
+                self.unexpected(
                     span,
                     "`json` is not a response selector; high-level commands return `{}` with no JSON representation",
                 );
             } else {
-                self.error(
+                self.unexpected(
                     span,
                     format!(
                         "unexpected `{name}` after `{}` path",
@@ -553,7 +583,7 @@ impl<'a> Parser<'a> {
             self.cur.skip_trivia();
             params = self.scan_params();
             if params.is_none() {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     format!(
                         "expected `|params|` after `{} =`",
@@ -566,7 +596,7 @@ impl<'a> Parser<'a> {
         let body = match self.scan_roc_block_inner() {
             Some(span) => span,
             None => {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     format!(
                         "expected `{{` to open a `{}` handler body",
@@ -636,7 +666,7 @@ impl<'a> Parser<'a> {
             return false;
         }
         if !has_colon {
-            self.error(
+            self.expected(
                 method_span,
                 format!(
                     "missing `:` and response role after `@{method}`; write `@{method}:role(path)`"
@@ -649,14 +679,14 @@ impl<'a> Parser<'a> {
         match self.cur.scan_ident() {
             Some(role_span) => {
                 let role = self.cur.ident_text(role_span);
-                self.error(
+                self.unexpected(
                     role_span,
                     format!(
                         "unknown handler role `{role}` after `@{method}:`; expected view, fragment, command, or live"
                     ),
                 );
             }
-            None => self.error(
+            None => self.expected(
                 Span::point(self.cur.pos),
                 format!("expected a response role after `@{method}:`"),
             ),
@@ -710,7 +740,7 @@ impl<'a> Parser<'a> {
             "live" => format!("`@get:live({quoted})`"),
             _ => unreachable!(),
         };
-        self.error(
+        self.removed(
             Span::new(start, self.cur.pos.max(start + 1)),
             format!("`@{noun}` role-first syntax was removed; write {rewrite}"),
         );
@@ -754,7 +784,7 @@ impl<'a> Parser<'a> {
         }
         let _ = self.scan_roc_block_inner();
         let rewrite = removed_on_rewrite(&method, json, &path);
-        self.error(
+        self.removed(
             Span::new(start, self.cur.pos.max(start + 1)),
             format!("`@on` was removed; write {rewrite}"),
         );
@@ -794,7 +824,7 @@ impl<'a> Parser<'a> {
             self.cur.skip_trivia();
         }
         let _ = self.scan_roc_block_inner();
-        self.error(
+        self.removed(
             Span::new(start, self.cur.pos.max(start + 1)),
             "`@action` was not adopted; write an explicit `@method:fragment(path)` or `@method:command(path)` route",
         );
@@ -871,7 +901,7 @@ impl<'a> Parser<'a> {
             }
         }
         if depth != 0 {
-            self.error(
+            self.unterminated(
                 Span::new(inner_start.saturating_sub(1), self.cur.pos),
                 "unterminated handler path; expected `)`",
             );
@@ -914,7 +944,7 @@ impl<'a> Parser<'a> {
             }
         }
         if depth != 0 {
-            self.error(
+            self.unterminated(
                 Span::new(start, self.cur.pos),
                 "unterminated block; expected `}`",
             );
@@ -928,7 +958,7 @@ impl<'a> Parser<'a> {
         }
         let last = self.src().as_bytes().get(self.cur.pos - 1).copied();
         if last != Some(b'}') {
-            self.error(
+            self.unterminated(
                 Span::new(start, self.cur.pos),
                 "unterminated block; expected `}`",
             );
@@ -958,7 +988,7 @@ impl<'a> Parser<'a> {
         let fixture = self.parse_test_attrs();
         self.cur.skip_trivia();
         let Some(name_span) = self.cur.scan_ident() else {
-            self.error(
+            self.expected(
                 Span::new(start, self.cur.pos),
                 "expected test name after `@test`",
             );
@@ -971,11 +1001,11 @@ impl<'a> Parser<'a> {
         };
         self.cur.skip_trivia();
         if !self.cur.eat('=') {
-            self.error(name_span, "expected `=` after test name");
+            self.expected(name_span, "expected `=` after test name");
         }
         let value = self.scan_roc_expr();
         if value.is_empty() {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 "expected a Roc expression after `@test` name `=`",
             );
@@ -1002,14 +1032,14 @@ impl<'a> Parser<'a> {
                 break;
             }
             if self.cur.is_eof() {
-                self.error(
+                self.unterminated(
                     Span::new(attrs_start, self.cur.pos),
                     "unterminated `@test` attributes; expected `}`",
                 );
                 break;
             }
             let Some(key_span) = self.cur.scan_ident() else {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     "expected attribute name in `@test { ... }`",
                 );
@@ -1019,13 +1049,13 @@ impl<'a> Parser<'a> {
             let key = self.cur.ident_text(key_span).to_string();
             self.cur.skip_trivia();
             if !self.cur.eat(':') {
-                self.error(key_span, "expected `:` after `@test` attribute name");
+                self.expected(key_span, "expected `:` after `@test` attribute name");
             }
             self.cur.skip_trivia();
             match key.as_str() {
                 "fixture" => {
                     let Some(name_span) = self.cur.scan_ident() else {
-                        self.error(
+                        self.expected(
                             Span::point(self.cur.pos),
                             "expected fixture name after `fixture:`",
                         );
@@ -1037,13 +1067,13 @@ impl<'a> Parser<'a> {
                         name: self.cur.ident_text(name_span).to_string(),
                     };
                     if fixture.is_some() {
-                        self.error(key_span, "duplicate `fixture` attribute");
+                        self.unexpected(key_span, "duplicate `fixture` attribute");
                     } else {
                         fixture = Some(ident);
                     }
                 }
                 other => {
-                    self.error(
+                    self.unexpected(
                         key_span,
                         format!("unknown `@test` attribute `{other}`; expected `fixture`"),
                     );
@@ -1085,7 +1115,7 @@ impl<'a> Parser<'a> {
         let target = self.parse_fixture_attrs(start);
         self.cur.skip_trivia();
         let Some(name_span) = self.cur.scan_ident() else {
-            self.error(
+            self.expected(
                 Span::new(start, self.cur.pos),
                 "expected fixture name after `@fixture{target: ...}`",
             );
@@ -1098,11 +1128,11 @@ impl<'a> Parser<'a> {
         };
         self.cur.skip_trivia();
         if !self.cur.eat('=') {
-            self.error(name_span, "expected `=` after fixture name");
+            self.expected(name_span, "expected `=` after fixture name");
         }
         let value = self.scan_roc_expr();
         if value.is_empty() {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 "expected a Roc expression after `@fixture` name `=`",
             );
@@ -1118,7 +1148,7 @@ impl<'a> Parser<'a> {
 
     fn parse_fixture_attrs(&mut self, start: usize) -> ComponentPath {
         if self.cur.peek() != Some('{') {
-            self.error(
+            self.expected(
                 Span::new(start, self.cur.pos),
                 "expected `{target: ...}` after `@fixture`",
             );
@@ -1133,14 +1163,14 @@ impl<'a> Parser<'a> {
                 break;
             }
             if self.cur.is_eof() {
-                self.error(
+                self.unterminated(
                     Span::new(attrs_start, self.cur.pos),
                     "unterminated `@fixture` attributes; expected `}`",
                 );
                 break;
             }
             let Some(key_span) = self.cur.scan_ident() else {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     "expected attribute name in `@fixture { ... }`",
                 );
@@ -1150,11 +1180,11 @@ impl<'a> Parser<'a> {
             let key = self.cur.ident_text(key_span).to_string();
             self.cur.skip_trivia();
             if !self.cur.eat(':') {
-                self.error(key_span, "expected `:` after `@fixture` attribute name");
+                self.expected(key_span, "expected `:` after `@fixture` attribute name");
             }
             self.cur.skip_trivia();
             let Some(path) = self.scan_fixture_path() else {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     format!("expected component path after `{key}:`"),
                 );
@@ -1164,13 +1194,13 @@ impl<'a> Parser<'a> {
             match key.as_str() {
                 "target" => {
                     if target.is_some() {
-                        self.error(key_span, "duplicate `target` attribute");
+                        self.unexpected(key_span, "duplicate `target` attribute");
                     } else {
                         target = Some(path);
                     }
                 }
                 other => {
-                    self.error(
+                    self.unexpected(
                         key_span,
                         format!("unknown `@fixture` attribute `{other}`; expected `target`"),
                     );
@@ -1180,7 +1210,7 @@ impl<'a> Parser<'a> {
             self.cur.eat(',');
         }
         target.unwrap_or_else(|| {
-            self.error(
+            self.expected(
                 Span::new(attrs_start, self.cur.pos),
                 "expected `{target: ...}` after `@fixture`",
             );
@@ -1213,7 +1243,7 @@ impl<'a> Parser<'a> {
                     span: next,
                 });
             } else {
-                self.error(Span::point(self.cur.pos), "expected identifier after `.`");
+                self.expected(Span::point(self.cur.pos), "expected identifier after `.`");
                 break;
             }
         }
@@ -1300,7 +1330,7 @@ impl<'a> Parser<'a> {
         if self.scan_at_component().is_none() && !self.scan_bare_component_keyword() {
             return None;
         }
-        self.error(
+        self.expected(
             name_span,
             "expected `@component` at the start of the declaration; write `@component Name = |params|`",
         );
@@ -1353,7 +1383,7 @@ impl<'a> Parser<'a> {
     fn parse_component_after_keyword(&mut self, start: usize) -> ComponentDecl {
         self.cur.skip_trivia();
         let Some(name_span) = self.cur.scan_ident() else {
-            self.error(
+            self.expected(
                 Span::new(start, self.cur.pos),
                 "expected component name after `@component`",
             );
@@ -1374,11 +1404,11 @@ impl<'a> Parser<'a> {
         };
         let name = self.cur.ident_text(name_span).to_string();
         if let Some(message) = component_name_error(&name) {
-            self.error(name_span, message);
+            self.unexpected(name_span, message);
         }
         self.cur.skip_trivia();
         if !self.cur.eat('=') {
-            self.error(name_span, "expected `=` after component name");
+            self.expected(name_span, "expected `=` after component name");
         }
         self.parse_component_rest(start, name_span, name)
     }
@@ -1393,7 +1423,7 @@ impl<'a> Parser<'a> {
         let params = match self.scan_params() {
             Some(span) => span,
             None => {
-                self.error(
+                self.expected(
                     Span::new(start, self.cur.pos),
                     "expected `|params|` after `@component Name =`",
                 );
@@ -1436,7 +1466,7 @@ impl<'a> Parser<'a> {
         if self.cur.peek() == Some('<') {
             return self.parse_html_expr_body();
         }
-        self.error(
+        self.expected(
             Span::point(self.cur.pos),
             "expected `{` to open a template body, or a single HTML tag",
         );
@@ -1454,7 +1484,7 @@ impl<'a> Parser<'a> {
                 if !self.cur.skip_html_comment()
                     || !self.src()[start..self.cur.pos].ends_with("-->")
                 {
-                    self.error(Span::new(start, self.cur.pos), "unterminated HTML comment");
+                    self.unterminated(Span::new(start, self.cur.pos), "unterminated HTML comment");
                 }
                 continue;
             }
@@ -1474,7 +1504,7 @@ impl<'a> Parser<'a> {
         let saved = Snapshot::from(&self.cur);
         self.skip_body_prefix();
         if !self.cur.is_eof() && !self.at_column_zero_def() {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 "braceless component bodies may contain one HTML tag; wrap multiple items in `{ ... }`",
             );
@@ -1545,7 +1575,7 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
-        self.error(
+        self.unterminated(
             Span::new(start, self.cur.pos),
             "unterminated component parameter list",
         );
@@ -1555,7 +1585,7 @@ impl<'a> Parser<'a> {
     fn parse_template_block(&mut self) -> TemplateBlock {
         let start = self.cur.pos;
         if !self.cur.eat('{') {
-            self.error(
+            self.expected(
                 Span::point(self.cur.pos),
                 "expected `{` to open a template body",
             );
@@ -1566,7 +1596,7 @@ impl<'a> Parser<'a> {
         }
         let items = self.parse_template_items(ItemStop::BlockEnd);
         if !self.cur.eat('}') {
-            self.error(
+            self.unterminated(
                 Span::new(start, self.cur.pos),
                 "unclosed template block; expected `}`",
             );
@@ -1600,7 +1630,7 @@ impl<'a> Parser<'a> {
                 if !self.cur.skip_html_comment()
                     || !self.src()[start..self.cur.pos].ends_with("-->")
                 {
-                    self.error(Span::new(start, self.cur.pos), "unterminated HTML comment");
+                    self.unterminated(Span::new(start, self.cur.pos), "unterminated HTML comment");
                 }
                 continue;
             }
@@ -1642,7 +1672,7 @@ impl<'a> Parser<'a> {
         match self.cur.peek() {
             Some('<') | Some('{') | Some('@') => self.parse_template_item(ItemStop::MatchValue),
             Some(_) => {
-                self.error(
+                self.expected(
                     Span::point(self.cur.pos),
                     "match arm must produce a tag, fragment, interpolation, or directive; wrap bare text in an element or fragment",
                 );
@@ -1662,7 +1692,7 @@ impl<'a> Parser<'a> {
         if self.cur.eat('>') {
             let children = self.parse_template_items(ItemStop::CloseTag);
             if !self.cur.eat_str("</>") {
-                self.error(
+                self.html(
                     Span::new(start, self.cur.pos),
                     "unclosed fragment; expected `</>`",
                 );
@@ -1681,7 +1711,7 @@ impl<'a> Parser<'a> {
                 .as_ref()
                 .map(path_source)
                 .unwrap_or_else(|| "tag".to_string());
-            self.error(
+            self.html(
                 Span::new(start, self.cur.pos),
                 format!("unexpected closing tag `</{label}>`"),
             );
@@ -1689,7 +1719,7 @@ impl<'a> Parser<'a> {
         }
 
         let Some(path) = self.scan_tag_path() else {
-            self.error(Span::point(self.cur.pos), "expected tag name after `<`");
+            self.html(Span::point(self.cur.pos), "expected tag name after `<`");
             self.sync_after_bad_tag();
             return None;
         };
@@ -1697,7 +1727,7 @@ impl<'a> Parser<'a> {
         let attrs = self.parse_attrs();
         let self_closing = self.cur.eat('/');
         if !self.cur.eat('>') {
-            self.error(
+            self.html(
                 Span::new(start, self.cur.pos),
                 "expected `>` to end the opening tag",
             );
@@ -1744,7 +1774,7 @@ impl<'a> Parser<'a> {
 
         let children = self.parse_template_items(ItemStop::CloseTag);
         if !self.eat_closing_tag(&path) {
-            self.error(
+            self.html(
                 Span::new(start, self.cur.pos),
                 format!(
                     "unclosed `<{}>`; expected `</{}>`",
@@ -1785,7 +1815,7 @@ impl<'a> Parser<'a> {
                     span: next,
                 });
             } else {
-                self.error(Span::point(self.cur.pos), "expected identifier after `.`");
+                self.expected(Span::point(self.cur.pos), "expected identifier after `.`");
                 break;
             }
         }
@@ -1797,7 +1827,7 @@ impl<'a> Parser<'a> {
             .last()
             .is_some_and(|part| is_ambiguous_pascal(&part.name))
         {
-            self.error(
+            self.unexpected(
                 parts.last().unwrap().span,
                 format!(
                     "ambiguous component tag `<{}>`; write `<HtmlShell>` rather than `<HTMLShell>`",
@@ -1842,7 +1872,7 @@ impl<'a> Parser<'a> {
                 } else if self.cur.peek() == Some('@') {
                     self.parse_action_attr()
                 } else {
-                    self.error(
+                    self.datastar(
                         Span::point(self.cur.pos),
                         format!(
                             "expected `\"...\"`, `{{...}}`, or a Datastar action such as `@post(\"...\")` for attribute `{}`",
@@ -1867,7 +1897,7 @@ impl<'a> Parser<'a> {
         let start = self.cur.pos;
         self.cur.bump();
         let Some(name_span) = self.cur.scan_ident() else {
-            self.error(
+            self.datastar(
                 Span::point(start),
                 "expected Datastar action name after `@`",
             );
@@ -1878,7 +1908,7 @@ impl<'a> Parser<'a> {
             span: name_span,
         };
         if !is_datastar_action(&name.name) {
-            self.error(
+            self.datastar(
                 Span::new(start, name_span.end as usize),
                 format!(
                     "unknown Datastar action `@{}`; expected `@get`, `@post`, `@put`, `@patch`, or `@delete`",
@@ -1888,7 +1918,7 @@ impl<'a> Parser<'a> {
         }
         self.cur.skip_spaces_tabs();
         if self.cur.peek() != Some('(') {
-            self.error(
+            self.datastar(
                 Span::point(self.cur.pos),
                 format!("expected `(` after `@{}`", name.name),
             );
@@ -1904,12 +1934,12 @@ impl<'a> Parser<'a> {
         let end = self.cur.pos as u32;
         let trimmed = args.of(self.src()).trim();
         if trimmed.is_empty() {
-            self.error(
+            self.datastar(
                 Span::new(start, self.cur.pos),
                 format!("expected a URI argument in `@{}(...)`", name.name),
             );
         } else if first_non_trivia_char(trimmed) == Some('\'') {
-            self.error(
+            self.datastar(
                 args,
                 format!(
                     "Datastar actions in Rocci use Roc strings: `@{}(\"/x\")`. For a literal Datastar expression, quote the whole attribute: `data-on:click=\"@{}('/x')\"`",
@@ -1928,7 +1958,7 @@ impl<'a> Parser<'a> {
             self.cur.skip_roc_token();
         }
         if self.cur.paren != paren_before {
-            self.error(
+            self.unterminated(
                 Span::new(args_start.saturating_sub(1), self.cur.pos),
                 "unterminated Datastar action; expected `)`",
             );
@@ -1978,13 +2008,13 @@ impl<'a> Parser<'a> {
             return false;
         }
         let Some(close) = self.scan_tag_path() else {
-            self.error(Span::point(self.cur.pos), "expected closing tag name");
+            self.html(Span::point(self.cur.pos), "expected closing tag name");
             return false;
         };
         self.cur.skip_spaces_tabs();
         self.cur.eat('>');
         if path_source(&close) != path_source(open) {
-            self.error(
+            self.html(
                 Span::new(start, self.cur.pos),
                 format!(
                     "closing tag `</{}>` does not match `<{}>`",
@@ -2000,7 +2030,7 @@ impl<'a> Parser<'a> {
         let scan = scan_interpolation(self.src(), self.cur.pos);
         self.cur.pos = scan.span.end as usize;
         if !scan.terminated {
-            self.error(scan.span, "unterminated interpolation; expected `}`");
+            self.unterminated(scan.span, "unterminated interpolation; expected `}`");
         }
         Interpolation {
             expr: scan.expr,
@@ -2027,7 +2057,7 @@ impl<'a> Parser<'a> {
         }
         self.cur.bump();
         let Some(name_span) = self.cur.scan_ident() else {
-            self.error(Span::point(start), "expected directive name after `@`");
+            self.directive(Span::point(start), "expected directive name after `@`");
             return None;
         };
         let name = self.cur.ident_text(name_span);
@@ -2039,7 +2069,7 @@ impl<'a> Parser<'a> {
             "css" => Some(TemplateItem::Css(self.parse_css_after_keyword(start))),
             "component" | "fixture" | "test" | "context" | "init" | "live" | "view" | "patch"
             | "command" | "on" | "action" | "page" | "roc" | "render" => {
-                self.error(
+                self.directive(
                     Span::new(start, name_span.end as usize),
                     format!("`@{name}` is only valid at document root, not inside a template body"),
                 );
@@ -2051,7 +2081,7 @@ impl<'a> Parser<'a> {
                     self.cur.pos = start;
                     return None;
                 }
-                self.error(
+                self.directive(
                     Span::new(start, name_span.end as usize),
                     "`@else` is only valid after an `@if` body",
                 );
@@ -2064,7 +2094,7 @@ impl<'a> Parser<'a> {
                 } else {
                     format!("unknown directive `@{other}`")
                 };
-                self.error(Span::new(start, name_span.end as usize), message);
+                self.unexpected(Span::new(start, name_span.end as usize), message);
                 self.skip_unknown_directive();
                 None
             }
@@ -2107,7 +2137,7 @@ impl<'a> Parser<'a> {
     fn parse_for(&mut self, start: usize) -> ForDirective {
         self.cur.skip_whitespace();
         let Some(binder_span) = self.cur.scan_ident() else {
-            self.error(Span::point(self.cur.pos), "expected binder after `@for`");
+            self.directive(Span::point(self.cur.pos), "expected binder after `@for`");
             return ForDirective {
                 binder: Ident {
                     span: Span::point(self.cur.pos),
@@ -2124,14 +2154,14 @@ impl<'a> Parser<'a> {
             .next()
             .is_some_and(|ch| ch.is_ascii_uppercase())
         {
-            self.error(
+            self.directive(
                 binder_span,
                 "`@for` binders must be a single lowercase identifier",
             );
         }
         self.cur.skip_whitespace();
         if !self.try_eat_ident("in") {
-            self.error(
+            self.directive(
                 Span::point(self.cur.pos),
                 "expected `in` after `@for` binder",
             );
@@ -2153,7 +2183,7 @@ impl<'a> Parser<'a> {
         let scrutinee = self.scan_header_expr();
         self.cur.skip_trivia();
         if !self.cur.eat('{') {
-            self.error(
+            self.directive(
                 Span::point(self.cur.pos),
                 "expected `{` to open `@match` arms",
             );
@@ -2175,7 +2205,7 @@ impl<'a> Parser<'a> {
             }
             let arm_start = self.cur.pos;
             let Some(pattern) = self.scan_pattern() else {
-                self.error(Span::point(self.cur.pos), "expected match pattern");
+                self.directive(Span::point(self.cur.pos), "expected match pattern");
                 self.skip_until_match_sync();
                 if self.cur.peek() == Some('}') {
                     break;
@@ -2184,7 +2214,7 @@ impl<'a> Parser<'a> {
             };
             self.cur.skip_whitespace();
             if !self.cur.eat_str("=>") {
-                self.error(
+                self.directive(
                     Span::point(self.cur.pos),
                     "expected `=>` after match pattern",
                 );
@@ -2199,7 +2229,7 @@ impl<'a> Parser<'a> {
             });
         }
         if !self.cur.eat('}') {
-            self.error(
+            self.unterminated(
                 Span::new(start, self.cur.pos),
                 "unclosed `@match`; expected `}`",
             );
@@ -2214,7 +2244,7 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self, start: usize) -> LetDirective {
         self.cur.skip_whitespace();
         let Some(binder_span) = self.cur.scan_ident() else {
-            self.error(Span::point(self.cur.pos), "expected binder after `@let`");
+            self.directive(Span::point(self.cur.pos), "expected binder after `@let`");
             return LetDirective {
                 binder: Ident {
                     span: Span::point(self.cur.pos),
@@ -2226,7 +2256,7 @@ impl<'a> Parser<'a> {
         };
         self.cur.skip_whitespace();
         if !self.cur.eat('=') {
-            self.error(
+            self.directive(
                 Span::point(self.cur.pos),
                 "expected `=` after `@let` binder",
             );
@@ -2270,7 +2300,7 @@ impl<'a> Parser<'a> {
                 Some('{') if paren == 0 && bracket == 0 => {
                     let expr = lexer::trim_span(self.src(), Span::new(start, self.cur.pos));
                     if expr.is_empty() {
-                        self.error(
+                        self.directive(
                             Span::point(self.cur.pos),
                             "unparenthesized record in directive header; wrap it in parentheses, e.g. `@match ({ status, items })`",
                         );
@@ -2279,7 +2309,7 @@ impl<'a> Parser<'a> {
                 }
                 Some('{') => self.cur.skip_balanced_braces(),
                 Some('\n' | '\r') if paren == 0 && bracket == 0 => {
-                    self.error(
+                    self.directive(
                         Span::new(start, self.cur.pos),
                         "directive header must keep its body `{` on the same logical line; parenthesize expressions that need a newline",
                     );
@@ -2291,7 +2321,7 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
-        self.error(
+        self.directive(
             Span::new(start, self.cur.pos),
             "expected `{` to open the directive body",
         );

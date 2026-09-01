@@ -13,6 +13,7 @@ pub struct Diagnostic {
     pub span: Span,
     pub severity: Severity,
     pub message: String,
+    pub code: Option<&'static str>,
 }
 
 impl Diagnostic {
@@ -21,6 +22,7 @@ impl Diagnostic {
             span,
             severity: Severity::Error,
             message: message.into(),
+            code: None,
         }
     }
 
@@ -29,6 +31,25 @@ impl Diagnostic {
             span,
             severity: Severity::Warning,
             message: message.into(),
+            code: None,
+        }
+    }
+
+    pub fn error_code(code: &'static str, span: Span, message: impl Into<String>) -> Self {
+        Self {
+            span,
+            severity: Severity::Error,
+            message: message.into(),
+            code: Some(code),
+        }
+    }
+
+    pub fn warning_code(code: &'static str, span: Span, message: impl Into<String>) -> Self {
+        Self {
+            span,
+            severity: Severity::Warning,
+            message: message.into(),
+            code: Some(code),
         }
     }
 
@@ -50,6 +71,7 @@ pub struct DiagnosticFrame {
     pub column: u32,
     pub severity: Severity,
     pub message: String,
+    pub code: Option<&'static str>,
     pub source_line: String,
     pub caret_start: usize,
     pub caret_len: usize,
@@ -74,6 +96,7 @@ impl DiagnosticFrame {
             column,
             severity: diagnostic.severity,
             message: diagnostic.message.clone(),
+            code: diagnostic.code,
             source_line,
             caret_start,
             caret_len,
@@ -84,6 +107,13 @@ impl DiagnosticFrame {
         match self.severity {
             Severity::Error => "error",
             Severity::Warning => "warning",
+        }
+    }
+
+    pub fn kind_label(&self) -> String {
+        match self.code {
+            Some(code) => format!("{}[{code}]", self.severity_label()),
+            None => self.severity_label().to_string(),
         }
     }
 
@@ -104,7 +134,7 @@ impl DiagnosticFrame {
     }
 
     pub fn render_with_color(&self, color: bool) -> String {
-        let kind = self.severity_label();
+        let kind = self.kind_label();
         let (kind_code, caret_code) = match self.severity {
             Severity::Error => ("1;31", "1;31"),
             Severity::Warning => ("1;33", "1;33"),
@@ -116,7 +146,7 @@ impl DiagnosticFrame {
         let bar = paint(color, "1;34", "|");
         format!(
             "{kind}: {message}\n {arrow} {file}:{line}:{column}\n{pad} {bar}\n{line_no} {bar} {source}\n{pad} {bar} {caret}",
-            kind = paint(color, kind_code, kind),
+            kind = paint(color, kind_code, &kind),
             message = paint(color, "1", &self.message),
             file = self.file,
             line = self.line,
@@ -179,6 +209,7 @@ mod tests {
         assert_eq!(frame.caret_len, 5);
         let rendered = frame.render();
         assert!(rendered.starts_with("error: expected `{` to open `@page`"));
+        assert!(!rendered.contains("[RC"));
         assert!(rendered.contains(" --> Guide.rocdown:2:1"));
         assert!(rendered.contains("2 | @page {"));
         assert!(rendered.contains("  | ^^^^^"));
@@ -187,6 +218,24 @@ mod tests {
         assert!(colored.contains("\x1b[1;31m^^^^^\x1b[0m"));
         assert!(colored.contains("\x1b[1;34m-->\x1b[0m"));
         assert!(!rendered.contains('\x1b'));
+    }
+
+    #[test]
+    fn coded_frame_includes_brackets_only_when_set() {
+        let src = "@context {}\n@context {}\n";
+        let source = SourceFile::new("App.rocci", src);
+        let at = src.rfind("@context").unwrap();
+        let diagnostic = Diagnostic::error_code(
+            crate::codes::RC2001,
+            Span::new(at, at + 8),
+            "duplicate `@context`; a module may declare app state once",
+        );
+        let frame = DiagnosticFrame::from_source(source, &diagnostic);
+        assert_eq!(frame.code, Some(crate::codes::RC2001));
+        let rendered = frame.render();
+        assert!(rendered.starts_with("error[RC2001]: duplicate `@context`"));
+        let colored = frame.render_with_color(true);
+        assert!(colored.contains("\x1b[1;31merror[RC2001]\x1b[0m"));
     }
 
     #[test]

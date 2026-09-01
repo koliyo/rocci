@@ -4,13 +4,17 @@ use super::graph::resolve_graph;
 use super::nav::{apply_journey, resolve_navigation};
 use super::types::*;
 
+pub fn is_collection_id(id: &str) -> bool {
+    id == "index" || id.ends_with("/index")
+}
+
 pub fn derived_route(id: &str) -> String {
     if id == "index" {
         "/".to_string()
     } else if let Some(section) = id.strip_suffix("/index") {
         format!("/{section}/")
     } else {
-        format!("/{id}/")
+        format!("/{id}")
     }
 }
 
@@ -22,20 +26,48 @@ pub fn with_trailing_slash(route: &str) -> String {
     }
 }
 
-pub(crate) fn is_sibling_product_lane(route: &str) -> bool {
-    route == "/examples/"
-        || route.starts_with("/examples/")
-        || route == "/rocdown/"
-        || route.starts_with("/rocdown/")
-        || route == "/project/"
-        || route.starts_with("/project/")
+pub fn without_trailing_slash(route: &str) -> String {
+    if route == "/" {
+        return "/".to_string();
+    }
+    route.strip_suffix('/').unwrap_or(route).to_string()
+}
+
+pub fn routes_match(left: &str, right: &str) -> bool {
+    let left = with_trailing_slash(left);
+    let right = with_trailing_slash(right);
+    if left == right {
+        return true;
+    }
+    if let Some(stripped) = left.strip_prefix("/docs") {
+        return stripped == right || (left == "/docs/" && right == "/");
+    }
+    if let Some(stripped) = right.strip_prefix("/docs") {
+        return stripped == left || (right == "/docs/" && left == "/");
+    }
+    false
+}
+
+pub fn canonical_route(route: &str, collection: bool) -> String {
+    if !route.starts_with('/') {
+        return route.to_string();
+    }
+    if route == "/" {
+        return "/".to_string();
+    }
+    if collection {
+        with_trailing_slash(route)
+    } else {
+        without_trailing_slash(route)
+    }
 }
 
 pub fn page_route(page: &SourcePage) -> String {
-    with_trailing_slash(&match &page.route_hint {
+    let raw = match &page.route_hint {
         RouteHint::Explicit(route) => route.clone(),
         RouteHint::Derived => derived_route(&page.id),
-    })
+    };
+    canonical_route(&raw, is_collection_id(&page.id))
 }
 
 pub fn route_output_path(route: &str) -> String {
@@ -64,7 +96,7 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
         }
         let mut aliases = Vec::new();
         for alias in &page.aliases {
-            let alias = with_trailing_slash(alias);
+            let alias = canonical_route(alias, is_collection_id(&page.id));
             if alias == route {
                 continue;
             }
@@ -119,7 +151,13 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
 
     crate::docs::fill_link_cards(&mut resolved);
 
-    let graph = resolve_graph(pages, &resolved, &options.files, &mut diagnostics);
+    let graph = resolve_graph(
+        pages,
+        &resolved,
+        &options.peer_pages,
+        &options.files,
+        &mut diagnostics,
+    );
     crate::docs::rewrite_resolved_links(&mut resolved, &graph);
     let navigation = resolve_navigation(&resolved, &options.navigation, &mut diagnostics);
     apply_journey(&mut resolved, &navigation, &mut diagnostics);

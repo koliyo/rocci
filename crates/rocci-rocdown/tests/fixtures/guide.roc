@@ -87,7 +87,7 @@ rocci_content = |{}| {
                     "a",
                     [
                         Html.attribute("class", "rd-link"),
-                        Html.attribute("href", "/guides/rocdown-blocks/"),
+                        Html.attribute("href", "/guides/rocdown-blocks"),
                         Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
@@ -99,7 +99,7 @@ rocci_content = |{}| {
                     "a",
                     [
                         Html.attribute("class", "rd-link"),
-                        Html.attribute("href", "/guides/rocdown-interactive/"),
+                        Html.attribute("href", "/guides/rocdown-interactive"),
                         Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [
@@ -111,7 +111,7 @@ rocci_content = |{}| {
                     "a",
                     [
                         Html.attribute("class", "rd-link"),
-                        Html.attribute("href", "/guides/rocdown-interactive/"),
+                        Html.attribute("href", "/guides/rocdown-interactive"),
                         Html.attribute("data-rocci-css", "Guide-fd48e9e1"),
                     ],
                     [

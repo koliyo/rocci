@@ -1,9 +1,14 @@
 import pf.Env
-import pf.Path
+import pf.IOErr exposing [IOErr]
+import pf.OsStr exposing [OsStr]
+import pf.Path exposing [Path]
 import Html
 import RocdownTheme
 import BlockPainters
 import RocdownPages
+import Views
+
+ApplyErr(e) : [OutOfBounds, PathErr(IOErr, Path), ..e]
 
 render_tree! = |segments, index| {
     match List.get(segments, index)? {
@@ -121,6 +126,7 @@ ensure_parent! = |dest| {
     }
 }
 
+write_page! : Str, Views.Page(_) => Try({}, ApplyErr(_))
 write_page! = |staging, item| {
     content = render_forest!(item.segments, 0)?
     html = Html.render_document(
@@ -135,6 +141,7 @@ write_page! = |staging, item| {
     Ok({})
 }
 
+write_all! : Str, List(Views.Page(_)) => Try({}, ApplyErr(_))
 write_all! = |staging, pages| {
     for page in pages {
         write_page!(staging, page)?
@@ -143,6 +150,7 @@ write_all! = |staging, pages| {
 }
 
 RocdownBuild := [].{
+    run! : {} => Try({}, ApplyErr([VarNotFound(OsStr), EnvErr(IOErr), InvalidStr(U64), ..]))
     run! = |{}| {
         staging = Env.var_str!("ROCDOWN_STAGING")?
         write_all!(staging, RocdownPages.pages)

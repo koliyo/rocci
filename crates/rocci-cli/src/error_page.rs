@@ -465,11 +465,12 @@ fn roc_escape_contents(text: &str) -> String {
 fn frame_html(frame: &DiagnosticFrame) -> String {
     format!(
         "<section class=\"frame {kind}\">\
-         <div class=\"frame-head\"><span class=\"pill\">{kind}</span> {message}</div>\
+         <div class=\"frame-head\"><span class=\"pill\">{label}</span> {message}</div>\
          <div class=\"loc\">{file}:{line}:{column}</div>\
          <pre class=\"code\"><span class=\"gutter\">{line}</span><span class=\"src\">{source}</span>\n<span class=\"gutter\"></span><span class=\"caret\">{caret}</span></pre>\
          </section>",
         kind = html_escape(frame.severity_label()),
+        label = html_escape(&frame.kind_label()),
         message = html_escape(&frame.message),
         file = html_escape(&frame.file),
         line = frame.line,
@@ -637,6 +638,25 @@ mod tests {
         assert!(text.contains(" --> Page.rocci:1:1"));
         assert!(text.contains("@component"));
         assert!(text.contains("^^^^^^^^^^"));
+    }
+
+    #[test]
+    fn coded_template_error_appears_in_html_and_text() {
+        let src = "@init { {} }\n";
+        let diagnostic = Diagnostic::error_code(
+            rocci_template::codes::RC2003,
+            Span::new(0, 5),
+            "`@init` requires `@context` to declare the app state type",
+        );
+        let files = [FailedFile {
+            name: "App.rocci".into(),
+            src: src.into(),
+            diagnostics: vec![diagnostic],
+        }];
+        let html = render_template_errors(&files);
+        assert!(html.contains("error[RC2003]"), "{html}");
+        let text = format_template_errors(&files);
+        assert!(text.contains("error[RC2003]:"), "{text}");
     }
 
     #[test]

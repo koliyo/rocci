@@ -1,6 +1,10 @@
-use rocci_highlight::LanguageId;
-use rocci_rocdown::{CompileOptions, SourceFile, compile, render_document};
+use rocci_highlight::{HighlightKind, LanguageId};
+use rocci_rocdown::{
+    CompileOptions, PageRef, SourceFile, compile, highlight_rocdown, highlight_rocdown_document,
+    render_document,
+};
 use rocci_template::PositionEncoding;
+use std::path::PathBuf;
 
 #[test]
 fn parity_roc_snippet_drives_lsp_and_rocdown_html() {
@@ -176,6 +180,99 @@ fn test_hostile_html_and_unclosed_constructs() {
     assert!(html.contains("&lt;script&gt;"));
     assert!(html.contains("&amp;"));
     assert!(html.contains("&quot;quotes&quot;"));
+}
+
+#[test]
+fn markdown_prose_matches_md_shape() {
+    let src = "Shared streams are [handlers](/docs/applications/handlers/).\n\nA standalone **app** is a directory.\n";
+    let spans = highlight_rocdown(src);
+    let painted: Vec<_> = spans
+        .iter()
+        .map(|s| (&src[s.start()..s.end()], s.kind))
+        .collect();
+    assert!(
+        painted
+            .iter()
+            .any(|(text, kind)| { *kind == HighlightKind::Variable && *text == "[handlers]" }),
+        "{painted:?}"
+    );
+    assert!(
+        painted.iter().any(|(text, kind)| {
+            *kind == HighlightKind::Keyword && *text == "(/docs/applications/handlers/)"
+        }),
+        "{painted:?}"
+    );
+    assert!(
+        !painted
+            .iter()
+            .any(|(text, _)| *text == "applications/handlers/" || *text == "/docs/"),
+        "destination must not be split: {painted:?}"
+    );
+    assert!(
+        painted
+            .iter()
+            .any(|(text, kind)| *kind == HighlightKind::Operator && *text == "**app**"),
+        "{painted:?}"
+    );
+}
+
+#[test]
+fn link_destination_uses_source_text_after_resolve() {
+    let src = "See [handlers](/docs/applications/handlers/).\n";
+    let compiled = compile(
+        SourceFile::new("standalone.rocdown", src),
+        &CompileOptions {
+            resolve_links: true,
+            pages: vec![PageRef {
+                stem: "handlers".into(),
+                file_name: "handlers.rocdown".into(),
+                path: PathBuf::from("applications/handlers.rocdown"),
+                route: "/applications/handlers/".into(),
+                explicit_route: false,
+                heading_ids: Vec::new(),
+            }],
+            ..CompileOptions::default()
+        },
+    );
+    let spans = highlight_rocdown_document(src, &compiled.document, &compiled.headings);
+    let painted: Vec<_> = spans
+        .iter()
+        .map(|s| (&src[s.start()..s.end()], s.kind))
+        .collect();
+    assert!(
+        painted.iter().any(|(text, kind)| {
+            *kind == HighlightKind::Keyword && *text == "(/docs/applications/handlers/)"
+        }),
+        "resolved url must not steal a path suffix: {painted:?}"
+    );
+}
+
+#[test]
+fn rocci_fence_highlights_host_keywords() {
+    let src = "```rocci\n@context { db : Sqlite.Db }\n\n@init {\n  db = 1\n}\n```\n";
+    let spans = highlight_rocdown(src);
+    let painted: Vec<_> = spans
+        .iter()
+        .map(|s| (&src[s.start()..s.end()], s.kind))
+        .collect();
+    assert!(
+        painted
+            .iter()
+            .any(|(text, kind)| *kind == HighlightKind::Keyword && *text == "@context"),
+        "{painted:?}"
+    );
+    assert!(
+        painted
+            .iter()
+            .any(|(text, kind)| *kind == HighlightKind::Keyword && *text == "@init"),
+        "{painted:?}"
+    );
+    assert!(
+        painted
+            .iter()
+            .any(|(text, kind)| *kind == HighlightKind::Punctuation && *text == "```"),
+        "{painted:?}"
+    );
 }
 
 #[test]

@@ -104,7 +104,31 @@ fn highlight_embedded(language: LanguageId, slice: &str) -> Vec<HighlightSpan> {
                 crate::lex::highlight_html(slice)
             }
         }
+        LanguageId::Rocci => highlight_rocci(slice),
+        LanguageId::Markdown => crate::markdown::highlight_markdown(slice),
         _ => Vec::new(),
+    }
+}
+
+fn push_offset_tokens(
+    src: &str,
+    collector: &mut Vec<HighlightSpan>,
+    region_start: usize,
+    region_end: usize,
+    tokens: Vec<HighlightSpan>,
+) {
+    for tok in tokens {
+        let tok_start = floor_char_boundary(src, region_start + tok.span.start as usize);
+        let tok_end =
+            floor_char_boundary(src, (region_start + tok.span.end as usize).min(region_end));
+        if tok_start < tok_end {
+            collector.push(HighlightSpan::new(
+                Span::new(tok_start, tok_end),
+                tok.kind,
+                tok.modifiers,
+                tok.priority,
+            ));
+        }
     }
 }
 
@@ -123,67 +147,46 @@ pub fn collect_embedded_regions(
 
         match region.language {
             LanguageId::Roc => {
-                let hl_tokens = highlight_embedded(LanguageId::Roc, slice);
-                for tok in hl_tokens {
-                    let tok_start =
-                        floor_char_boundary(src, region_start + tok.span.start as usize);
-                    let tok_end = floor_char_boundary(
-                        src,
-                        (region_start + tok.span.end as usize).min(region_end),
-                    );
-                    if tok_start < tok_end {
-                        collector.push(HighlightSpan::new(
-                            Span::new(tok_start, tok_end),
-                            tok.kind,
-                            tok.modifiers,
-                            tok.priority,
-                        ));
-                    }
-                }
+                push_offset_tokens(
+                    src,
+                    collector,
+                    region_start,
+                    region_end,
+                    highlight_embedded(LanguageId::Roc, slice),
+                );
             }
             LanguageId::Css => {
-                let hl_tokens = highlight_embedded(LanguageId::Css, slice);
-                for tok in hl_tokens {
-                    let tok_start =
-                        floor_char_boundary(src, region_start + tok.span.start as usize);
-                    let tok_end = floor_char_boundary(
-                        src,
-                        (region_start + tok.span.end as usize).min(region_end),
-                    );
-                    if tok_start < tok_end {
-                        collector.push(HighlightSpan::new(
-                            Span::new(tok_start, tok_end),
-                            tok.kind,
-                            tok.modifiers,
-                            tok.priority,
-                        ));
-                    }
-                }
+                push_offset_tokens(
+                    src,
+                    collector,
+                    region_start,
+                    region_end,
+                    highlight_embedded(LanguageId::Css, slice),
+                );
             }
             LanguageId::Html => {
                 if region.purpose == RegionPurpose::DisplayOnly {
-                    let hl_tokens = highlight_embedded(LanguageId::Html, slice);
-                    for tok in hl_tokens {
-                        let tok_start =
-                            floor_char_boundary(src, region_start + tok.span.start as usize);
-                        let tok_end = floor_char_boundary(
-                            src,
-                            (region_start + tok.span.end as usize).min(region_end),
-                        );
-                        if tok_start < tok_end {
-                            collector.push(HighlightSpan::new(
-                                Span::new(tok_start, tok_end),
-                                tok.kind,
-                                tok.modifiers,
-                                tok.priority,
-                            ));
-                        }
-                    }
+                    push_offset_tokens(
+                        src,
+                        collector,
+                        region_start,
+                        region_end,
+                        highlight_embedded(LanguageId::Html, slice),
+                    );
                 }
             }
-            LanguageId::Markdown
-            | LanguageId::Rocci
-            | LanguageId::Rocdown
+            LanguageId::Rocci | LanguageId::Markdown => {
+                if region.purpose == RegionPurpose::DisplayOnly {
+                    push_offset_tokens(
+                        src,
+                        collector,
+                        region_start,
+                        region_end,
+                        highlight_embedded(region.language.clone(), slice),
+                    );
+                }
+            }
+            LanguageId::Rocdown
             | LanguageId::Shell
             | LanguageId::Toml
             | LanguageId::PlainText

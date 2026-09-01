@@ -106,7 +106,7 @@ fn two_page_build_writes_shell_and_escapes() {
         assert!(html.contains("id=\"main-content\"") || html.contains("id='main-content'"));
         assert!(html.contains("<!DOCTYPE html>"));
     }
-    assert!(index.contains("href=\"/guide/\""));
+    assert!(index.contains("href=\"/guide\""));
     assert!(index.contains("class=\"rd-paragraph\""));
     for html in [&index, &guide] {
         assert!(html.contains("rel=\"stylesheet\""));
@@ -437,10 +437,10 @@ Static neighbor.
             .clone()
     };
     assert_eq!(kind("/")["kind"], "static");
-    assert_eq!(kind("/widgets/")["kind"], "hydrate");
-    assert_eq!(kind("/live/")["kind"], "live");
-    assert_eq!(kind("/about/")["kind"], "static");
-    assert!(kind("/about/").get("datastar").is_none());
+    assert_eq!(kind("/widgets")["kind"], "hydrate");
+    assert_eq!(kind("/live")["kind"], "live");
+    assert_eq!(kind("/about")["kind"], "static");
+    assert!(kind("/about").get("datastar").is_none());
     let _ = fs::remove_dir_all(&root);
     let _ = fs::remove_dir_all(&output);
 }
@@ -776,7 +776,7 @@ Static neighbor.
         .as_array()
         .unwrap()
         .iter()
-        .find(|page| page["route"] == "/about/")
+        .find(|page| page["route"] == "/about")
         .unwrap();
     assert_eq!(about_entry["kind"], "static");
     assert!(about_entry.get("datastar").is_none());

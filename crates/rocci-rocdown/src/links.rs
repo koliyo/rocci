@@ -213,7 +213,7 @@ fn resolve_url(
         return Ok(decoded);
     }
     if path.starts_with('/') {
-        return resolve_absolute(path, fragment, span, &decoded, source.name, options);
+        return resolve_absolute(path, fragment, span, &decoded, options);
     }
     if let Some(page) = page_for_relative(source, path, options) {
         return page_destination(page, fragment, span);
@@ -229,15 +229,10 @@ fn resolve_absolute(
     fragment: Option<&str>,
     span: Span,
     decoded: &str,
-    #[cfg_attr(target_arch = "wasm32", allow(unused_variables))] source_name: &str,
     options: &CompileOptions,
 ) -> Result<String, Diagnostic> {
     if let Some(page) = page_for_route(path, &options.pages) {
         return page_destination(page, fragment, span);
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    if let Some(page) = crate::site::workspace_page_for_route(source_name, path) {
-        return page_destination(&page, fragment, span);
     }
     if is_document_href(path) {
         if let Some(page) = page_for_absolute_document(path, options) {
@@ -259,18 +254,7 @@ fn page_for_route<'a>(path: &str, pages: &'a [PageRef]) -> Option<&'a PageRef> {
 }
 
 pub(crate) fn routes_match(left: &str, right: &str) -> bool {
-    let left = crate::catalog::with_trailing_slash(left);
-    let right = crate::catalog::with_trailing_slash(right);
-    if left == right {
-        return true;
-    }
-    if let Some(stripped) = left.strip_prefix("/docs") {
-        return stripped == right || (left == "/docs/" && right == "/");
-    }
-    if let Some(stripped) = right.strip_prefix("/docs") {
-        return stripped == left || (right == "/docs/" && left == "/");
-    }
-    false
+    crate::catalog::routes_match(left, right)
 }
 
 fn page_for_relative<'a>(
@@ -302,11 +286,16 @@ fn page_for_absolute_document<'a>(path: &str, options: &'a CompileOptions) -> Op
     Some(first)
 }
 
+fn page_href(page: &PageRef) -> String {
+    crate::catalog::canonical_route(&page.route, page.stem == "index")
+}
+
 fn page_destination(
     page: &PageRef,
     fragment: Option<&str>,
     span: Span,
 ) -> Result<String, Diagnostic> {
+    let route = page_href(page);
     if let Some(id) = fragment {
         if !page.heading_ids.iter().any(|heading| heading == id) && !is_source_line_anchor_id(id) {
             return Err(Diagnostic::error(
@@ -314,9 +303,9 @@ fn page_destination(
                 format!("unknown heading `{id}` on page `{}`", page.stem),
             ));
         }
-        return Ok(with_fragment(&page.route, Some(id)));
+        return Ok(with_fragment(&route, Some(id)));
     }
-    Ok(page.route.clone())
+    Ok(route)
 }
 
 fn same_page_heading(id: &str, span: Span, headings: &[HeadingInfo]) -> Result<String, Diagnostic> {
@@ -358,9 +347,9 @@ fn resolve_page(
                 format!("unknown heading `{id}` on page `{stem}`"),
             ));
         }
-        return Ok(with_fragment(&page.route, Some(id)));
+        return Ok(with_fragment(&page_href(page), Some(id)));
     }
-    Ok(page.route.clone())
+    Ok(page_href(page))
 }
 
 fn page_stem(path: &str) -> Option<&str> {

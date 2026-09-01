@@ -248,9 +248,31 @@ visibility = "linked-detail"
 
 `dist/example-docs` is produced by `rocci-docs` (`cargo run -q -p rocci-docs --
 --catalog examples/rocci/apps.toml --output dist/example-docs`). Run that
-before `rocdown check site`, `rocdown view site`, or `rocdown package site`.
-Rocdown does not import `rocci-docs`. Generated example pages use the docs
-layout. `/docs/examples/` is an alias of `/examples/` during the move.
+before `rocdown check site`, `rocdown check docs`, `rocdown view site`, or
+`rocdown package site`. Rocdown does not import `rocci-docs`. Generated example
+pages use the docs layout. `/docs/examples/` is an alias of `/examples/`
+during the move.
+
+A standalone docs catalog that links at those published routes declares
+**peers** (link inventory only). Peers do not become pages of this site and
+are not written by `rocdown build docs`:
+
+```toml
+[[peer]]
+source = "../dist/example-docs"
+prefix = "examples"
+
+[[peer]]
+source = "../site/project"
+prefix = "project"
+```
+
+`source` is a directory of `.rocdown` pages, not a nested site. Rocdown does
+not load the target's `rocdown.toml` or mounts. A missing peer directory is
+skipped; links to those routes are `RD2101`. Stage generated peer trees such
+as `dist/example-docs` before expecting those routes to resolve. `rocdown check`
+and the editor use the same owned-plus-peer route index; a typo such as
+`Cosunter-rocci` is `RD2101` / `unknown Rocdown route`.
 
 - `source`: Relative path to the mounted content directory.
 - `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `five-minutes` to ID `docs/five-minutes` and route `/docs/five-minutes/`).
@@ -290,7 +312,9 @@ Use `[[nav.groups]]` under a top-level `[[nav]]` for curated lanes (Docs →
 Start, Templates, …): one header link, left rail folds per group. Do not add
 a group merely to recreate a folder; add `index.rocdown` instead. Group items
 are the same page IDs. A section with only groups and no `items` is valid.
-List each subsection index immediately before its members. Sidebar groups
+List each subsection index immediately before its members. Folds and
+sibling pages keep that list order; the sidebar does not collect folds
+after leaves. Sidebar groups
 share the same expandable shape and open independently under user control.
 The short transition honors reduced-motion preferences, and explicit
 open/closed choices persist while the user navigates in the same browser tab.

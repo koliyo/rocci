@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use rocci_template::{Span, TemplateItem};
 
 use crate::ast::{BlockCall, Item, MdNode, ParamValue};
-use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage, Severity};
+use crate::catalog::{CatalogDiagnostic, Edge, EdgeKind, PageHeading, ResolvedPage};
 use crate::img::{StaticImage, img_fields_from_params};
 use crate::parse::parse_fragment;
 use crate::registry;
@@ -207,6 +207,7 @@ pub fn fill_link_cards(pages: &mut [ResolvedPage]) {
         if let Some(stripped) = page.id.strip_prefix("docs/") {
             lookup.insert(stripped.to_string(), val.clone());
             lookup.insert(format!("/{stripped}/"), val.clone());
+            lookup.insert(format!("/{stripped}"), val.clone());
         }
     }
     for page in pages {
@@ -373,20 +374,11 @@ fn image_from_call(ctx: &mut BuildCtx<'_>, call: &BlockCall) -> ArticleNode {
         .unwrap_or(call.span);
     let fields = img_fields_from_params(call.params.as_ref(), body, &mut diags);
     for diagnostic in diags {
-        ctx.diagnostics.push(CatalogDiagnostic {
-            code: if diagnostic.is_error() {
-                "RD1001"
-            } else {
-                "RD1002"
-            },
-            severity: if diagnostic.is_error() {
-                Severity::Error
-            } else {
-                Severity::Warning
-            },
-            path: ctx.source_path.to_string(),
-            message: diagnostic.message,
-        });
+        ctx.diagnostics.push(CatalogDiagnostic::wrap_template(
+            &diagnostic,
+            ctx.source_path.to_string(),
+            diagnostic.message.clone(),
+        ));
     }
     ArticleNode::Image(StaticImage::from_fields(&fields, call.span))
 }
@@ -418,21 +410,11 @@ fn heading_from_call(
     } else {
         let parsed = parse_fragment(ctx.source, content, false);
         for diagnostic in parsed.diagnostics {
-            let code = if diagnostic.is_error() {
-                "RD1001"
-            } else {
-                "RD1002"
-            };
-            ctx.diagnostics.push(CatalogDiagnostic {
-                code,
-                severity: if diagnostic.is_error() {
-                    Severity::Error
-                } else {
-                    Severity::Warning
-                },
-                path: ctx.source_path.to_string(),
-                message: format!("line {line}: {}", diagnostic.message),
-            });
+            ctx.diagnostics.push(CatalogDiagnostic::wrap_template(
+                &diagnostic,
+                ctx.source_path.to_string(),
+                format!("line {line}: {}", diagnostic.message),
+            ));
         }
         unwrap_heading_children(nodes_from_items(
             ctx,
@@ -532,21 +514,11 @@ pub(crate) fn docs_node(
     }
     let parsed = parse_fragment(ctx.source, content, false);
     for diagnostic in parsed.diagnostics {
-        let code = if diagnostic.is_error() {
-            "RD1001"
-        } else {
-            "RD1002"
-        };
-        ctx.diagnostics.push(CatalogDiagnostic {
-            code,
-            severity: if diagnostic.is_error() {
-                Severity::Error
-            } else {
-                Severity::Warning
-            },
-            path: ctx.source_path.to_string(),
-            message: format!("line {line}: {}", diagnostic.message),
-        });
+        ctx.diagnostics.push(CatalogDiagnostic::wrap_template(
+            &diagnostic,
+            ctx.source_path.to_string(),
+            format!("line {line}: {}", diagnostic.message),
+        ));
     }
     let children = nodes_from_items(ctx, &parsed.document.items, Some(&call.name));
     let node = DocsNode {

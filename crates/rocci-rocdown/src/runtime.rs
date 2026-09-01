@@ -11,6 +11,8 @@ pub(crate) const DATASTAR: &str = include_str!("../runtime/Datastar.roc");
 pub(crate) const BUILD: &str = include_str!("../runtime/RocdownBuild.roc");
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) const BUILD_WASM: &str = include_str!("../runtime/RocdownBuild.wasm.roc");
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) const VIEWS: &str = include_str!("../runtime/Views.roc");
 pub const THEME: &str = include_str!("../templates/RocdownTheme.rocci");
 #[cfg(not(target_arch = "wasm32"))]
 pub const BASE: &str = include_str!("../templates/RocdownBase.rocci");
@@ -58,6 +60,8 @@ pub fn stage_into(dir: &Path) -> Result<()> {
         .with_context(|| format!("failed to write {}/Html.roc", dir.display()))?;
     fs::write(dir.join("RocdownBuild.roc"), BUILD)
         .with_context(|| format!("failed to write {}/RocdownBuild.roc", dir.display()))?;
+    fs::write(dir.join("Views.roc"), VIEWS)
+        .with_context(|| format!("failed to write {}/Views.roc", dir.display()))?;
     Ok(())
 }
 
@@ -68,7 +72,7 @@ pub fn build_roc(is_wasm: bool) -> &'static str {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn runtime_bytes() -> usize {
-    HTML.len() + BUILD.len()
+    HTML.len() + BUILD.len() + VIEWS.len()
 }
 
 #[cfg(test)]
@@ -91,6 +95,10 @@ mod tests {
         assert!(DATASTAR.contains("post_with ="));
         assert!(DATASTAR.contains("requestCancellation: 'disabled'"));
         assert!(dir.join("RocdownBuild.roc").is_file());
+        assert!(dir.join("Views.roc").is_file());
+        assert!(VIEWS.contains("NavGroupView := {"));
+        assert!(VIEWS.contains("Page(a) : {"));
+        assert!(VIEWS.contains("Views := [].{"));
         assert!(!dir.join("RocdownModel.roc").exists());
         assert!(!dir.join("RocdownRoute.roc").exists());
         let _ = fs::remove_dir_all(&dir);

@@ -25,6 +25,7 @@ pub fn highlight_rocdown_document(
     let mut raw_tokens = Vec::new();
     collect_rocdown(source, &mut raw_tokens, document, headings);
     collect_embedded_regions(source, &mut raw_tokens, &regions);
+    collect_display_rocdown_fences(source, &mut raw_tokens, &regions);
     resolve_and_sort_spans(source, &raw_tokens)
 }
 
@@ -187,6 +188,9 @@ pub fn collect_markdown_node(src: &str, node: &MdNode, tokens: &mut Vec<Highligh
             children,
             ..
         } => {
+            if !span.is_empty() {
+                tokens.push(HighlightSpan::new(*span, HighlightKind::Keyword, 0, 35));
+            }
             if let Some(marker) = heading_marker(src, *span, *level) {
                 tokens.push(HighlightSpan::new(marker, HighlightKind::Keyword, 0, 50));
             }
@@ -199,58 +203,47 @@ pub fn collect_markdown_node(src: &str, node: &MdNode, tokens: &mut Vec<Highligh
                 tokens.push(HighlightSpan::new(*span, HighlightKind::String, 0, 40));
             }
         }
-        MdNode::Link {
-            children,
-            span,
-            url,
-            ..
-        } => {
+        MdNode::Link { children, span, .. } => {
+            collect_inline_link(src, *span, tokens);
             for child in children {
                 collect_markdown_node(src, child, tokens);
             }
-            if !url.is_empty() {
-                let text = span.of(src);
-                if let Some(idx) = text.rfind(url) {
-                    let start = span.start as usize + idx;
-                    tokens.push(HighlightSpan::new(
-                        Span::new(start, start + url.len()),
-                        HighlightKind::String,
-                        0,
-                        40,
-                    ));
-                }
-            }
         }
-        MdNode::Image { span, url, .. } => {
-            if !url.is_empty() {
-                let text = span.of(src);
-                if let Some(idx) = text.rfind(url) {
-                    let start = span.start as usize + idx;
-                    tokens.push(HighlightSpan::new(
-                        Span::new(start, start + url.len()),
-                        HighlightKind::String,
-                        0,
-                        40,
-                    ));
-                }
-            }
+        MdNode::Image { span, .. } => {
+            collect_inline_link(src, *span, tokens);
         }
         MdNode::ThematicBreak { span } => {
             if !span.is_empty() {
                 tokens.push(HighlightSpan::new(*span, HighlightKind::Operator, 0, 40));
             }
         }
+        MdNode::Item { children, span } | MdNode::TaskItem { children, span, .. } => {
+            if let Some(marker) = markdown_list_marker(src, *span) {
+                tokens.push(HighlightSpan::new(marker, HighlightKind::Operator, 0, 50));
+            }
+            for child in children {
+                collect_markdown_node(src, child, tokens);
+            }
+        }
+        MdNode::Emph { children, span }
+        | MdNode::Strong { children, span }
+        | MdNode::Strikethrough { children, span } => {
+            if !span.is_empty() {
+                tokens.push(HighlightSpan::new(*span, HighlightKind::Operator, 0, 42));
+            }
+            for child in children {
+                collect_markdown_node(src, child, tokens);
+            }
+        }
+        MdNode::CodeBlock { span, .. } => {
+            collect_code_block_fences(src, *span, tokens);
+        }
         MdNode::Paragraph { children, .. }
         | MdNode::BlockQuote { children, .. }
         | MdNode::List { children, .. }
-        | MdNode::Item { children, .. }
-        | MdNode::TaskItem { children, .. }
         | MdNode::Table { children, .. }
         | MdNode::TableRow { children, .. }
         | MdNode::TableCell { children, .. }
-        | MdNode::Emph { children, .. }
-        | MdNode::Strong { children, .. }
-        | MdNode::Strikethrough { children, .. }
         | MdNode::FootnoteDefinition { children, .. } => {
             for child in children {
                 collect_markdown_node(src, child, tokens);
@@ -259,8 +252,7 @@ pub fn collect_markdown_node(src: &str, node: &MdNode, tokens: &mut Vec<Highligh
         MdNode::Interpolation { span, .. } => {
             collect_interpolation_delimiters(src, *span, tokens);
         }
-        MdNode::CodeBlock { .. }
-        | MdNode::Text { .. }
+        MdNode::Text { .. }
         | MdNode::SoftBreak { .. }
         | MdNode::LineBreak { .. }
         | MdNode::FootnoteReference { .. }
@@ -1061,6 +1053,204 @@ fn collect_record_fields(src: &str, collector: &mut Vec<HighlightSpan>, span: Sp
             cur.bump();
         }
     }
+}
+
+fn collect_display_rocdown_fences(
+    src: &str,
+    collector: &mut Vec<HighlightSpan>,
+    regions: &RegionTree,
+) {
+    for region in &regions.regions {
+        if region.purpose != RegionPurpose::DisplayOnly || region.language != LanguageId::Rocdown {
+            continue;
+        }
+        let region_start = region.span.start as usize;
+        let region_end = (region.span.end as usize).min(src.len());
+        if region_start >= region_end {
+            continue;
+        }
+        let slice = &src[region_start..region_end];
+        for tok in highlight_rocdown(slice) {
+            let tok_start = region_start + tok.span.start as usize;
+            let tok_end = (region_start + tok.span.end as usize).min(region_end);
+            if tok_start < tok_end {
+                collector.push(HighlightSpan::new(
+                    Span::new(tok_start, tok_end),
+                    tok.kind,
+                    tok.modifiers,
+                    tok.priority,
+                ));
+            }
+        }
+    }
+}
+
+fn collect_inline_link(src: &str, span: Span, tokens: &mut Vec<HighlightSpan>) {
+    if let Some((label, dest)) = markdown_inline_link(src, span) {
+        tokens.push(HighlightSpan::new(label, HighlightKind::Variable, 0, 50));
+        tokens.push(HighlightSpan::new(dest, HighlightKind::Keyword, 0, 52));
+        return;
+    }
+    if !span.is_empty() {
+        tokens.push(HighlightSpan::new(span, HighlightKind::Variable, 0, 40));
+    }
+}
+
+fn markdown_inline_link(src: &str, span: Span) -> Option<(Span, Span)> {
+    let start = span.start as usize;
+    let end = (span.end as usize).min(src.len());
+    if start >= end {
+        return None;
+    }
+    let text = &src[start..end];
+    let bytes = text.as_bytes();
+    let mut i = 0usize;
+    if bytes.first() == Some(&b'!') {
+        i = 1;
+    }
+    if bytes.get(i) != Some(&b'[') {
+        return None;
+    }
+    let label_start = i;
+    i += 1;
+    let mut depth = 1u32;
+    while i < bytes.len() {
+        let before = i;
+        match bytes[i] {
+            b'\\' if i + 1 < bytes.len() => i += 2,
+            b'[' => {
+                depth += 1;
+                i += 1;
+            }
+            b']' => {
+                depth = depth.saturating_sub(1);
+                i += 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+            _ => i += 1,
+        }
+        if i <= before {
+            i += 1;
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    let label_end = i;
+    while i < bytes.len() && matches!(bytes[i], b' ' | b'\t') {
+        i += 1;
+    }
+    if bytes.get(i) != Some(&b'(') {
+        return None;
+    }
+    let dest_start = i;
+    let dest_end = text.rfind(')')? + 1;
+    if dest_end <= dest_start {
+        return None;
+    }
+    Some((
+        Span::new(start + label_start, start + label_end),
+        Span::new(start + dest_start, start + dest_end),
+    ))
+}
+
+fn markdown_list_marker(src: &str, span: Span) -> Option<Span> {
+    let start = span.start as usize;
+    let end = (span.end as usize).min(src.len());
+    if start >= end {
+        return None;
+    }
+    let text = &src[start..end];
+    let indent = text.len() - text.trim_start_matches([' ', '\t']).len();
+    let rest = &text[indent..];
+    let marker_len = if rest.starts_with(['*', '-', '+']) {
+        1
+    } else {
+        let digits = rest.bytes().take_while(|b| b.is_ascii_digit()).count();
+        if digits == 0 {
+            return None;
+        }
+        match rest.as_bytes().get(digits) {
+            Some(b'.' | b')') => digits + 1,
+            _ => return None,
+        }
+    };
+    Some(Span::new(start + indent, start + indent + marker_len))
+}
+
+fn collect_code_block_fences(src: &str, span: Span, tokens: &mut Vec<HighlightSpan>) {
+    let start = (span.start as usize).min(src.len());
+    let end = (span.end as usize).min(src.len());
+    if start >= end {
+        return;
+    }
+    let first_eol = line_end(src, start);
+    let mut marker_end = start;
+    while marker_end < first_eol && matches!(src.as_bytes()[marker_end], b'`' | b'~') {
+        marker_end += 1;
+    }
+    if marker_end > start {
+        tokens.push(HighlightSpan::new(
+            Span::new(start, marker_end),
+            HighlightKind::Punctuation,
+            0,
+            80,
+        ));
+    }
+    let info_start = skip_spaces(src, marker_end, first_eol);
+    if info_start < first_eol {
+        tokens.push(HighlightSpan::new(
+            Span::new(info_start, first_eol),
+            HighlightKind::Type,
+            0,
+            70,
+        ));
+    }
+    let inner = code_block_inner_span(src, span);
+    let close_start = inner.end as usize;
+    if close_start >= end {
+        return;
+    }
+    let close_eol = line_end(src, close_start);
+    let marker_start = skip_spaces(src, close_start, close_eol);
+    let mut close_end = marker_start;
+    while close_end < close_eol && matches!(src.as_bytes()[close_end], b'`' | b'~') {
+        close_end += 1;
+    }
+    if close_end > marker_start {
+        tokens.push(HighlightSpan::new(
+            Span::new(marker_start, close_end),
+            HighlightKind::Punctuation,
+            0,
+            80,
+        ));
+    }
+}
+
+fn line_end(src: &str, pos: usize) -> usize {
+    src[pos..]
+        .find('\n')
+        .map(|rel| {
+            let end = pos + rel;
+            if end > 0 && src.as_bytes()[end - 1] == b'\r' {
+                end - 1
+            } else {
+                end
+            }
+        })
+        .unwrap_or(src.len())
+}
+
+fn skip_spaces(src: &str, mut pos: usize, end: usize) -> usize {
+    while pos < end {
+        match src.as_bytes()[pos] {
+            b' ' | b'\t' => pos += 1,
+            _ => break,
+        }
+    }
+    pos
 }
 
 fn code_block_inner_span(src: &str, span: Span) -> Span {

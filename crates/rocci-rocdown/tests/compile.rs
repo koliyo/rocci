@@ -965,13 +965,13 @@ Also [plain md](Foo.md) and [rel md](./Foo.md).
 And [ref text][ref].
 ";
     let out = compile_ok_pages(src, pages);
-    assert!(out.roc.contains("\"/guides/foo/\""));
-    assert!(out.roc.contains("\"/guides/foo/#hello\""));
+    assert!(out.roc.contains("\"/guides/foo\""));
+    assert!(out.roc.contains("\"/guides/foo#hello\""));
     assert!(out.roc.contains("\"label\""));
     assert!(
         out.links
             .iter()
-            .filter(|link| link.url.starts_with("/guides/foo/"))
+            .filter(|link| link.url.starts_with("/guides/foo"))
             .count()
             >= 7
     );
@@ -1112,15 +1112,20 @@ fn source_line_fragments_are_not_unknown_headings() {
         },
     );
     assert!(!cross.has_errors(), "{:?}", cross.diagnostics);
-    assert!(cross.roc.contains("/guides/foo/#L4"), "{}", cross.roc);
+    assert!(cross.roc.contains("/guides/foo#L4"), "{}", cross.roc);
 }
 
 #[test]
-fn absolute_site_route_accepts_missing_trailing_slash() {
+fn absolute_site_route_accepts_trailing_slash_and_prefers_document_form() {
     let pages = vec![page("custom", "/docs/applications/custom/", &[])];
-    let out = compile_ok_pages("[go](/docs/applications/custom)\n", pages);
+    let out = compile_ok_pages("[go](/docs/applications/custom/)\n", pages);
     assert!(
-        out.roc.contains("\"/docs/applications/custom/\""),
+        out.roc.contains("\"/docs/applications/custom\""),
+        "{}",
+        out.roc
+    );
+    assert!(
+        !out.roc.contains("\"/docs/applications/custom/\""),
         "{}",
         out.roc
     );
@@ -1511,7 +1516,7 @@ fn resolve_links_false_leaves_relative_hrefs() {
     let src = "[x](guide.rocdown)\n";
     let pages = vec![page("guide", "/guide/", &[])];
     let resolved = compile_ok_pages(src, pages.clone());
-    assert!(resolved.roc.contains("\"/guide/\""));
+    assert!(resolved.roc.contains("\"/guide\""));
     assert!(!resolved.roc.contains("\"guide.rocdown\""));
 
     let unresolved = compile(

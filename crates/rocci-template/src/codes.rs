@@ -1,0 +1,26 @@
+pub const RC1001: &str = "RC1001";
+pub const RC1002: &str = "RC1002";
+pub const RC1003: &str = "RC1003";
+pub const RC1004: &str = "RC1004";
+pub const RC1005: &str = "RC1005";
+pub const RC1006: &str = "RC1006";
+pub const RC1007: &str = "RC1007";
+
+pub const RC2001: &str = "RC2001";
+pub const RC2002: &str = "RC2002";
+pub const RC2003: &str = "RC2003";
+pub const RC2004: &str = "RC2004";
+pub const RC2005: &str = "RC2005";
+pub const RC2006: &str = "RC2006";
+pub const RC2007: &str = "RC2007";
+pub const RC2008: &str = "RC2008";
+pub const RC2009: &str = "RC2009";
+pub const RC2010: &str = "RC2010";
+pub const RC2011: &str = "RC2011";
+pub const RC2012: &str = "RC2012";
+pub const RC2013: &str = "RC2013";
+pub const RC2014: &str = "RC2014";
+pub const RC2015: &str = "RC2015";
+pub const RC2016: &str = "RC2016";
+pub const RC2017: &str = "RC2017";
+pub const RC2018: &str = "RC2018";

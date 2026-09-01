@@ -19,7 +19,10 @@ fn compile_err(src: &str) -> Vec<String> {
         .diagnostics
         .into_iter()
         .filter(|d| d.is_error())
-        .map(|d| d.message)
+        .map(|d| match d.code {
+            Some(code) => format!("{code}: {}", d.message),
+            None => d.message,
+        })
         .collect()
 }
 
@@ -114,7 +117,7 @@ fn rejects_illegal_method_role_pairs_in_validation() {
         assert_eq!(
             errors
                 .iter()
-                .filter(|msg| msg.contains("illegal handler pair"))
+                .filter(|msg| msg.contains("RC2009") && msg.contains("illegal handler pair"))
                 .count(),
             1,
             "{src}: {errors:?}"
@@ -131,39 +134,39 @@ fn diagnoses_malformed_method_first_headers() {
     let cases = [
         (
             r#"@get("/x") { Html.text("x") }"#,
-            "missing `:` and response role",
+            "RC1001: missing `:` and response role",
         ),
         (
             r#"@get:("/x") { Html.text("x") }"#,
-            "expected a response role",
+            "RC1001: expected a response role",
         ),
         (
             r#"@get:stream("/x") { Html.text("x") }"#,
-            "unknown handler role `stream`",
+            "RC1003: unknown handler role `stream`",
         ),
         (
             r#"@head:view("/x") { Html.text("x") }"#,
-            "unknown HTTP method `head`",
+            "RC2008: unknown HTTP method `head`",
         ),
         (
             r#"@get:fragment(path) { Html.text("x") }"#,
-            "expected a string literal path",
+            "RC1001: expected a string literal path",
         ),
         (
             r#"@get:live("") { Html.text("x") }"#,
-            "requires a non-empty literal path",
+            "RC2010: `@get:live` requires a non-empty literal path",
         ),
         (
             r#"@get:fragment("/x") json { Html.text("x") }"#,
-            "not a response selector",
+            "RC1003: `json` is not a response selector",
         ),
         (
             r#"@post:fragment[html]("/x") { Html.text("x") }"#,
-            "selector brackets are not part",
+            "RC1003: selector brackets are not part",
         ),
         (
             r#"@post:fragment("/x") -> html { Html.text("x") }"#,
-            "does not select a response",
+            "RC1003: `->` does not select a response",
         ),
     ];
     for (src, needle) in cases {
@@ -204,7 +207,7 @@ fn rejects_every_role_first_form_with_a_canonical_rewrite() {
         assert!(
             errors
                 .iter()
-                .any(|msg| msg.contains("role-first syntax was removed")),
+                .any(|msg| msg.contains("RC1004") && msg.contains("role-first syntax was removed")),
             "{src}: {errors:?}"
         );
         assert!(
@@ -228,7 +231,9 @@ fn retained_on_and_action_removals_point_to_final_syntax() {
     for (src, rewrite) in cases {
         let errors = compile_err(src);
         assert!(
-            errors.iter().any(|msg| msg.contains(rewrite)),
+            errors
+                .iter()
+                .any(|msg| msg.contains("RC1004") && msg.contains(rewrite)),
             "{src}: {errors:?}"
         );
     }
@@ -243,9 +248,9 @@ fn duplicate_routes_and_generated_names_are_rejected() {
 "#,
     );
     assert!(
-        duplicate
-            .iter()
-            .any(|msg| msg.contains("duplicate") && msg.contains("@get:fragment")),
+        duplicate.iter().any(|msg| {
+            msg.contains("RC2011") && msg.contains("duplicate") && msg.contains("@get:fragment")
+        }),
         "{duplicate:?}"
     );
 
@@ -258,7 +263,7 @@ fn duplicate_routes_and_generated_names_are_rejected() {
     assert!(
         names
             .iter()
-            .any(|msg| msg.contains("both generate Roc handler")),
+            .any(|msg| msg.contains("RC2012") && msg.contains("both generate Roc handler")),
         "{names:?}"
     );
 }

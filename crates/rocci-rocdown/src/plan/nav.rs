@@ -275,7 +275,7 @@ fn flush_building(building: BuildingGroup, current_id: Option<&str>) -> ForestRo
 
 fn attach_row(
     row: ForestRow,
-    stack: &mut Vec<BuildingGroup>,
+    stack: &mut [BuildingGroup],
     rows: &mut Vec<ForestRow>,
     current_id: Option<&str>,
 ) {
@@ -424,15 +424,15 @@ fn rows_to_group(
         }));
     }
     let href = take_landing_href(&mut rows, landing);
-    let mut items = Vec::new();
     let mut children = Vec::new();
     for row in rows {
         match row {
-            ForestRow::Item(item) => items.push(item),
+            ForestRow::Item(item) => children.push(leaf_group(item)),
             ForestRow::Group(group) => children.push(group),
         }
     }
     children.extend(extra_children);
+    let mut items = Vec::new();
     prepend_overview(&mut items, &href, landing_current);
     Some(flatten_group_depth(NavGroupView {
         title: label.into(),

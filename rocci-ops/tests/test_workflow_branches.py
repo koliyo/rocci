@@ -44,6 +44,7 @@ def test_workflows_do_not_call_hosted_release_helpers_as_release() -> None:
 def test_cut_release_is_workflow_dispatch_only() -> None:
     text = (WORKFLOWS / "cut-release.yml").read_text(encoding="utf-8")
     assert "workflow_dispatch:" in text
+    assert 'run-name: "Cut release: ${{ inputs.spec }}"' in text
     assert "environment:" not in text
     assert "rocci-ops release" in text
     assert "HOMEBREW" not in text

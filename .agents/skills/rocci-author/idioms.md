@@ -167,6 +167,58 @@ Do not copy `test/AllSyntax.rocci` identifiers such as `List.isEmpty` or
 Booleans: `True` / `False` in Roc expressions, `@page`, and `:kind[params]`.
 Typed integers: `3.I64`.
 
+## Types on the pinned nightly
+
+Product Roc is `nightly-2026-08-23-fb208ba` (`docs/inventory.toml`,
+`docker/install-roc.sh`). Write types the way that compiler parses them,
+not the way older Roc or Elm juxtaposition looked.
+
+| Form | Use |
+| --- | --- |
+| `Foo : { title : Str }` | Structural alias. Default for view records. |
+| `Foo := { …, children : List(Foo) }` | Nominal. **Required** when the type refers to itself. |
+| `Foo :: { key : Str }.{ … }` | Opaque. Hide fields; do not start here. |
+| `List(Str)`, `Page(a)`, `Page(_)` | Type application. Parentheses are required. |
+| `Type.{ field: value }` | Nominal constructor. A matching `{ … }` also unifies when the expected type is known. |
+| `->` | Pure function (components, wasm render). |
+| `=>` | Effectful function (`write_page!`, `@init`). |
+| `=> Try({}, [..])` | Effect that returns `Ok({})`. Matches custom app `main!`. |
+| `{ name : Str ?? "Roc" }` | Defaulted field on a **type**. Pattern `|{ name ?? "Roc" }|` is still illegal. |
+
+**Do this**
+
+```roc
+Page(a) : {
+    output_path : Str,
+    segments : List(a),
+    view : PageView,
+}
+
+NavGroupView := {
+    title : Str,
+    href : Str,
+    open : Bool,
+    items : List(NavItemView),
+    children : List(NavGroupView),
+}
+
+write_page! : Str, Views.Page(_) => Try({}, [..])
+```
+
+**Not this**
+
+```roc
+Page a : { segments : List a }          # juxtaposition does not parse
+write_page! : Str, Views.Page _ => _    # same, plus a hole at the export
+NavGroup : { children : List(NavGroup) } # recursive alias is illegal
+note : [Some Str, None]                 # tag payloads need parentheses
+```
+
+Leave `|group|` / `|item|` inferred inside `NavList` and theme shells.
+Name the contract once at the module edge (`Views.roc`, generated
+`pages : List(Views.Page(_))`, `write_page!`). Apply chrome field names
+match `crates/rocci-ui/src/view.rs`.
+
 ## Markup vs Roc expressions
 
 Use directives when **branches are markup**. Use Roc inside text and

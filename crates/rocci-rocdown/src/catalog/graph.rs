@@ -1,12 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use super::resolve::{is_sibling_product_lane, with_trailing_slash};
+use super::resolve::{routes_match, with_trailing_slash, without_trailing_slash};
 use super::types::*;
+use crate::PageRef;
 
 pub(crate) fn resolve_graph(
     sources: &[SourcePage],
     pages: &[ResolvedPage],
+    peer_pages: &[PageRef],
     files: &BTreeSet<String>,
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) -> Vec<Edge> {
@@ -24,7 +26,18 @@ pub(crate) fn resolve_graph(
         for raw in source.outgoing_links.iter().chain(source.image_urls.iter()) {
             let is_image = source.image_urls.iter().any(|url| url == raw)
                 && !source.outgoing_links.iter().any(|url| url == raw);
-            match resolve_ref(raw, page, pages, &by_id, &by_route, files, is_image) {
+            match resolve_ref(
+                raw,
+                page,
+                &RefIndexes {
+                    pages,
+                    peer_pages,
+                    by_id: &by_id,
+                    by_route: &by_route,
+                    files,
+                },
+                is_image,
+            ) {
                 Ok(Some(edge)) => {
                     if edge.kind == EdgeKind::Page
                         && !page.draft
@@ -53,13 +66,18 @@ pub(crate) fn resolve_graph(
     graph
 }
 
+struct RefIndexes<'a> {
+    pages: &'a [ResolvedPage],
+    peer_pages: &'a [PageRef],
+    by_id: &'a BTreeMap<&'a str, &'a ResolvedPage>,
+    by_route: &'a BTreeMap<&'a str, &'a ResolvedPage>,
+    files: &'a BTreeSet<String>,
+}
+
 fn resolve_ref(
     raw: &str,
     page: &ResolvedPage,
-    pages: &[ResolvedPage],
-    by_id: &BTreeMap<&str, &ResolvedPage>,
-    by_route: &BTreeMap<&str, &ResolvedPage>,
-    files: &BTreeSet<String>,
+    indexes: &RefIndexes<'_>,
     is_image: bool,
 ) -> Result<Option<Edge>, CatalogDiagnostic> {
     if raw.is_empty() {
@@ -77,7 +95,12 @@ fn resolve_ref(
     }
     if path.starts_with("/assets/") || (is_image && path.starts_with('/') && looks_like_asset(path))
     {
-        return asset_edge(page, raw, path.strip_prefix('/').unwrap_or(path), files);
+        return asset_edge(
+            page,
+            raw,
+            path.strip_prefix('/').unwrap_or(path),
+            indexes.files,
+        );
     }
     if path == "/sitemap.xml"
         || path == "/robots.txt"
@@ -91,29 +114,21 @@ fn resolve_ref(
         return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
     }
     if path.starts_with('/') {
-        let route = with_trailing_slash(path);
-        let target = by_route.get(route.as_str()).copied().or_else(|| {
-            if let Some(stripped) = route.strip_prefix("/docs/") {
-                let stripped_route = format!("/{stripped}");
-                by_route.get(stripped_route.as_str()).copied()
-            } else if route == "/docs/" {
-                by_route.get("/").copied()
-            } else {
-                let prefixed = format!("/docs{route}");
-                by_route.get(prefixed.as_str()).copied()
-            }
-        });
-        let Some(target) = target else {
-            if is_sibling_product_lane(&route) {
-                return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
-            }
-            return Err(CatalogDiagnostic::error(
-                "RD2101",
-                &page.source_path,
-                format!("broken internal link `{raw}`"),
-            ));
-        };
-        return page_or_heading_edge(page, raw, target, fragment);
+        if let Some(target) = page_for_abs_route(indexes.by_route, path) {
+            return page_or_heading_edge(page, raw, target, fragment);
+        }
+        if let Some(peer) = indexes
+            .peer_pages
+            .iter()
+            .find(|peer| routes_match(&peer.route, path))
+        {
+            return peer_page_or_heading_edge(page, raw, peer, fragment);
+        }
+        return Err(CatalogDiagnostic::error(
+            "RD2101",
+            &page.source_path,
+            format!("broken internal link `{raw}`"),
+        ));
     }
     if is_relative(path) {
         let Some(normalized) = resolve_relative(&page.source_path, path) else {
@@ -123,10 +138,10 @@ fn resolve_ref(
                 format!("relative link `{raw}` escapes the content root"),
             ));
         };
-        if let Some(target) = page_for_path(pages, &normalized) {
+        if let Some(target) = page_for_path(indexes.pages, &normalized) {
             return page_or_heading_edge(page, raw, target, fragment);
         }
-        if files.contains(&normalized) {
+        if indexes.files.contains(&normalized) {
             return Ok(Some(edge(
                 page,
                 raw,
@@ -148,9 +163,9 @@ fn resolve_ref(
         ));
     }
     if is_image {
-        return asset_edge(page, raw, path, files);
+        return asset_edge(page, raw, path, indexes.files);
     }
-    match wiki_target(path, pages, by_id) {
+    match wiki_target(path, indexes.pages, indexes.by_id) {
         WikiMatch::One(target) => page_or_heading_edge(page, raw, target, fragment),
         WikiMatch::None => Err(CatalogDiagnostic::error(
             "RD2101",
@@ -210,6 +225,37 @@ fn wiki_target<'a>(
     }
 }
 
+fn page_for_abs_route<'a>(
+    by_route: &BTreeMap<&str, &'a ResolvedPage>,
+    path: &str,
+) -> Option<&'a ResolvedPage> {
+    lookup_route(by_route, path).or_else(|| {
+        let slashed = with_trailing_slash(path);
+        if let Some(stripped) = slashed.strip_prefix("/docs/") {
+            lookup_route(by_route, &format!("/{stripped}"))
+        } else if slashed == "/docs/" {
+            by_route.get("/").copied()
+        } else {
+            lookup_route(by_route, &format!("/docs{slashed}")).or_else(|| {
+                lookup_route(by_route, &format!("/docs{}", without_trailing_slash(path)))
+            })
+        }
+    })
+}
+
+fn lookup_route<'a>(
+    by_route: &BTreeMap<&str, &'a ResolvedPage>,
+    path: &str,
+) -> Option<&'a ResolvedPage> {
+    let slashed = with_trailing_slash(path);
+    let bare = without_trailing_slash(path);
+    by_route
+        .get(path)
+        .or_else(|| by_route.get(slashed.as_str()))
+        .or_else(|| by_route.get(bare.as_str()))
+        .copied()
+}
+
 fn page_for_path<'a>(pages: &'a [ResolvedPage], normalized: &str) -> Option<&'a ResolvedPage> {
     let id = normalized.strip_suffix(".rocdown").unwrap_or(normalized);
     pages.iter().find(|page| {
@@ -225,6 +271,33 @@ fn page_for_path<'a>(pages: &'a [ResolvedPage], normalized: &str) -> Option<&'a 
                 .strip_prefix("docs/")
                 .is_some_and(|p| p == normalized)
     })
+}
+
+fn peer_page_or_heading_edge(
+    from: &ResolvedPage,
+    raw: &str,
+    peer: &PageRef,
+    fragment: Option<&str>,
+) -> Result<Option<Edge>, CatalogDiagnostic> {
+    match fragment {
+        Some(fragment) => {
+            if peer.heading_ids.iter().any(|id| id == fragment) {
+                Ok(Some(edge(
+                    from,
+                    raw,
+                    &format!("{}#{fragment}", peer.route),
+                    EdgeKind::Heading,
+                )))
+            } else {
+                Err(CatalogDiagnostic::error(
+                    "RD2102",
+                    &from.source_path,
+                    format!("broken heading link `{raw}`"),
+                ))
+            }
+        }
+        None => Ok(Some(edge(from, raw, &peer.route, EdgeKind::Page))),
+    }
 }
 
 fn page_or_heading_edge(

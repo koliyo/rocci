@@ -8,6 +8,11 @@
 
 # Compile failures
 
+Template parse and validate failures print `error[RCxxxx]:` with a caret
+frame. Cite the code from
+[diagnostics](/docs/reference/diagnostics/) (`RC2009`, `RC1004`, …), not
+only the leading message.
+
 ## Generated Roc does not type-check
 
 **Cause:** Rocci parses Roc regions but does not type-check them.

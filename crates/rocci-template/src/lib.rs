@@ -6,6 +6,7 @@
 //! metadata for the CLI dispatcher.
 
 mod ast;
+pub mod codes;
 mod diagnostic;
 mod lexer;
 mod lower;

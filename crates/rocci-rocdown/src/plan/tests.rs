@@ -1,7 +1,102 @@
 use super::theme::roc_fn_name;
 use super::*;
+use crate::build::tests::{ROC_LOCK, skip_without_roc};
 use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
-use std::{env, fs, path::PathBuf};
+use std::{env, fs, path::PathBuf, process::Command};
+
+#[test]
+fn views_roc_is_staged_with_the_runtime() {
+    let views = include_str!("../../runtime/Views.roc");
+    assert!(
+        views.contains("NavGroupView := {"),
+        "Views.roc must name NavGroupView as a nominal type"
+    );
+    assert!(
+        views.contains("children : List(NavGroupView)"),
+        "NavGroupView.children must be recursive"
+    );
+    assert!(
+        views.contains("Page(a) : {"),
+        "Page must stay parametric over segments"
+    );
+    assert!(
+        views.contains("Views := [].{"),
+        "types live in the Views module"
+    );
+    let staged = env::temp_dir().join(format!("rocdown-views-stage-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&staged);
+    crate::runtime::stage_into(&staged).unwrap();
+    assert!(staged.join("Views.roc").is_file());
+    assert!(staged.join("RocdownBuild.roc").is_file());
+    let _ = fs::remove_dir_all(&staged);
+}
+
+#[test]
+fn missing_nav_group_children_names_the_field() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = ROC_LOCK.lock().unwrap();
+    let dir = env::temp_dir().join(format!("rocdown-nav-group-missing-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("Views.roc"),
+        include_str!("../../runtime/Views.roc"),
+    )
+    .unwrap();
+    fs::write(
+        dir.join("main.roc"),
+        format!(
+            "\
+app [main!] {{ pf: platform \"{}\" }}
+
+import Views
+
+main! = |_| {{
+    group : Views.NavGroupView
+    group = {{
+        title: \"Lang\",
+        href: \"/l/\",
+        open: False,
+        items: [],
+    }}
+    _ = group
+    Ok({{}})
+}}
+",
+            crate::BASIC_CLI_PLATFORM
+        ),
+    )
+    .unwrap();
+    let output = Command::new("roc")
+        .arg("check")
+        .arg("main.roc")
+        .current_dir(&dir)
+        .output()
+        .expect("roc check");
+    let _ = fs::remove_dir_all(&dir);
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        !output.status.success(),
+        "expected a type error, got success:\n{text}"
+    );
+    assert!(
+        !text.contains("malformed type")
+            && !text.contains("undeclared type")
+            && !text.contains("expected function arrow"),
+        "Views.roc and the fixture must parse; got:\n{text}"
+    );
+    let named = text.contains("children") || text.contains("NavGroup");
+    assert!(
+        named,
+        "diagnostic must name children or NavGroup, not only List.iter:\n{text}"
+    );
+}
 
 #[test]
 fn document_title_adds_the_brand_exactly_once() {
@@ -261,11 +356,10 @@ fn language_index_nests_descendants_and_opens_ancestors() {
     assert_eq!(sidebar.len(), 1);
     assert!(sidebar[0].open);
     assert_eq!(sidebar[0].href, "/docs/reference/");
-    assert_eq!(sidebar[0].items.len(), 2);
+    assert_eq!(sidebar[0].items.len(), 1);
     assert_eq!(sidebar[0].items[0].title, "Overview");
     assert_eq!(sidebar[0].items[0].href, "/docs/reference/");
-    assert_eq!(sidebar[0].items[1].title, "Runtime and HTTP");
-    assert_eq!(sidebar[0].children.len(), 2);
+    assert_eq!(sidebar[0].children.len(), 3);
     assert_eq!(sidebar[0].children[0].title, "Rocci language reference");
     assert_eq!(sidebar[0].children[0].href, "/docs/reference/language/");
     assert!(sidebar[0].children[0].open);
@@ -283,14 +377,17 @@ fn language_index_nests_descendants_and_opens_ancestors() {
             .class_name
             .contains("is-current")
     );
-    assert_eq!(sidebar[0].children[1].title, "Contributor");
-    assert_eq!(sidebar[0].children[1].href, "/docs/reference/contributor/");
-    assert_eq!(sidebar[0].children[1].items[0].title, "Overview");
+    assert_eq!(sidebar[0].children[1].title, "Runtime and HTTP");
+    assert_eq!(sidebar[0].children[1].href, "/docs/reference/runtime/");
+    assert!(sidebar[0].children[1].items.is_empty());
+    assert_eq!(sidebar[0].children[2].title, "Contributor");
+    assert_eq!(sidebar[0].children[2].href, "/docs/reference/contributor/");
+    assert_eq!(sidebar[0].children[2].items[0].title, "Overview");
     assert_eq!(
-        sidebar[0].children[1].items[0].href,
+        sidebar[0].children[2].items[0].href,
         "/docs/reference/contributor/"
     );
-    assert_eq!(sidebar[0].children[1].items[1].title, "Rocci tree appendix");
+    assert_eq!(sidebar[0].children[2].items[1].title, "Rocci tree appendix");
     assert!(sidebar_has_current(
         &sidebar,
         "/docs/reference/language/file-structure/"
@@ -511,12 +608,12 @@ items = ["playground"]
     let playground = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/playground/")
+        .find(|page| page.view.route == "/playground")
         .expect("playground page");
     let guide = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/guide/")
+        .find(|page| page.view.route == "/guide")
         .expect("guide page");
 
     assert_eq!(playground.view.layout, "playground");
@@ -746,7 +843,7 @@ fn plan_rewrites_article_html_and_social_image() {
     let guide = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/guide/")
+        .find(|page| page.view.route == "/guide")
         .unwrap();
     assert!(guide.article_html.contains("/assets/icons/logo."));
     assert!(!guide.article_html.contains("/assets/icons/logo.png"));
@@ -787,7 +884,7 @@ fn plan_lists_404_stylesheet_redirects_and_discovery() {
     assert_eq!(pages_json.route, "/pages.json");
     let listed: serde_json::Value = serde_json::from_str(&pages_json.contents).unwrap();
     assert!(listed.as_array().unwrap().iter().any(|page| {
-        page["route"] == "/guide/" && page["title"] == "Guide" && page["kind"] == "static"
+        page["route"] == "/guide" && page["title"] == "Guide" && page["kind"] == "static"
     }));
     assert!(artifacts.iter().any(|item| item.output_path == "404.html"));
     assert!(
@@ -949,6 +1046,16 @@ fn pages_roc_emits_typed_widget_tags_not_segment_bag() {
     assert!(!resolved.has_errors(), "{}", resolved.error_summary());
     let planned = plan(&loaded.root, &loaded.config, &resolved.site).unwrap();
     let roc = planned.pages_roc();
+    assert!(roc.contains("import Views"), "{roc}");
+    assert!(roc.contains("pages : List(Views.Page(_))"), "{roc}");
+    let after_previous = roc
+        .split_once("previous: {")
+        .map(|(_, rest)| rest)
+        .unwrap_or("");
+    assert!(
+        after_previous.contains("class_name:"),
+        "previous/next must emit NavItemView.class_name\n{roc}"
+    );
     assert!(roc.contains("HtmlFile({ path:"), "{roc}");
     assert!(roc.contains("Note({"), "{roc}");
     assert!(roc.contains("title: \"Watch\""), "{roc}");
@@ -1050,7 +1157,7 @@ FeatureCount = |_| {
         .site
         .pages
         .iter()
-        .find(|page| page.route == "/widgets/")
+        .find(|page| page.route == "/widgets")
         .unwrap();
     assert_eq!(home_page.kind, PageKind::Static);
     assert_eq!(widgets_page.kind, PageKind::Hydrate);
@@ -1073,7 +1180,7 @@ FeatureCount = |_| {
     let widgets = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/widgets/")
+        .find(|page| page.view.route == "/widgets")
         .unwrap();
     let card_segment = widgets
         .segments
@@ -1663,7 +1770,7 @@ Content here.
     let guide = planned
         .pages
         .iter()
-        .find(|p| p.view.route == "/guide/")
+        .find(|p| p.view.route == "/guide")
         .unwrap();
     assert_eq!(guide.view.layout, "plain");
     assert_eq!(guide.view.published, "2026-08-18");

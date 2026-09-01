@@ -11,7 +11,8 @@ cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 # Build a documentation site to dist/
 cargo run -p rocci-rocdown-cli -- build docs --output dist
 
-# Check documentation catalog, routes, links, and includes
+# Stage generated example pages, then check the docs catalog (includes peer routes)
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -p rocci-rocdown-cli -- check docs
 
 # Inspect Rocdown AST
@@ -258,9 +259,11 @@ resolve to the target file’s `@page.route` when that file is in the page index
 Standalone `rocdown view FILE` builds that index from sibling `.rocdown` files and
 from relative `.rocdown` / `.md` / `.markdown` links, including nested paths.
 Same-page `#heading-id` is checked against this file’s heading ids. Absolute
-`/path/` destinations are checked against known page routes when a page index is
-present; absolute `*.md` / `*.rocdown` paths suffix-match indexed files when
-possible and otherwise pass through. `http(s):`, `mailto:`, and other schemes
+`/path` or `/path/` destinations are checked against known page routes when a
+page index is present. Document pages canonicalize without a trailing slash;
+collection/`index` pages keep one. Both forms resolve. Absolute `*.md` /
+`*.rocdown` paths suffix-match indexed files when possible and otherwise pass
+through. `http(s):`, `mailto:`, and other schemes
 pass through. Unknown wiki / `.rocdown` targets are errors. Duplicate
 `@page.route` values across siblings are errors.
 
@@ -293,6 +296,21 @@ document handler that returns `rocci_page({})`. When that route is not `/`, GET 
 registered to the same handler so `rocdown view` can open a preview.
 
 Datastar is imported only when a Rocci region uses a Datastar action.
+
+Static apply chrome data is `Views.Page` / `Views.NavGroupView` from the staged
+runtime. `write_page!` is `Views.Page(_) => Try({}, ApplyErr(_))`. `ApplyErr(e)`
+is the write-path union (`OutOfBounds`, `PathErr(IOErr, Path)`). `run!` is
+`{} => Try({}, ApplyErr([VarNotFound(OsStr), EnvErr(IOErr), InvalidStr(U64), ..]))`
+so the `Env.var_str!` tags stay on that edge. Recursive nav is nominal
+`NavGroupView`. Nested sidebar groups always include `children` (use `[]` when
+a group has no nested folds).
+
+A missing `children` field on `Views.NavGroupView` is an opt-in Roc smoke
+(skipped unless `ROCCI_REQUIRE_ROC=1`):
+
+```sh
+ROCCI_REQUIRE_ROC=1 cargo test -p rocci-rocdown plan::tests::missing_nav_group_children_names_the_field
+```
 
 ## Project themes
 
@@ -341,6 +359,13 @@ links. Those pages remain marked unlisted in inspection and machine output,
 but do not emit expected warning noise. Authored pages and ordinary mounts
 still warn.
 
+A catalog that stays standalone (`docs/`) but links at another tree's published
+routes declares `[[peer]]` with the same `source` / `prefix` shape. Peers are
+link inventory only: `check` and the language server resolve those routes;
+`build` does not emit them. A missing peer directory is skipped, so links to
+those routes fail as `RD2101`. Stage `dist/example-docs` before
+`rocdown check docs` when `docs/rocdown.toml` peers that tree.
+
 The catalog owns routes, navigation, breadcrumbs, journeys, and visibility.
 Project `.rocci` layouts own the visible frame. A site may validate named
 layouts such as `home`, `faq`, `product`, `section`, `docs`, `plain`, and
@@ -358,7 +383,7 @@ deployment-level redirects or terminal responses remain an origin concern.
 - `rocdown build DIR`: Build a static documentation site to `dist/`. `--host auto|native|wasm` is apply on the build machine (`wasm` is not a hosted Wasm server). `--target` is the Linux container process ISA/OS for island/app binaries (`arm64musl` on Apple Silicon Docker; `x64musl` on amd64)—never mixed into Mac apply. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown package DIR`: write `publish.json` and `site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a sibling `islands` binary unless `--cdn-only` (then `RD2302`). `--target` matches the Linux container CPU (see `docker/README.md`).
 - `rocdown serve DIST`: Serve a previously built tree on loopback without Roc, watch, or rebuild.
-- `rocdown check DIR`: Check catalog, routes, and links.
+- `rocdown check DIR|FILE`: Check catalog, routes, and links. A file under an ancestor `rocdown.toml` checks that site.
 - `rocdown test DIR`: Run documented `:example` tests.
 - `rocdown inspect ast FILE.rocdown`: Inspect AST.
 - `rocdown inspect artifacts DIR`: Inspect the publish report (page kinds, Datastar, service routes, planned files).

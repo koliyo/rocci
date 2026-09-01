@@ -20,7 +20,9 @@ generated Roc, and source-map segments; `--ast` includes the parse tree. The
 same commands exist on the workspace `rocci` CLI. Input `-` reads stdin.
 
 Library entry points are `parse`, `lower`, `compile`, and `format_ast` in
-`rocci_template`.
+`rocci_template`. Parse and validate diagnostics carry stable `RCxxxx` IDs
+and render as `error[RC2009]: …`. The public catalog is
+[`docs/reference/diagnostics.rocdown`](../../docs/reference/diagnostics.rocdown).
 
 ## File shape
 
