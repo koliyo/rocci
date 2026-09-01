@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-01
 
+- Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 0: stack-IA writing contract and contributor checklist allow a teaching You-will opener and one Next closer; Kind / Time / difficulty stay banned. Disposition table and three voice samples are in the plan. Appendix-as-last-group, paste-a-tiny-component, split sites (hybrid absorbs publish), rewrite components in place. Exploratory; do not log complete until CI and Knowledge succeed.
+- Filed draft [public Rocci docs editorial review](audits/site/docs-editorial-quality.md) and paired [editorial polish](plans/site/docs-editorial-polish.md): stack-layer nav stays; landed guides read as generated coverage (meta openers, constraint-first, `sites.rocdown` kitchen sink). Amends the stack-IA writing contract; does not restore academy nav. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 - Dismissed Dependabot alert 1 (`glib` / GHSA-wrw7-89jp-8q8g) as `tolerable_risk`. Revised [Dependabot security updates](research/ops/dependabot-security-updates.md): 0.20 is gtk-rs generation, not an in-range pin. Exploratory; do not log complete until CI and Knowledge succeed.
 
 ## 2026-08-31
