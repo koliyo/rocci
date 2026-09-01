@@ -21,7 +21,7 @@ pub fn highlight_markdown(source: &str) -> Vec<HighlightSpan> {
             } else if source.as_bytes()[pos] == b'#' {
                 pos = highlight_heading(source, pos, &mut spans);
             } else {
-                pos = skip_line(source, pos);
+                pos = highlight_prose_line(source, pos, &mut spans);
             }
         } else {
             pos += source[pos..]
@@ -122,6 +122,137 @@ fn highlight_heading(source: &str, start: usize, spans: &mut Vec<HighlightSpan>)
         );
     }
     skip_line(source, start)
+}
+
+fn highlight_prose_line(source: &str, start: usize, spans: &mut Vec<HighlightSpan>) -> usize {
+    let eol = line_end(source, start);
+    let mut pos = start;
+    if let Some(marker) = list_marker_at(source, pos, eol) {
+        push_span(
+            source,
+            spans,
+            marker.0,
+            marker.1,
+            HighlightKind::Operator,
+            50,
+        );
+        pos = marker.1;
+    }
+    while pos < eol {
+        let before = pos;
+        pos = floor_char_boundary(source, pos);
+        if pos >= eol {
+            break;
+        }
+        let rest = &source[pos..eol];
+        if rest.starts_with('[') || rest.starts_with("![") {
+            if let Some((label, dest)) = inline_link_at(source, pos, eol) {
+                push_span(source, spans, label.0, label.1, HighlightKind::Variable, 50);
+                push_span(source, spans, dest.0, dest.1, HighlightKind::Keyword, 52);
+                pos = dest.1;
+                continue;
+            }
+        }
+        if rest.starts_with("**") || rest.starts_with("__") || rest.starts_with("~~") {
+            let marker = &rest[..2];
+            if let Some(rel) = rest[2..].find(marker) {
+                push_span(
+                    source,
+                    spans,
+                    pos,
+                    pos + 2 + rel + 2,
+                    HighlightKind::Operator,
+                    48,
+                );
+                pos += 2 + rel + 2;
+                continue;
+            }
+        }
+        pos += source[pos..]
+            .chars()
+            .next()
+            .map(|c| c.len_utf8())
+            .unwrap_or(1);
+        if pos <= before {
+            pos = next_char(source, before);
+        }
+    }
+    skip_line(source, start)
+}
+
+fn list_marker_at(source: &str, start: usize, eol: usize) -> Option<(usize, usize)> {
+    let mut pos = skip_spaces(source, start, eol);
+    if pos >= eol {
+        return None;
+    }
+    match source.as_bytes()[pos] {
+        b'*' | b'-' | b'+' => Some((pos, pos + 1)),
+        b'0'..=b'9' => {
+            let digits_start = pos;
+            while pos < eol && source.as_bytes()[pos].is_ascii_digit() {
+                pos += 1;
+            }
+            if pos < eol && matches!(source.as_bytes()[pos], b'.' | b')') {
+                Some((digits_start, pos + 1))
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
+fn inline_link_at(
+    source: &str,
+    start: usize,
+    eol: usize,
+) -> Option<((usize, usize), (usize, usize))> {
+    let bytes = source.as_bytes();
+    let mut i = start;
+    if bytes.get(i) == Some(&b'!') {
+        i += 1;
+    }
+    if bytes.get(i) != Some(&b'[') {
+        return None;
+    }
+    let label_start = i;
+    i += 1;
+    let mut depth = 1u32;
+    while i < eol {
+        let before = i;
+        match bytes[i] {
+            b'\\' if i + 1 < eol => i += 2,
+            b'[' => {
+                depth += 1;
+                i += 1;
+            }
+            b']' => {
+                depth = depth.saturating_sub(1);
+                i += 1;
+                if depth == 0 {
+                    break;
+                }
+            }
+            _ => i += 1,
+        }
+        if i <= before {
+            i += 1;
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    let label_end = i;
+    i = skip_spaces(source, i, eol);
+    if bytes.get(i) != Some(&b'(') {
+        return None;
+    }
+    let dest_start = i;
+    let dest_end = source[i..eol].rfind(')')? + i + 1;
+    if dest_end <= dest_start {
+        return None;
+    }
+    Some(((label_start, label_end), (dest_start, dest_end)))
 }
 
 fn highlight_fence(source: &str, start: usize, spans: &mut Vec<HighlightSpan>) -> usize {
@@ -280,5 +411,31 @@ mod tests {
         let src = "```\nno close";
         let spans = highlight_markdown(src);
         assert!(!spans.is_empty());
+    }
+
+    #[test]
+    fn highlights_link_destination_and_bold() {
+        let src = "* [handlers](/docs/applications/handlers/) and **app**\n";
+        let spans = highlight_markdown(src);
+        assert!(
+            spans.iter().any(|span| span.kind == HighlightKind::Operator
+                && &src[span.start()..span.end()] == "*"),
+            "{spans:?}"
+        );
+        assert!(
+            spans.iter().any(|span| span.kind == HighlightKind::Variable
+                && src[span.start()..span.end()].contains("[handlers]")),
+            "{spans:?}"
+        );
+        assert!(
+            spans.iter().any(|span| span.kind == HighlightKind::Keyword
+                && &src[span.start()..span.end()] == "(/docs/applications/handlers/)"),
+            "{spans:?}"
+        );
+        assert!(
+            spans.iter().any(|span| span.kind == HighlightKind::Operator
+                && src[span.start()..span.end()].contains("**app**")),
+            "{spans:?}"
+        );
     }
 }
