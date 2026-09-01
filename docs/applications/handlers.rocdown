@@ -2,24 +2,33 @@
     layout: "docs",
     meta: {
         title: "Handlers",
-        description: "Choose a document, fragment, command, or live stream. Datastar is transport, not a client framework.",
+        description: "Choose a document, fragment, command, or live stream from the update you want in the browser.",
     },
 }
 
 # Handlers
 
-This page is the application-layer guide for HTTP updates. The contract is
-[Runtime](/docs/reference/runtime/) and
-[Server](/docs/reference/language/server/).
+You clicked a button and want this card to update. Counter does that with
+a fragment that morphs `#counter`:
 
-Counter increment patches `#counter`. A command returns empty SSE to Datastar
-and 204 otherwise.
+```rocci
+<button data-on:click=@post("/actions/counter/increment")>
+    Increment
+</button>
+```
 
-Spell every route as `@method:role(path)`. Role-first forms are **removed**.
+```rocci
+@post:fragment("/actions/counter/increment") = |{ db }| {
+    count = increment_count!(db)?
+    counterCard({ count: count })
+}
+```
 
-Rocci treats HTML as the shared boundary. Datastar sends intent and morphs
-HTML. It is not a client application framework and not a Rocci language
-feature. Durable state stays on the server.
+`@post("/path")` is a Rocci action (Roc string, double quotes). A quoted
+`"@post('…')"` is opaque Datastar JS. For row-specific URLs, make the
+attribute a Roc expression.
+
+Spell every route as `@method:role(path)`.
 
 ## Choose a shape
 
@@ -33,33 +42,24 @@ feature. Durable state stays on the server.
 
 There is no default method. Mutation fragments and commands also allow
 `@put`, `@patch`, and `@delete`. Live paths are plural; use one coherence
-stream when possible. Do not morph the same `id` from both a finite fragment
-and a live stream.
+stream when possible. Do not morph the same `id` from both a finite
+fragment and a live stream.
 
-Canonical one-shot: [Counter](/examples/counter/).
-Canonical stream: [Live counter](/examples/live-counter/).
-Advanced standalone game: [Rocci Blocks](/examples/blocks/).
-Complete matrix: [Handler matrix](/examples/handler-matrix/).
+Commands return `{}` and carry no success representation.
 
-## Wire the button
-
-```rocci
-<button data-on:click=@post("/actions/inc")>Inc</button>
-```
-
-`@post("/path")` is a Rocci action (Roc string, double quotes). A quoted
-`"@post('…')"` is opaque Datastar JS. For row-specific URLs, make the
-attribute a Roc expression.
-
-Commands return `{}` and carry no success representation. Generated commands
-are empty SSE for Datastar and 204 otherwise.
+One-shot: [Counter](/examples/counter/).
+Shared stream: [Live counter](/examples/live-counter/).
+The full matrix: [Handler matrix](/examples/handler-matrix/).
 
 ## Request, errors, logging
 
-Generated dispatch calls `handler!(context, request)`. List `request` when you
-read the body, headers, or route data. Keep `?` at the effectful edge. A
-failing handler returns HTTP 500. `rocci run --log-handlers` prints the
-matched route. Log with `Stderr.line!` from handlers, never from `@component`.
+Generated dispatch calls `handler!(context, request)`. List `request`
+when you read the body, headers, or route data. Keep `?` at the effectful
+edge. A failing handler returns HTTP 500. `rocci run --log-handlers`
+prints the matched route. Log with `Stderr.line!` from handlers, never
+from `@component`.
 
-**Related:** [Standalone](/docs/applications/standalone/),
-[Attributes](/docs/reference/language/attributes/).
+Exact forms: [Runtime](/docs/reference/runtime/),
+[Server](/docs/reference/language/server/).
+
+Next: [Custom applications](/docs/applications/custom/).

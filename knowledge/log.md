@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-01
 
+- Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 2: templates and applications guides rewritten; standalone is the Counter teaching page; handlers open from a click-to-update goal; no `templates/first-component`. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 1: Start order is Overview, The stack, Install, Five minutes; Appendix is its own last nav group. Portal, stack, install, and five-minutes rewritten; the reader types `Hello.rocci` and should see **Hello, Ada**. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 0: stack-IA writing contract and contributor checklist allow a teaching You-will opener and one Next closer; Kind / Time / difficulty stay banned. Disposition table and three voice samples are in the plan. Appendix-as-last-group, paste-a-tiny-component, split sites (hybrid absorbs publish), rewrite components in place. Exploratory; do not log complete until CI and Knowledge succeed.

@@ -2,20 +2,24 @@
     layout: "docs",
     meta: {
         title: "Markup",
-        description: "HTML tags, fragments, attributes, interpolations, scoped CSS, and stable ids in .rocci files.",
+        description: "HTML tags, attributes, interpolations, scoped CSS, and stable ids in .rocci files.",
     },
 }
 
 # Markup
 
-This page is the template-layer guide for tags, attributes, text, and CSS.
-Canonical contracts: [Tags](/docs/reference/language/tags/),
-[Attributes](/docs/reference/language/attributes/),
-[CSS](/docs/reference/language/css/).
+Write ordinary HTML in a component body. This button posts to a Rocci
+action and keeps a stable `id` for later morphs:
 
-`rocci build FILE` succeeds when tags lower to `Html.element` / `Html.fragment`.
+```rocci
+<button id="save" class="primary" disabled data-on:click=@post("/actions/save")>
+    Save
+</button>
+```
 
-## Tags and fragments
+Unquoted `@post(...)` is a Rocci action: the compiler knows the path.
+A quoted `"@post('/x')"` is opaque Datastar JS. `class={expr}` is a Roc
+expression. Valueless `disabled` is a boolean attribute.
 
 | You write | Meaning |
 | --- | --- |
@@ -24,35 +28,18 @@ Canonical contracts: [Tags](/docs/reference/language/tags/),
 | `<>…</>` | Fragment (no wrapper node) |
 | `<br>` / `<img />` | Void HTML |
 
-Unknown PascalCase tags still lower to calls; Roc reports a missing function
-later. Dynamic tag names and prop spreading are not supported.
+Unknown PascalCase tags still lower to calls; Roc reports a missing
+function later. Dynamic tag names and prop spreading are not supported.
 
-## Attributes and identity
-
-Standard Datastar writes browser attributes as strings
-(`data-on-click="@post('/actions/save')"`). Rocci keeps the same morph-by-`id`
-model, but attributes stay in template grammar:
-
-```rocci
-<button class="primary" disabled data-on:click=@post("/actions/save")>
-    Save
-</button>
-```
-
-Unquoted `@post(...)` is a Rocci action: the compiler knows the path and
-keeps it aligned with handlers. A quoted `"@post('/x')"` is opaque Datastar
-JS. `class={expr}` is a Roc expression. Valueless `disabled` is a boolean
-attribute. Hyphenated names (`aria-current`, `data-on:click`) are legal.
-
-Preserve accessible names: `alt` on images, visible labels on buttons, and
-stable `id`s on regions you will morph. Datastar morphs by `id`; a fragment
-without a stable target is a no-op.
+Preserve accessible names: `alt` on images, visible labels on buttons,
+and stable `id`s on regions you will morph. Datastar morphs by `id`; a
+fragment without a stable target is a no-op.
 
 ## Interpolation
 
-Text `{expr}` must be `Str` (`{count.to_str()}`). A body parameter already typed
-`Html` is inserted as-is. Markup inside `{…}` is rejected; use `@if` or a
-named render function. `@@` is a literal `@`.
+Text `{expr}` must be `Str` (`{count.to_str()}`). A body parameter already
+typed `Html` is inserted as-is. Markup inside `{…}` is rejected; use
+`@if` or a named render function. `@@` is a literal `@`.
 
 ## CSS
 
@@ -61,8 +48,11 @@ File-level `@css` styles document chrome (`body`, not `html`). Component
 `@scope`. Authors keep writing `class="card"`. Do not ride a sibling
 `<style>` on an SSE patch.
 
-The styling example shows both: file-level dark chrome and component-scoped
-`.greeting`. See [Styling.rocci](/examples/styling/source/Styling-rocci/).
+[Styling.rocci](/examples/styling/source/Styling-rocci/) shows file-level
+chrome and a component-scoped `.greeting`.
 
-**Related:** [Directives](/docs/templates/directives/),
-[Handlers](/docs/applications/handlers/) for morph targets.
+Exact forms: [Tags](/docs/reference/language/tags/),
+[Attributes](/docs/reference/language/attributes/),
+[CSS](/docs/reference/language/css/).
+
+Next: [Directives](/docs/templates/directives/).

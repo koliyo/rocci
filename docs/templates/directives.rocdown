@@ -8,12 +8,8 @@
 
 # Directives
 
-This page is the template-layer guide for structural control flow. The
-contract is [Directives](/docs/reference/language/directives/).
-
-`rocci inspect --ast FILE` shows `if` / `for` / `match` / `let` nodes.
-
-Keep the opening `{` on the same logical header line. Parenthesize records in
+Use directives when markup has to branch, repeat, or bind a name. Keep
+the opening `{` on the same logical header line. Parenthesize records in
 headers so `{` is not the body opener: `@match ({ status, items }) {`.
 
 ## Conditional
@@ -26,8 +22,9 @@ headers so `{` is not the body opener: `@match ({ status, items }) {`.
 }
 ```
 
-Missing `@else` becomes `Html.empty`. Use `@if` for a true/false condition.
-Prefer `@match` when the input is a tag union or a small closed set.
+Missing `@else` becomes `Html.empty`. Use `@if` for a true/false
+condition. Prefer `@match` when the input is a tag union or a small
+closed set.
 
 ## List
 
@@ -37,8 +34,8 @@ Prefer `@match` when the input is a tag union or a small closed set.
 }
 ```
 
-One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a later
-`@post:fragment` will morph them.
+One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a
+later `@post:fragment` will morph them.
 
 ## Pattern matching
 
@@ -50,8 +47,8 @@ One lowercase binder. Lowers to `List.map`. Give rows stable `id`s if a later
 }
 ```
 
-An arm is an element, call, fragment, interpolation, or nested directive — not
-bare text. Guards and `|` alternatives are ordinary Roc.
+An arm is an element, call, fragment, interpolation, or nested directive
+— not bare text. Guards and `|` alternatives are ordinary Roc.
 
 ## Local variables
 
@@ -71,5 +68,7 @@ bare text. Guards and `|` alternatives are ordinary Roc.
 }
 ```
 
-**Related:** [Components](/docs/templates/components/),
-[Directives reference](/docs/reference/language/directives/).
+Exact forms and errors:
+[Directives](/docs/reference/language/directives/).
+
+Next: [Applications](/docs/applications/).
