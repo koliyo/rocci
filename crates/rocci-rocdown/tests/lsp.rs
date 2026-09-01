@@ -888,9 +888,39 @@ fn compile_text_resolves_workspace_docs_link() {
     )
     .unwrap();
     let snake = root.join("examples/snake/index.rocdown");
-    let src = "See [custom applications](/docs/applications/custom).\n";
+    let src = "See [custom applications](/docs/applications/custom/).\n";
     fs::write(&snake, src).unwrap();
-    let compiled = compile_text(snake.to_str().expect("utf8"), src);
+    let compiled = compile_text(&format!("file://{}", snake.display()), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compiled
+            .diagnostics
+            .iter()
+            .map(|d| d.message.as_str())
+            .collect::<Vec<_>>()
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn compile_text_resolves_docs_prefixed_link_from_docs_tree() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "docs-tree-link"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(root.join("applications/handlers.rocdown"), "# Handlers\n").unwrap();
+    let standalone = root.join("applications/standalone.rocdown");
+    let src = "Shared streams are [handlers](/docs/applications/handlers/).\n";
+    fs::write(&standalone, src).unwrap();
+    let compiled = compile_text(&format!("file://{}", standalone.display()), src);
     assert!(
         !compiled.has_errors(),
         "{:?}",

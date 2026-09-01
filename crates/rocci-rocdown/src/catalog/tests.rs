@@ -46,7 +46,7 @@ fn derives_index_and_named_routes() {
         page("index", "index.rocdown", RouteHint::Derived, "Home"),
     ]);
     assert!(!result.has_errors(), "{}", result.error_summary());
-    assert_eq!(result.site.pages[0].route, "/guide/");
+    assert_eq!(result.site.pages[0].route, "/guide");
     assert_eq!(result.site.pages[0].output_path, "guide/index.html");
     assert_eq!(result.site.pages[1].route, "/");
     assert_eq!(result.site.pages[1].output_path, "index.html");
@@ -73,7 +73,7 @@ fn copies_page_kind_onto_resolved_pages() {
 #[test]
 fn derives_nested_index_routes() {
     assert_eq!(derived_route("guides/index"), "/guides/");
-    assert_eq!(derived_route("guides/build"), "/guides/build/");
+    assert_eq!(derived_route("guides/build"), "/guides/build");
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn explicit_id_is_independent_of_route() {
     let result = resolved(&[source]);
     assert!(!result.has_errors(), "{}", result.error_summary());
     assert_eq!(result.site.pages[0].id, "guides.install");
-    assert_eq!(result.site.pages[0].route, "/setup/");
+    assert_eq!(result.site.pages[0].route, "/setup");
 }
 
 #[test]
@@ -103,14 +103,15 @@ fn duplicate_ids_are_errors() {
 }
 
 #[test]
-fn explicit_route_gets_trailing_slash_and_sorts_by_output() {
+fn explicit_document_route_drops_trailing_slash_and_sorts_by_output() {
     let result = resolved(&[
         page("b", "b.rocdown", RouteHint::Explicit("/zeta".into()), "Z"),
         page("a", "a.rocdown", RouteHint::Explicit("/alpha/".into()), "A"),
     ]);
     assert_eq!(result.site.pages[0].output_path, "alpha/index.html");
     assert_eq!(result.site.pages[1].output_path, "zeta/index.html");
-    assert_eq!(result.site.pages[1].route, "/zeta/");
+    assert_eq!(result.site.pages[0].route, "/alpha");
+    assert_eq!(result.site.pages[1].route, "/zeta");
 }
 
 #[test]
@@ -131,7 +132,7 @@ fn duplicate_routes_name_both_sources() {
     ]);
     let message = result.error_summary();
     assert!(codes(&result).contains(&"RD2002"));
-    assert!(message.contains("duplicate route `/same/`"), "{message}");
+    assert!(message.contains("duplicate route `/same`"), "{message}");
     assert!(message.contains("alpha.rocdown"), "{message}");
     assert!(message.contains("beta.rocdown"), "{message}");
 }
@@ -534,6 +535,46 @@ fn resolves_nested_navigation_groups() {
             .unlisted
             .contains(&"docs/tutorials/first-component".to_string())
     );
+}
+
+#[test]
+fn docs_prefixed_and_slashless_document_links_resolve() {
+    let mut home = page("index", "index.rocdown", RouteHint::Derived, "Home");
+    home.outgoing_links = vec![
+        "/docs/applications/handlers/".into(),
+        "/docs/applications/handlers".into(),
+        "/applications/handlers/".into(),
+        "/applications/".into(),
+        "/docs/applications/".into(),
+    ];
+    let handlers = page(
+        "applications/handlers",
+        "applications/handlers.rocdown",
+        RouteHint::Derived,
+        "Handlers",
+    );
+    let section = page(
+        "applications/index",
+        "applications/index.rocdown",
+        RouteHint::Derived,
+        "Applications",
+    );
+    let result = resolved(&[home, handlers, section]);
+    assert!(!result.has_errors(), "{}", result.error_summary());
+    let handlers_page = result
+        .site
+        .pages
+        .iter()
+        .find(|page| page.id == "applications/handlers")
+        .unwrap();
+    assert_eq!(handlers_page.route, "/applications/handlers");
+    let section_page = result
+        .site
+        .pages
+        .iter()
+        .find(|page| page.id == "applications/index")
+        .unwrap();
+    assert_eq!(section_page.route, "/applications/");
 }
 
 #[test]

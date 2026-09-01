@@ -302,11 +302,16 @@ fn page_for_absolute_document<'a>(path: &str, options: &'a CompileOptions) -> Op
     Some(first)
 }
 
+fn page_href(page: &PageRef) -> String {
+    crate::catalog::canonical_route(&page.route, page.stem == "index")
+}
+
 fn page_destination(
     page: &PageRef,
     fragment: Option<&str>,
     span: Span,
 ) -> Result<String, Diagnostic> {
+    let route = page_href(page);
     if let Some(id) = fragment {
         if !page.heading_ids.iter().any(|heading| heading == id) && !is_source_line_anchor_id(id) {
             return Err(Diagnostic::error(
@@ -314,9 +319,9 @@ fn page_destination(
                 format!("unknown heading `{id}` on page `{}`", page.stem),
             ));
         }
-        return Ok(with_fragment(&page.route, Some(id)));
+        return Ok(with_fragment(&route, Some(id)));
     }
-    Ok(page.route.clone())
+    Ok(route)
 }
 
 fn same_page_heading(id: &str, span: Span, headings: &[HeadingInfo]) -> Result<String, Diagnostic> {
@@ -358,9 +363,9 @@ fn resolve_page(
                 format!("unknown heading `{id}` on page `{stem}`"),
             ));
         }
-        return Ok(with_fragment(&page.route, Some(id)));
+        return Ok(with_fragment(&page_href(page), Some(id)));
     }
-    Ok(page.route.clone())
+    Ok(page_href(page))
 }
 
 fn page_stem(path: &str) -> Option<&str> {

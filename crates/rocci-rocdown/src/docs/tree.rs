@@ -207,6 +207,7 @@ pub fn fill_link_cards(pages: &mut [ResolvedPage]) {
         if let Some(stripped) = page.id.strip_prefix("docs/") {
             lookup.insert(stripped.to_string(), val.clone());
             lookup.insert(format!("/{stripped}/"), val.clone());
+            lookup.insert(format!("/{stripped}"), val.clone());
         }
     }
     for page in pages {

@@ -64,7 +64,8 @@ pub fn site_preview_route(root: &Path, file: &Path) -> String {
     let src = std::fs::read_to_string(&file).unwrap_or_default();
     let page = crate::page_ref_from_source(&file, &src);
     if page.explicit_route {
-        return catalog::with_trailing_slash(&page.route);
+        let collection = page.stem == "index";
+        return catalog::canonical_route(&page.route, collection);
     }
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let file = std::fs::canonicalize(&file).unwrap_or(file);
@@ -101,6 +102,9 @@ pub fn content_root(path: &Path) -> Result<PathBuf> {
                 path.display()
             );
         }
+        if let Some(site) = find_site_root(&path) {
+            return Ok(site);
+        }
         return path
             .parent()
             .map(Path::to_path_buf)
@@ -111,6 +115,12 @@ pub fn content_root(path: &Path) -> Result<PathBuf> {
             "{} is not a directory or documentation file",
             path.display()
         );
+    }
+    if path.join(crate::config::CONFIG_FILE).is_file() {
+        return Ok(path);
+    }
+    if let Some(site) = find_site_root(&path) {
+        return Ok(site);
     }
     Ok(path)
 }
@@ -834,9 +844,19 @@ pub(crate) fn workspace_page_for_route(source_name: &str, route: &str) -> Option
         .find(|page| crate::links::routes_match(&page.route, route))
 }
 
+fn filesystem_source_path(path: &Path) -> PathBuf {
+    let raw = path.to_string_lossy();
+    if let Some(rest) = raw.strip_prefix("file://") {
+        let rest = rest.strip_prefix("localhost").unwrap_or(rest);
+        return PathBuf::from(rest);
+    }
+    path.to_path_buf()
+}
+
 fn find_nested_site(path: &Path) -> Option<PathBuf> {
+    let path = filesystem_source_path(path);
     let path = if path.is_absolute() {
-        path.to_path_buf()
+        path
     } else {
         std::env::current_dir().ok()?.join(path)
     };
@@ -857,7 +877,7 @@ fn find_nested_site(path: &Path) -> Option<PathBuf> {
     }
 }
 
-fn workspace_pages(from: &Path) -> Option<Vec<PageRef>> {
+pub(crate) fn workspace_pages(from: &Path) -> Option<Vec<PageRef>> {
     if from.as_os_str().is_empty() {
         return None;
     }
@@ -943,15 +963,15 @@ fn index_site_page_refs(root: &Path) -> Result<Vec<PageRef>> {
             Err(_) => continue,
         };
         let mut page = page_ref_from_source(&path, &src);
+        let id = relative_name
+            .strip_suffix(".rocdown")
+            .or_else(|| relative_name.strip_suffix(".markdown"))
+            .or_else(|| relative_name.strip_suffix(".md"))
+            .unwrap_or(&relative_name);
         if !page.explicit_route {
-            let id = relative_name
-                .strip_suffix(".rocdown")
-                .or_else(|| relative_name.strip_suffix(".markdown"))
-                .or_else(|| relative_name.strip_suffix(".md"))
-                .unwrap_or(&relative_name);
             page.route = catalog::derived_route(id);
         } else {
-            page.route = catalog::with_trailing_slash(&page.route);
+            page.route = catalog::canonical_route(&page.route, catalog::is_collection_id(id));
         }
         pages.push(page);
     }
@@ -997,12 +1017,12 @@ mod tests {
             .find(|page| page.id == "index")
             .unwrap();
         assert!(
-            home.article_html.contains("href=\"/guide/\""),
+            home.article_html.contains("href=\"/guide\""),
             "{}",
             home.article_html
         );
         assert!(
-            home.article_html.contains("href=\"/guide/#install\""),
+            home.article_html.contains("href=\"/guide#install\""),
             "{}",
             home.article_html
         );
@@ -1016,6 +1036,26 @@ mod tests {
         let artifacts = inspect(&root, InspectKind::Artifacts, None).unwrap();
         assert!(artifacts.contains("old-guide/index.html"));
         assert!(artifacts.contains("404.html"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_file_in_site_accepts_docs_prefixed_routes() {
+        let root = temp("file-in-site");
+        fs::create_dir_all(root.join("applications")).unwrap();
+        fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+        fs::write(
+            root.join("applications/standalone.rocdown"),
+            "# Standalone\n\nSee [handlers](/docs/applications/handlers/).\n",
+        )
+        .unwrap();
+        fs::write(root.join("applications/handlers.rocdown"), "# Handlers\n").unwrap();
+        let report = check(&root.join("applications/standalone.rocdown")).unwrap();
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
         let _ = fs::remove_dir_all(root);
     }
 
@@ -1296,7 +1336,7 @@ debug = true
             "/docs/applications/custom",
         )
         .expect("mounted docs page");
-        assert_eq!(page.route, "/docs/applications/custom/");
+        assert_eq!(page.route, "/docs/applications/custom");
         let _ = fs::remove_dir_all(root);
     }
 
@@ -1311,7 +1351,7 @@ debug = true
         .unwrap();
         assert_eq!(
             site_preview_route(&root, &root.join("guides/docs-components.rocdown")),
-            "/guides/docs-components/"
+            "/guides/docs-components"
         );
         let _ = fs::remove_dir_all(root);
     }
@@ -1326,7 +1366,7 @@ debug = true
         .unwrap();
         assert_eq!(
             site_preview_route(&root, &root.join("page.rocdown")),
-            "/custom-page/"
+            "/custom-page"
         );
         let _ = fs::remove_dir_all(root);
     }
@@ -1341,7 +1381,7 @@ debug = true
             fs::canonicalize(&found).unwrap(),
             fs::canonicalize(&expected).unwrap()
         );
-        assert_eq!(site_preview_route(&found, &file), "/five-minutes/");
+        assert_eq!(site_preview_route(&found, &file), "/five-minutes");
     }
 
     #[test]

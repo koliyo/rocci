@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use super::resolve::{is_sibling_product_lane, with_trailing_slash};
+use super::resolve::{is_sibling_product_lane, with_trailing_slash, without_trailing_slash};
 use super::types::*;
 
 pub(crate) fn resolve_graph(
@@ -91,20 +91,9 @@ fn resolve_ref(
         return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
     }
     if path.starts_with('/') {
-        let route = with_trailing_slash(path);
-        let target = by_route.get(route.as_str()).copied().or_else(|| {
-            if let Some(stripped) = route.strip_prefix("/docs/") {
-                let stripped_route = format!("/{stripped}");
-                by_route.get(stripped_route.as_str()).copied()
-            } else if route == "/docs/" {
-                by_route.get("/").copied()
-            } else {
-                let prefixed = format!("/docs{route}");
-                by_route.get(prefixed.as_str()).copied()
-            }
-        });
+        let target = page_for_abs_route(by_route, path);
         let Some(target) = target else {
-            if is_sibling_product_lane(&route) {
+            if is_sibling_product_lane(&with_trailing_slash(path)) {
                 return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
             }
             return Err(CatalogDiagnostic::error(
@@ -208,6 +197,37 @@ fn wiki_target<'a>(
                 .join(", "),
         ),
     }
+}
+
+fn page_for_abs_route<'a>(
+    by_route: &BTreeMap<&str, &'a ResolvedPage>,
+    path: &str,
+) -> Option<&'a ResolvedPage> {
+    lookup_route(by_route, path).or_else(|| {
+        let slashed = with_trailing_slash(path);
+        if let Some(stripped) = slashed.strip_prefix("/docs/") {
+            lookup_route(by_route, &format!("/{stripped}"))
+        } else if slashed == "/docs/" {
+            by_route.get("/").copied()
+        } else {
+            lookup_route(by_route, &format!("/docs{slashed}")).or_else(|| {
+                lookup_route(by_route, &format!("/docs{}", without_trailing_slash(path)))
+            })
+        }
+    })
+}
+
+fn lookup_route<'a>(
+    by_route: &BTreeMap<&str, &'a ResolvedPage>,
+    path: &str,
+) -> Option<&'a ResolvedPage> {
+    let slashed = with_trailing_slash(path);
+    let bare = without_trailing_slash(path);
+    by_route
+        .get(path)
+        .or_else(|| by_route.get(slashed.as_str()))
+        .or_else(|| by_route.get(bare.as_str()))
+        .copied()
 }
 
 fn page_for_path<'a>(pages: &'a [ResolvedPage], normalized: &str) -> Option<&'a ResolvedPage> {

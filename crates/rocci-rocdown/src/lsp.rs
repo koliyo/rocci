@@ -202,23 +202,36 @@ impl DocumentAnalysis for RocdownAnalysis {
 }
 
 pub fn compile_text(name: &str, text: &str) -> CompileOutput {
+    let path = filesystem_path(name);
+    let source_name = path
+        .as_ref()
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or_else(|| name.to_string());
     let mut options = CompileOptions::default();
-    if let Some(path) = filesystem_path(name)
-        && let Some(dir) = path
+    if let Some(path) = path {
+        let current = page_ref_from_source(&path, text);
+        let workspace = crate::site::workspace_pages(&path).unwrap_or_default();
+        let in_workspace = workspace.iter().any(|page| page.path == current.path);
+        let mut pages = if in_workspace {
+            workspace
+        } else if let Some(dir) = path
             .parent()
             .filter(|dir| dir.is_dir() && *dir != Path::new("/"))
-    {
-        let mut pages = index_pages_in_dir(dir);
-        let current = page_ref_from_source(&path, text);
-        pages.retain(|page| page.file_name != current.file_name);
+        {
+            index_pages_in_dir(dir)
+        } else {
+            Vec::new()
+        };
+        pages.retain(|page| page.path != current.path && page.file_name != current.file_name);
         pages.push(current);
         options.pages = pages;
     }
-    crate::compile(SourceFile::new(name, text), &options)
+    crate::compile(SourceFile::new(&source_name, text), &options)
 }
 
 fn filesystem_path(name: &str) -> Option<PathBuf> {
     let path = if let Some(rest) = name.strip_prefix("file://") {
+        let rest = rest.strip_prefix("localhost").unwrap_or(rest);
         PathBuf::from(rest)
     } else {
         PathBuf::from(name)

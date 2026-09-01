@@ -608,12 +608,12 @@ items = ["playground"]
     let playground = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/playground/")
+        .find(|page| page.view.route == "/playground")
         .expect("playground page");
     let guide = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/guide/")
+        .find(|page| page.view.route == "/guide")
         .expect("guide page");
 
     assert_eq!(playground.view.layout, "playground");
@@ -843,7 +843,7 @@ fn plan_rewrites_article_html_and_social_image() {
     let guide = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/guide/")
+        .find(|page| page.view.route == "/guide")
         .unwrap();
     assert!(guide.article_html.contains("/assets/icons/logo."));
     assert!(!guide.article_html.contains("/assets/icons/logo.png"));
@@ -884,7 +884,7 @@ fn plan_lists_404_stylesheet_redirects_and_discovery() {
     assert_eq!(pages_json.route, "/pages.json");
     let listed: serde_json::Value = serde_json::from_str(&pages_json.contents).unwrap();
     assert!(listed.as_array().unwrap().iter().any(|page| {
-        page["route"] == "/guide/" && page["title"] == "Guide" && page["kind"] == "static"
+        page["route"] == "/guide" && page["title"] == "Guide" && page["kind"] == "static"
     }));
     assert!(artifacts.iter().any(|item| item.output_path == "404.html"));
     assert!(
@@ -1157,7 +1157,7 @@ FeatureCount = |_| {
         .site
         .pages
         .iter()
-        .find(|page| page.route == "/widgets/")
+        .find(|page| page.route == "/widgets")
         .unwrap();
     assert_eq!(home_page.kind, PageKind::Static);
     assert_eq!(widgets_page.kind, PageKind::Hydrate);
@@ -1180,7 +1180,7 @@ FeatureCount = |_| {
     let widgets = planned
         .pages
         .iter()
-        .find(|page| page.view.route == "/widgets/")
+        .find(|page| page.view.route == "/widgets")
         .unwrap();
     let card_segment = widgets
         .segments
@@ -1770,7 +1770,7 @@ Content here.
     let guide = planned
         .pages
         .iter()
-        .find(|p| p.view.route == "/guide/")
+        .find(|p| p.view.route == "/guide")
         .unwrap();
     assert_eq!(guide.view.layout, "plain");
     assert_eq!(guide.view.published, "2026-08-18");
