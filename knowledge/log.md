@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-01
+
+- Dismissed Dependabot alert 1 (`glib` / GHSA-wrw7-89jp-8q8g) as `tolerable_risk`. Revised [Dependabot security updates](research/ops/dependabot-security-updates.md): 0.20 is gtk-rs generation, not an in-range pin. Exploratory; do not log complete until CI and Knowledge succeed.
+
 ## 2026-08-31
 
 - Updated `.agents/skills/rocci-author` (`SKILL.md`, `idioms.md`) for pinned-nightly types: parenthesized applications, alias vs nominal vs opaque, `=> Try({}, [..])`, inferred chrome helpers. Pointed [nightly typing review](research/rocdown/idiomatic-roc-nightly-types.md) at those files. Exploratory; do not log complete until CI and Knowledge succeed.
