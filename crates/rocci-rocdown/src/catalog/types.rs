@@ -207,6 +207,7 @@ pub struct ResolvedSite {
 pub struct ResolveOptions {
     pub navigation: Vec<NavConfig>,
     pub files: BTreeSet<String>,
+    pub peer_pages: Vec<crate::PageRef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

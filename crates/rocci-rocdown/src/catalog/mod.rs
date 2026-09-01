@@ -8,7 +8,7 @@ pub(crate) use nav::{first_nav_item, section_contains};
 #[allow(unused_imports)]
 pub use resolve::page_route;
 pub use resolve::{
-    canonical_route, derived_route, is_collection_id, resolve, route_output_path,
+    canonical_route, derived_route, is_collection_id, resolve, route_output_path, routes_match,
     with_trailing_slash,
 };
 pub use types::*;

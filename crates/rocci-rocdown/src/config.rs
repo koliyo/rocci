@@ -12,6 +12,8 @@ pub struct SiteConfig {
     pub build: BuildConfig,
     #[serde(rename = "mount", default)]
     pub mounts: Vec<MountConfig>,
+    #[serde(rename = "peer", default)]
+    pub peers: Vec<PeerConfig>,
     #[serde(rename = "nav")]
     pub navigation: Vec<NavConfig>,
     #[serde(default)]
@@ -33,6 +35,13 @@ pub struct MountConfig {
     pub layout: Option<String>,
     #[serde(default)]
     pub visibility: MountVisibility,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct PeerConfig {
+    pub source: String,
+    pub prefix: String,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -224,26 +233,7 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
         }
     }
     for (index, mount) in config.mounts.iter().enumerate() {
-        if mount.source.trim().is_empty()
-            || mount.source.contains('\0')
-            || Path::new(&mount.source).is_absolute()
-        {
-            bail!(
-                "mount[{}] source `{}` must be a valid relative path in {}",
-                index + 1,
-                mount.source,
-                path.display()
-            );
-        }
-        let prefix = mount.prefix.trim();
-        if prefix.contains("..") || prefix.starts_with('/') || prefix.ends_with('/') {
-            bail!(
-                "mount[{}] prefix `{}` must not start/end with '/' or contain '..' in {}",
-                index + 1,
-                mount.prefix,
-                path.display()
-            );
-        }
+        validate_tree_source_prefix("mount", index, &mount.source, &mount.prefix, path)?;
         if let Some(layout) = &mount.layout {
             const VALID_LAYOUTS: &[&str] = &[
                 "home",
@@ -267,6 +257,9 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
                 );
             }
         }
+    }
+    for (index, peer) in config.peers.iter().enumerate() {
+        validate_tree_source_prefix("peer", index, &peer.source, &peer.prefix, path)?;
     }
     for (index, section) in config.navigation.iter().enumerate() {
         validate_nav_section(section, index + 1, path)?;
@@ -302,6 +295,31 @@ fn validate(config: &SiteConfig, path: &Path) -> Result<()> {
                 path.display()
             );
         }
+    }
+    Ok(())
+}
+
+fn validate_tree_source_prefix(
+    kind: &str,
+    index: usize,
+    source: &str,
+    prefix: &str,
+    path: &Path,
+) -> Result<()> {
+    if source.trim().is_empty() || source.contains('\0') || Path::new(source).is_absolute() {
+        bail!(
+            "{kind}[{}] source `{source}` must be a valid relative path in {}",
+            index + 1,
+            path.display()
+        );
+    }
+    let prefix = prefix.trim();
+    if prefix.contains("..") || prefix.starts_with('/') || prefix.ends_with('/') {
+        bail!(
+            "{kind}[{}] prefix `{prefix}` must not start/end with '/' or contain '..' in {}",
+            index + 1,
+            path.display()
+        );
     }
     Ok(())
 }
@@ -503,6 +521,69 @@ items = ["docs/index"]
         assert_eq!(config.mounts[0].prefix, "docs");
         assert_eq!(config.mounts[0].layout.as_deref(), Some("docs"));
         assert_eq!(config.mounts[0].visibility, MountVisibility::LinkedDetail);
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn reads_peers() {
+        let root = temp("peers");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[peer]]
+source = "../dist/example-docs"
+prefix = "examples"
+
+[[peer]]
+source = "../site/project"
+prefix = "project"
+"#,
+        )
+        .unwrap();
+        let config = load_config(&root).unwrap();
+        assert_eq!(config.peers.len(), 2);
+        assert_eq!(config.peers[0].source, "../dist/example-docs");
+        assert_eq!(config.peers[0].prefix, "examples");
+        assert_eq!(config.peers[1].source, "../site/project");
+        assert_eq!(config.peers[1].prefix, "project");
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn rejects_invalid_peers() {
+        let root = temp("invalid-peer");
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[peer]]
+source = "/absolute/path"
+prefix = "examples"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("must be a valid relative path"), "{err}");
+
+        fs::write(
+            root.join(CONFIG_FILE),
+            r#"
+[site]
+title = "Rocci"
+
+[[peer]]
+source = "../dist/example-docs"
+prefix = "/examples/"
+"#,
+        )
+        .unwrap();
+        let err = load_config(&root).unwrap_err().to_string();
+        assert!(err.contains("must not start/end with '/'"), "{err}");
         let _ = fs::remove_dir_all(root);
     }
 

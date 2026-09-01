@@ -33,6 +33,21 @@ pub fn without_trailing_slash(route: &str) -> String {
     route.strip_suffix('/').unwrap_or(route).to_string()
 }
 
+pub fn routes_match(left: &str, right: &str) -> bool {
+    let left = with_trailing_slash(left);
+    let right = with_trailing_slash(right);
+    if left == right {
+        return true;
+    }
+    if let Some(stripped) = left.strip_prefix("/docs") {
+        return stripped == right || (left == "/docs/" && right == "/");
+    }
+    if let Some(stripped) = right.strip_prefix("/docs") {
+        return stripped == left || (right == "/docs/" && left == "/");
+    }
+    false
+}
+
 pub fn canonical_route(route: &str, collection: bool) -> String {
     if !route.starts_with('/') {
         return route.to_string();
@@ -45,15 +60,6 @@ pub fn canonical_route(route: &str, collection: bool) -> String {
     } else {
         without_trailing_slash(route)
     }
-}
-
-pub(crate) fn is_sibling_product_lane(route: &str) -> bool {
-    route == "/examples/"
-        || route.starts_with("/examples/")
-        || route == "/rocdown/"
-        || route.starts_with("/rocdown/")
-        || route == "/project/"
-        || route.starts_with("/project/")
 }
 
 pub fn page_route(page: &SourcePage) -> String {
@@ -145,7 +151,13 @@ pub fn resolve(pages: &[SourcePage], options: &ResolveOptions) -> ResolveResult 
 
     crate::docs::fill_link_cards(&mut resolved);
 
-    let graph = resolve_graph(pages, &resolved, &options.files, &mut diagnostics);
+    let graph = resolve_graph(
+        pages,
+        &resolved,
+        &options.peer_pages,
+        &options.files,
+        &mut diagnostics,
+    );
     crate::docs::rewrite_resolved_links(&mut resolved, &graph);
     let navigation = resolve_navigation(&resolved, &options.navigation, &mut diagnostics);
     apply_journey(&mut resolved, &navigation, &mut diagnostics);

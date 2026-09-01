@@ -1,12 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use super::resolve::{is_sibling_product_lane, with_trailing_slash, without_trailing_slash};
+use super::resolve::{routes_match, with_trailing_slash, without_trailing_slash};
 use super::types::*;
+use crate::PageRef;
 
 pub(crate) fn resolve_graph(
     sources: &[SourcePage],
     pages: &[ResolvedPage],
+    peer_pages: &[PageRef],
     files: &BTreeSet<String>,
     diagnostics: &mut Vec<CatalogDiagnostic>,
 ) -> Vec<Edge> {
@@ -24,7 +26,9 @@ pub(crate) fn resolve_graph(
         for raw in source.outgoing_links.iter().chain(source.image_urls.iter()) {
             let is_image = source.image_urls.iter().any(|url| url == raw)
                 && !source.outgoing_links.iter().any(|url| url == raw);
-            match resolve_ref(raw, page, pages, &by_id, &by_route, files, is_image) {
+            match resolve_ref(
+                raw, page, pages, peer_pages, &by_id, &by_route, files, is_image,
+            ) {
                 Ok(Some(edge)) => {
                     if edge.kind == EdgeKind::Page
                         && !page.draft
@@ -57,6 +61,7 @@ fn resolve_ref(
     raw: &str,
     page: &ResolvedPage,
     pages: &[ResolvedPage],
+    peer_pages: &[PageRef],
     by_id: &BTreeMap<&str, &ResolvedPage>,
     by_route: &BTreeMap<&str, &ResolvedPage>,
     files: &BTreeSet<String>,
@@ -91,18 +96,20 @@ fn resolve_ref(
         return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
     }
     if path.starts_with('/') {
-        let target = page_for_abs_route(by_route, path);
-        let Some(target) = target else {
-            if is_sibling_product_lane(&with_trailing_slash(path)) {
-                return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
-            }
-            return Err(CatalogDiagnostic::error(
-                "RD2101",
-                &page.source_path,
-                format!("broken internal link `{raw}`"),
-            ));
-        };
-        return page_or_heading_edge(page, raw, target, fragment);
+        if let Some(target) = page_for_abs_route(by_route, path) {
+            return page_or_heading_edge(page, raw, target, fragment);
+        }
+        if let Some(peer) = peer_pages
+            .iter()
+            .find(|peer| routes_match(&peer.route, path))
+        {
+            return peer_page_or_heading_edge(page, raw, peer, fragment);
+        }
+        return Err(CatalogDiagnostic::error(
+            "RD2101",
+            &page.source_path,
+            format!("broken internal link `{raw}`"),
+        ));
     }
     if is_relative(path) {
         let Some(normalized) = resolve_relative(&page.source_path, path) else {
@@ -245,6 +252,33 @@ fn page_for_path<'a>(pages: &'a [ResolvedPage], normalized: &str) -> Option<&'a 
                 .strip_prefix("docs/")
                 .is_some_and(|p| p == normalized)
     })
+}
+
+fn peer_page_or_heading_edge(
+    from: &ResolvedPage,
+    raw: &str,
+    peer: &PageRef,
+    fragment: Option<&str>,
+) -> Result<Option<Edge>, CatalogDiagnostic> {
+    match fragment {
+        Some(fragment) => {
+            if peer.heading_ids.iter().any(|id| id == fragment) {
+                Ok(Some(edge(
+                    from,
+                    raw,
+                    &format!("{}#{fragment}", peer.route),
+                    EdgeKind::Heading,
+                )))
+            } else {
+                Err(CatalogDiagnostic::error(
+                    "RD2102",
+                    &from.source_path,
+                    format!("broken heading link `{raw}`"),
+                ))
+            }
+        }
+        None => Ok(Some(edge(from, raw, &peer.route, EdgeKind::Page))),
+    }
 }
 
 fn page_or_heading_edge(

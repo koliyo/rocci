@@ -11,7 +11,8 @@ cargo run -p rocci-rocdown-cli -- run examples/rocdown/pages/Guide.rocdown
 # Build a documentation site to dist/
 cargo run -p rocci-rocdown-cli -- build docs --output dist
 
-# Check documentation catalog, routes, links, and includes
+# Stage generated example pages, then check the docs catalog (includes peer routes)
+cargo run -q -p rocci-docs -- --catalog examples/rocci/apps.toml --output dist/example-docs
 cargo run -p rocci-rocdown-cli -- check docs
 
 # Inspect Rocdown AST
@@ -357,6 +358,13 @@ generated detail catalog whose pages are intentionally reached from authored
 links. Those pages remain marked unlisted in inspection and machine output,
 but do not emit expected warning noise. Authored pages and ordinary mounts
 still warn.
+
+A catalog that stays standalone (`docs/`) but links at another tree's published
+routes declares `[[peer]]` with the same `source` / `prefix` shape. Peers are
+link inventory only: `check` and the language server resolve those routes;
+`build` does not emit them. A missing peer directory fails load. Stage
+`dist/example-docs` before `rocdown check docs` when `docs/rocdown.toml` peers
+that tree.
 
 The catalog owns routes, navigation, breadcrumbs, journeys, and visibility.
 Project `.rocci` layouts own the visible frame. A site may validate named

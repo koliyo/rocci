@@ -22,6 +22,7 @@ pub struct LoadedSite {
     pub root: PathBuf,
     pub config: SiteConfig,
     pub sources: Vec<SourcePage>,
+    pub peer_pages: Vec<PageRef>,
     pub files: BTreeSet<String>,
     pub static_files: Vec<StaticFile>,
     pub diagnostics: Vec<CatalogDiagnostic>,
@@ -188,6 +189,20 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
                     == crate::config::MountVisibility::LinkedDetail,
             });
         }
+    }
+
+    let mut peer_pages = Vec::new();
+    for (index, peer) in config.peers.iter().enumerate() {
+        let peer_dir = root.join(&peer.source);
+        if !peer_dir.is_dir() {
+            bail!(
+                "peer[{}] source `{}` does not exist or is not a directory in {}",
+                index + 1,
+                peer.source,
+                root.display()
+            );
+        }
+        peer_pages.extend(index_prefixed_page_refs(&peer_dir, &peer.prefix)?);
     }
 
     if discovered_pages.is_empty() {
@@ -461,6 +476,7 @@ pub fn load_site(root: &Path) -> Result<LoadedSite> {
         root,
         config,
         sources,
+        peer_pages,
         files,
         static_files: Vec::new(),
         diagnostics,
@@ -474,6 +490,7 @@ pub fn resolve_loaded(loaded: &LoadedSite) -> catalog::ResolveResult {
         &ResolveOptions {
             navigation: loaded.config.navigation.clone(),
             files: loaded.files.clone(),
+            peer_pages: loaded.peer_pages.clone(),
         },
     );
     let mut diagnostics = loaded.diagnostics.clone();
@@ -853,30 +870,6 @@ fn filesystem_source_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
 
-fn find_nested_site(path: &Path) -> Option<PathBuf> {
-    let path = filesystem_source_path(path);
-    let path = if path.is_absolute() {
-        path
-    } else {
-        std::env::current_dir().ok()?.join(path)
-    };
-    let mut dir = if path.is_dir() {
-        path
-    } else {
-        path.parent()?.to_path_buf()
-    };
-    loop {
-        if dir.join(crate::config::CONFIG_FILE).is_file() {
-            return Some(dir);
-        }
-        let nested = dir.join("site").join(crate::config::CONFIG_FILE);
-        if nested.is_file() {
-            return Some(dir.join("site"));
-        }
-        dir = dir.parent()?.to_path_buf();
-    }
-}
-
 pub(crate) fn workspace_pages(from: &Path) -> Option<Vec<PageRef>> {
     if from.as_os_str().is_empty() {
         return None;
@@ -884,7 +877,8 @@ pub(crate) fn workspace_pages(from: &Path) -> Option<Vec<PageRef>> {
     if from.components().count() < 2 && !from.exists() {
         return None;
     }
-    let root = find_nested_site(from)?;
+    let from = filesystem_source_path(from);
+    let root = find_site_root(&from)?;
     let stamp = workspace_stamp(&root)?;
     {
         let cache = WORKSPACE_INDEX
@@ -918,39 +912,76 @@ fn workspace_stamp(root: &Path) -> Option<(SystemTime, u64)> {
     Some((mtime, count))
 }
 
-fn discover_site_page_paths(root: &Path) -> Result<Vec<(PathBuf, String)>> {
-    let config = load_config(root)?;
+fn prefixed_relative_name(rel_in_tree: &str, prefix: &str) -> String {
+    if prefix.is_empty() {
+        rel_in_tree.to_string()
+    } else {
+        format!("{prefix}/{rel_in_tree}")
+    }
+}
+
+fn discover_prefixed_paths(dir: &Path, prefix: &str) -> Result<Vec<(PathBuf, String)>> {
+    let mut files = Vec::new();
+    crate::build::discover_in(dir, &mut files)?;
     let mut pages = Vec::new();
-    let mut root_files = Vec::new();
-    crate::build::discover_in(root, &mut root_files)?;
-    for path in root_files {
-        let relative_name = path
-            .strip_prefix(root)
+    for path in files {
+        let rel_in_tree = path
+            .strip_prefix(dir)
             .unwrap_or(&path)
             .to_string_lossy()
             .replace('\\', "/");
-        pages.push((path, relative_name));
+        pages.push((path, prefixed_relative_name(&rel_in_tree, prefix)));
     }
+    Ok(pages)
+}
+
+fn page_ref_from_relative(path: &Path, relative_name: &str) -> Option<PageRef> {
+    let src = std::fs::read_to_string(path).ok()?;
+    let mut page = page_ref_from_source(path, &src);
+    let id = relative_name
+        .strip_suffix(".rocdown")
+        .or_else(|| relative_name.strip_suffix(".markdown"))
+        .or_else(|| relative_name.strip_suffix(".md"))
+        .unwrap_or(relative_name);
+    if !page.explicit_route {
+        page.route = catalog::derived_route(id);
+    } else {
+        page.route = catalog::canonical_route(&page.route, catalog::is_collection_id(id));
+    }
+    Some(page)
+}
+
+fn index_prefixed_page_refs(dir: &Path, prefix: &str) -> Result<Vec<PageRef>> {
+    let mut pages = Vec::new();
+    for (path, relative_name) in discover_prefixed_paths(dir, prefix)? {
+        if let Some(page) = page_ref_from_relative(&path, &relative_name) {
+            pages.push(page);
+        }
+    }
+    Ok(pages)
+}
+
+fn discover_site_page_paths(root: &Path) -> Result<Vec<(PathBuf, String)>> {
+    let config = load_config(root)?;
+    let mut pages = discover_prefixed_paths(root, "")?;
     for mount in &config.mounts {
         let mount_dir = root.join(&mount.source);
         if !mount_dir.is_dir() {
             continue;
         }
-        let mut mount_files = Vec::new();
-        crate::build::discover_in(&mount_dir, &mut mount_files)?;
-        for path in mount_files {
-            let rel_in_mount = path
-                .strip_prefix(&mount_dir)
-                .unwrap_or(&path)
-                .to_string_lossy()
-                .replace('\\', "/");
-            let relative_name = if mount.prefix.is_empty() {
-                rel_in_mount
-            } else {
-                format!("{}/{}", mount.prefix, rel_in_mount)
-            };
-            pages.push((path, relative_name));
+        pages.extend(discover_prefixed_paths(&mount_dir, &mount.prefix)?);
+    }
+    for (index, peer) in config.peers.iter().enumerate() {
+        let peer_dir = root.join(&peer.source);
+        if !peer_dir.is_dir() {
+            bail!(
+                "peer[{}] source `{}` does not exist or is not a directory in {}",
+                index + 1,
+                peer.source,
+                root.display()
+            );
         }
+        pages.extend(discover_prefixed_paths(&peer_dir, &peer.prefix)?);
     }
     Ok(pages)
 }
@@ -958,22 +989,9 @@ fn discover_site_page_paths(root: &Path) -> Result<Vec<(PathBuf, String)>> {
 fn index_site_page_refs(root: &Path) -> Result<Vec<PageRef>> {
     let mut pages = Vec::new();
     for (path, relative_name) in discover_site_page_paths(root)? {
-        let src = match std::fs::read_to_string(&path) {
-            Ok(src) => src,
-            Err(_) => continue,
-        };
-        let mut page = page_ref_from_source(&path, &src);
-        let id = relative_name
-            .strip_suffix(".rocdown")
-            .or_else(|| relative_name.strip_suffix(".markdown"))
-            .or_else(|| relative_name.strip_suffix(".md"))
-            .unwrap_or(&relative_name);
-        if !page.explicit_route {
-            page.route = catalog::derived_route(id);
-        } else {
-            page.route = catalog::canonical_route(&page.route, catalog::is_collection_id(id));
+        if let Some(page) = page_ref_from_relative(&path, &relative_name) {
+            pages.push(page);
         }
-        pages.push(page);
     }
     Ok(pages)
 }
@@ -1313,30 +1331,87 @@ debug = true
     }
 
     #[test]
-    fn workspace_route_finds_mounted_docs_from_nested_site() {
-        let root = temp("workspace-docs");
-        fs::create_dir_all(root.join("site")).unwrap();
+    fn workspace_route_finds_peer_pages_from_docs_site() {
+        let root = temp("workspace-peer");
         fs::create_dir_all(root.join("docs/applications")).unwrap();
-        fs::create_dir_all(root.join("examples/snake")).unwrap();
+        fs::create_dir_all(root.join("examples/counter/source")).unwrap();
         fs::write(
-            root.join("site/rocdown.toml"),
-            "[site]\ntitle = \"Demo\"\n\n[[mount]]\nsource = \"../docs\"\nprefix = \"docs\"\n",
+            root.join("docs/rocdown.toml"),
+            "[site]\ntitle = \"Docs\"\n\n[[peer]]\nsource = \"../examples\"\nprefix = \"examples\"\n",
         )
         .unwrap();
-        fs::write(root.join("site/index.rocdown"), "# Home\n").unwrap();
         fs::write(
-            root.join("docs/applications/custom.rocdown"),
-            "# Custom applications\n",
+            root.join("docs/applications/standalone.rocdown"),
+            "# Standalone\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("examples/counter/source/Counter-rocci.rocdown"),
+            "# Counter.rocci\n",
         )
         .unwrap();
         let page = workspace_page_for_route(
-            root.join("examples/snake/index.rocdown")
+            root.join("docs/applications/standalone.rocdown")
                 .to_str()
                 .expect("utf8"),
-            "/docs/applications/custom",
+            "/examples/counter/source/Counter-rocci/",
         )
-        .expect("mounted docs page");
-        assert_eq!(page.route, "/docs/applications/custom");
+        .expect("peer example page");
+        assert_eq!(page.route, "/examples/counter/source/Counter-rocci");
+        assert!(
+            workspace_page_for_route(
+                root.join("docs/applications/standalone.rocdown")
+                    .to_str()
+                    .expect("utf8"),
+                "/examples/counter/source/Cosunter-rocci/",
+            )
+            .is_none()
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn check_peer_typo_is_rd2101_and_missing_peer_fails_load() {
+        let root = temp("check-peer");
+        fs::create_dir_all(root.join("docs")).unwrap();
+        fs::create_dir_all(root.join("examples/counter/source")).unwrap();
+        fs::write(
+            root.join("docs/rocdown.toml"),
+            "[site]\ntitle = \"Docs\"\n\n[[peer]]\nsource = \"../examples\"\nprefix = \"examples\"\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("docs/index.rocdown"),
+            "# Home\n\nSee [ok](/examples/counter/source/Counter-rocci/).\n",
+        )
+        .unwrap();
+        fs::write(
+            root.join("examples/counter/source/Counter-rocci.rocdown"),
+            "# Counter.rocci\n",
+        )
+        .unwrap();
+        let report = check(&root.join("docs")).unwrap();
+        assert!(
+            !report.has_errors(),
+            "{}",
+            report.render(CheckFormat::Terminal).unwrap()
+        );
+
+        fs::write(
+            root.join("docs/index.rocdown"),
+            "# Home\n\nSee [bad](/examples/counter/source/Cosunter-rocci/).\n",
+        )
+        .unwrap();
+        let report = check(&root.join("docs")).unwrap();
+        let rendered = report.render(CheckFormat::Terminal).unwrap();
+        assert!(report.has_errors(), "{rendered}");
+        assert!(rendered.contains("RD2101"), "{rendered}");
+        assert!(rendered.contains("Cosunter-rocci"), "{rendered}");
+
+        let _ = fs::remove_dir_all(root.join("examples"));
+        let err = load_site(&root.join("docs")).unwrap_err().to_string();
+        assert!(err.contains("peer[1]"), "{err}");
+        assert!(err.contains("does not exist"), "{err}");
         let _ = fs::remove_dir_all(root);
     }
 

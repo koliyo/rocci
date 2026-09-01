@@ -12,6 +12,14 @@ footer = "Highly experimental software — for testing only. Not for production 
 output = "../dist/docs"
 assets = "assets"
 
+[[peer]]
+source = "../dist/example-docs"
+prefix = "examples"
+
+[[peer]]
+source = "../site/project"
+prefix = "project"
+
 [[nav]]
 label = "Start"
 items = [

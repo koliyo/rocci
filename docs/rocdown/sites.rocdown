@@ -248,9 +248,30 @@ visibility = "linked-detail"
 
 `dist/example-docs` is produced by `rocci-docs` (`cargo run -q -p rocci-docs --
 --catalog examples/rocci/apps.toml --output dist/example-docs`). Run that
-before `rocdown check site`, `rocdown view site`, or `rocdown package site`.
-Rocdown does not import `rocci-docs`. Generated example pages use the docs
-layout. `/docs/examples/` is an alias of `/examples/` during the move.
+before `rocdown check site`, `rocdown check docs`, `rocdown view site`, or
+`rocdown package site`. Rocdown does not import `rocci-docs`. Generated example
+pages use the docs layout. `/docs/examples/` is an alias of `/examples/`
+during the move.
+
+A standalone docs catalog that links at those published routes declares
+**peers** (link inventory only). Peers do not become pages of this site and
+are not written by `rocdown build docs`:
+
+```toml
+[[peer]]
+source = "../dist/example-docs"
+prefix = "examples"
+
+[[peer]]
+source = "../site/project"
+prefix = "project"
+```
+
+`source` is a directory of `.rocdown` pages, not a nested site. Rocdown does
+not load the target's `rocdown.toml` or mounts. A missing peer directory fails
+`check` and site load the same way a missing mount does. `rocdown check` and
+the editor use the same owned-plus-peer route index; a typo such as
+`Cosunter-rocci` is `RD2101` / `unknown Rocdown route`.
 
 - `source`: Relative path to the mounted content directory.
 - `prefix`: Route and page ID prefix (e.g. `prefix = "docs"` maps `five-minutes` to ID `docs/five-minutes` and route `/docs/five-minutes/`).

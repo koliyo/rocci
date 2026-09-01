@@ -211,6 +211,7 @@ fn test_site_catalog_resolution() {
             groups: Vec::new(),
         }],
         files: BTreeSet::new(),
+        peer_pages: Vec::new(),
     };
 
     let resolved = resolve(&pages, &options);
