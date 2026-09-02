@@ -149,6 +149,11 @@ sources:
     title: Implementation findings on nightly-2026-08-23-fb208ba
     author: process:cursor
     last_modified: 2026-09-03
+  - id: platform-postmortem
+    resource: ../../audits/rocci/rocci-as-roc-platform-postmortem.md
+    title: Rocci-as-platform post-mortem
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # A Roc-native template parser and lowerer
@@ -177,6 +182,13 @@ It is the template half of the hybrid already named in [handlers as a Roc
 library](method-role-handlers-as-roc-library.md): keep `@component` / `@css`
 as a grammar. The library paper's route constructors are a different
 fork.[^roc-library]
+
+The in-tree Rocci platform now exposes `Html` / `Datastar` as `pf`. That
+matters only if a later vision check typechecks generated modules without
+CLI-staged copies. This POC still compares emit strings and may keep
+`import Html`. Do not start this plan from the platform cutover. Implications:
+[platform post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).
+[^platform-postmortem]
 
 ## What "run from Roc without Rust" can mean
 
@@ -548,3 +560,4 @@ not restated here.[^postmortem]
 [^roc-parser-string]: `String :: {}.{` and `List(U8)` leftover parsing.
 [^cursor-spike]: `var $cur` plus `{ ..$cur, pos: n }`; `skip_string` understands `"\${"`; `roc test roc/rocci-template/main.roc`.
 [^postmortem]: Open-union merge, `parse = do_parse`, Parse/Template isolation; not product behavior.
+[^platform-postmortem]: Platform cutover put Html/Datastar on pf; not a reason to start this POC.

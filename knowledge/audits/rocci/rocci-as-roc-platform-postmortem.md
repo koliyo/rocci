@@ -4,7 +4,7 @@ title: Rocci-as-platform post-mortem
 description: "First-cut platform cutover bought ownership of Datastar/Html as pf, not a new Snake authoring API. Authored apps changed pin plus imports; respond! stayed. Cost is a vendored host and leftover 0.16.0 paths."
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T20:10:00Z }
+generated: { by: process:cursor, at: 2026-09-02T20:25:00Z }
 stale_after: 2026-12-02
 authority: descriptive
 owners: [human:nils]
@@ -22,6 +22,16 @@ sources:
   - id: method-role
     resource: ../../research/rocci/method-role-handlers-as-roc-library.md
     title: Library versus platform for handlers
+    author: process:cursor
+    last_modified: 2026-09-02
+  - id: native-plan
+    resource: ../../plans/rocci/roc-native-template-compiler.md
+    title: Roc-native template parser and lowerer
+    author: process:cursor
+    last_modified: 2026-09-02
+  - id: native-research
+    resource: ../../research/rocci/roc-native-template-compiler.md
+    title: A Roc-native template parser and lowerer
     author: process:cursor
     last_modified: 2026-09-02
   - id: snake
@@ -158,6 +168,36 @@ the usual crate-local platform surface. Operator CI should **call**
 Do not treat `build.sh --all` or a GitHub release URL as shipped. Native
 triple only; missing triples are in the crate README.[^build-sh][^plan]
 
+## Possible implication for a Roc-native compiler
+
+Not a schedule. The [Roc-native template compiler](/plans/rocci/roc-native-template-compiler.md)
+is an unstarted **parity POC**. Rust stays the product compiler. The
+long-term vision (not that POC's delivery) is compiling a `.rocci`
+without linking `crates/rocci-template`. Do not treat either as
+near-term, and do not start that plan from this cutover.[^native-plan][^native-research]
+
+If that vision were ever reached far enough that `roc` typechecks
+generated modules **without `rocci run` writing sibling files**, Html
+and Datastar have to live where `roc` can see them. CLI-staged copies
+exist only because the Rust CLI writes them. This cutover put those
+modules in `pf` `exposes`. That is option value for "without the Rust
+template crate" also meaning "without the CLI copy step." It is not a
+reason to switch product commands or to change goldens until a human
+resumes that POC.[^native-research][^platform-main][^dispatch]
+
+If the POC is resumed later:
+
+- Product wrap now rewrites `import Html` → `import pf.Html`. A
+  lowerer that matches **wrapped** product emit would follow that;
+  matching unwrapped `rocci-template -- build` may still copy
+  `import Html` through. Do not change Rust emit to make a Roc port
+  easier.[^native-research][^dispatch][^counter]
+- The POC driver is `basic-cli`. Generated HTTP apps pin
+  `rocci-platform`. Those stay different platforms even in the vision.
+  Unifying them is not implied.[^native-research][^plan]
+- Handler / `main.roc` lowering stays out of that POC Bound. A native
+  compiler would not, by itself, shrink Snake `respond!`.[^native-plan][^method-role]
+
 ## Follow-ons that would change Snake
 
 Those are other plans:
@@ -171,6 +211,8 @@ Those are other plans:
 [^research]: Packaging argument: one pf, Datastar in exposes, compiler stays Rust.
 [^plan]: Same requires; Datastar/Html move; default pin; custom examples; bundle.sh.
 [^method-role]: Platform vs package for the handler matrix; constructors are a later Bound.
+[^native-plan]: Parallel-branch emit-parity POC; Rust stays product compiler; handlers and HTTP out of Bound.
+[^native-research]: Vision is roc without the Rust template crate; A+B not a product switch; Html import is copy-through.
 [^snake]: Pin path and `import pf.Html` only.
 [^datastar-main]: Pin path plus `pf.Datastar` / `pf.Html`.
 [^notes]: Still 0.16.0 URL and sibling imports.
