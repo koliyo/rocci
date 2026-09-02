@@ -334,6 +334,14 @@ matches Phase 3 golden.
 command as a POC driver. Do not change public docs or the product
 `rocci` CLI. Rust remains the only compiler `rocci` invokes.
 
+**Phase 5 pin (2026-09-02):** `roc roc/rocci-template/app.roc --
+roc/rocci-template/fixtures/hello.rocci` stdout is byte-identical to
+Rust `build` on that file (185 bytes). Platform is basic-cli `0.22.0`.
+Argv on macOS is `UnixBytes`; decode with `Str.from_utf8_lossy`. File
+IO is `Path.read_utf8!` / `Path.write_utf8!`. `Stdin.line!()` takes no
+argument. `Err(Exit(1))` is the process-failure tag (not a two-field
+`Exit`).
+
 ## Phase 6: Host import smoke
 
 **Bound:** A fixture app that `import`s generated `Hello.roc` (or a
