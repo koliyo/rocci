@@ -37,6 +37,10 @@ fn is_rocci_platform_path(pin: &str) -> bool {
         || pin.ends_with("rocci-platform/platform/main.roc")
 }
 
+pub fn source_pins_rocci_platform(src: &str) -> bool {
+    src.contains("rocci-platform/platform/main.roc")
+}
+
 pub fn rewrite_runtime_imports_for_pin(src: &str, platform: Option<&str>) -> String {
     if uses_rocci_platform(platform) {
         rewrite_runtime_imports_to_pf(src)

@@ -310,8 +310,18 @@ pub(crate) fn compile_rocci_app(app_dir: &Path, progress: Progress) -> Result<Co
         }
         let type_name = type_name_from_path(&input);
         let output = generated_module_path(&input);
+        let roc = if crate::dispatch::source_pins_rocci_platform(
+            &fs::read_to_string(app_dir.join("main.roc")).unwrap_or_default(),
+        ) {
+            crate::dispatch::rewrite_runtime_imports_for_pin(
+                &compiled.roc,
+                Some("crates/rocci-platform/platform/main.roc"),
+            )
+        } else {
+            compiled.roc.clone()
+        };
         rec.span("write", || {
-            fs::write(&output, wrap_type_module(&compiled.roc, &type_name))
+            fs::write(&output, wrap_type_module(&roc, &type_name))
                 .with_context(|| format!("failed to write {}", output.display()))
         })?;
         maps.push(MappedModule {

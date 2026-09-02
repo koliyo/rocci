@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-02
 
+- Recorded [package Rocci as a Roc platform](plans/rocci/rocci-as-roc-platform.md) Phase 5: custom `datastar` and `snake` `main.roc` pin in-tree `crates/rocci-platform` and `import pf.Html` / `pf.Datastar`; authored `respond!` kept. Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [package Rocci as a Roc platform](plans/rocci/rocci-as-roc-platform.md) Phase 4: default generated apps pin in-tree `crates/rocci-platform`; `--http-module` still asserts 0.16.0. Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [package Rocci as a Roc platform](plans/rocci/rocci-as-roc-platform.md) Phase 3: `platform/` exposes `Datastar` and wrapper `Html` (`InternalHtml` constructors); Rocci-pin generated apps `import pf.Datastar` / `import pf.Html` and skip staged copies; 0.16.0 still staged. Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [package Rocci as a Roc platform](plans/rocci/rocci-as-roc-platform.md) Phase 2: `--platform rocci` / `ROCCI_PLATFORM=rocci` on `rocci run` and `rocci build` pin in-tree `crates/rocci-platform/platform/main.roc`; default remains 0.16.0. Exploratory; do not log complete until CI and Knowledge succeed.

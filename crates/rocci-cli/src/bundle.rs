@@ -271,7 +271,11 @@ pub fn package_server_with_opt(
     match resolve_server_input(&input)? {
         ServerInput::AppDir(app_dir) => {
             datastar_asset::ensure_app(&app_dir, datastar_asset::HintMode::Quiet)?;
-            runtime_assets::stage_into(&app_dir)?;
+            if !crate::dispatch::source_pins_rocci_platform(
+                &fs::read_to_string(app_dir.join("main.roc")).unwrap_or_default(),
+            ) {
+                runtime_assets::stage_into(&app_dir)?;
+            }
             run::compile_rocci_modules(&app_dir)?;
             crate::native_target::build_roc_server_with_opt(
                 &app_dir, &server, target, verbose, opt,

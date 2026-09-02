@@ -429,6 +429,22 @@ pub fn compile_standalone_input(
     compile_app_plan_with_options(&plan, &src_dir, output, None, verbose)
 }
 
+pub fn compile_custom_app_dir(app_dir: &Path, output: &Path, verbose: bool) -> Result<()> {
+    let app_dir = if app_dir.is_absolute() {
+        app_dir.to_path_buf()
+    } else {
+        env::current_dir()?.join(app_dir)
+    };
+    crate::datastar_asset::ensure_app(&app_dir, crate::datastar_asset::HintMode::Print)?;
+    if !crate::dispatch::source_pins_rocci_platform(
+        &fs::read_to_string(app_dir.join("main.roc")).unwrap_or_default(),
+    ) {
+        runtime_assets::stage_into(&app_dir)?;
+    }
+    crate::run::compile_rocci_modules(&app_dir)?;
+    crate::native_target::build_roc_server_with_options(&app_dir, output, None, verbose)
+}
+
 pub fn compile_app_plan_with_options(
     plan: &GenericAppPlan,
     src_dir: &Path,

@@ -68,7 +68,11 @@ pub fn run(
     }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
-    runtime_assets::stage_into(&resolved.app_dir)?;
+    if !crate::dispatch::source_pins_rocci_platform(
+        &fs::read_to_string(resolved.app_dir.join("main.roc")).unwrap_or_default(),
+    ) {
+        runtime_assets::stage_into(&resolved.app_dir)?;
+    }
     let compiled = compile_rocci_app(&resolved.app_dir, Progress::from_verbose(verbose))?;
     if !compiled.failures.is_empty() {
         return driver::serve_template_errors(

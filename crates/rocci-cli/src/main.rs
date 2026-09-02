@@ -258,7 +258,14 @@ fn try_main() -> Result<()> {
                         "`--target` and `--opt` require `--release` (Linux server packaging, not template-to-Roc)"
                     );
                 }
-                build_module(&input, output.as_deref())
+                if input.is_dir() && input.join("main.roc").is_file() {
+                    let dest = output.clone().unwrap_or_else(|| PathBuf::from("server"));
+                    rocci_cli::driver::compile_custom_app_dir(&input, &dest, verbose)?;
+                    println!("{}", style::success_text(&dest.display().to_string()));
+                    Ok(())
+                } else {
+                    build_module(&input, output.as_deref())
+                }
             }
         }
         Commands::Run {
