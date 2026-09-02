@@ -12,10 +12,13 @@ Cursor := [].{
     skip_spaces_tabs = cursor_skip_spaces_tabs
     skip_whitespace = cursor_skip_whitespace
     skip_trivia = cursor_skip_trivia
+    skip_formatting_ws = cursor_skip_formatting_ws
     skip_roc_token = cursor_skip_roc_token
     skip_balanced_braces = cursor_skip_balanced_braces
     skip_balanced_parens = cursor_skip_balanced_parens
     scan_ident = cursor_scan_ident
+    scan_tag_name = cursor_scan_tag_name
+    scan_attr_name = cursor_scan_attr_name
     scan_interpolation = cursor_scan_interpolation
     is_top_level = cursor_is_top_level
     ident_text = cursor_ident_text
@@ -139,6 +142,71 @@ cursor_skip_whitespace = |cur| {
         }
     }
     $cur
+}
+
+cursor_skip_formatting_ws = |cur| {
+    var $cur = cur
+    while !cursor_is_eof($cur) {
+        match cursor_peek($cur) {
+            Ok(10) => {
+                $cur = cursor_bump($cur)
+                $cur = cursor_skip_spaces_tabs($cur)
+            }
+            Ok(13) => {
+                $cur = cursor_bump($cur)
+                if cursor_peek($cur) == Ok(10) {
+                    $cur = cursor_bump($cur)
+                }
+                $cur = cursor_skip_spaces_tabs($cur)
+            }
+            _ => break
+        }
+    }
+    $cur
+}
+
+is_tag_continue = |b| is_ident_continue(b) or b == 45
+
+cursor_scan_tag_name = |cur| {
+    start = cur.pos
+    match cursor_peek(cur) {
+        Ok(b) if (b >= 65 and b <= 90) or (b >= 97 and b <= 122) => {
+            var $cur = cursor_bump(cur)
+            while !cursor_is_eof($cur) {
+                match cursor_peek($cur) {
+                    Ok(c) if is_tag_continue(c) => {
+                        $cur = cursor_bump($cur)
+                    }
+                    _ => break
+                }
+            }
+            Ok({ cur: $cur, span: { start: start, end: $cur.pos } })
+        }
+        _ => Err(cur)
+    }
+}
+
+is_attr_start = |b| is_ident_start(b) or b == 58
+
+is_attr_continue = |b| is_ident_continue(b) or b == 45 or b == 58 or b == 46
+
+cursor_scan_attr_name = |cur| {
+    start = cur.pos
+    match cursor_peek(cur) {
+        Ok(b) if is_attr_start(b) => {
+            var $cur = cursor_bump(cur)
+            while !cursor_is_eof($cur) {
+                match cursor_peek($cur) {
+                    Ok(c) if is_attr_continue(c) => {
+                        $cur = cursor_bump($cur)
+                    }
+                    _ => break
+                }
+            }
+            Ok({ cur: $cur, span: { start: start, end: $cur.pos } })
+        }
+        _ => Err(cur)
+    }
 }
 
 cursor_skip_trivia = |cur| {
@@ -577,6 +645,13 @@ expect {
     !scan.terminated
     and scan.span.end == Str.to_utf8(src).len()
     and Cursor.slice(src, scan.expr) == "date"
+}
+
+expect {
+    match Cursor.scan_tag_name(Cursor.new("p/>")) {
+        Ok(got) => Cursor.ident_text(got.cur, got.span) == "p"
+        Err(_) => Bool.False
+    }
 }
 
 expect {

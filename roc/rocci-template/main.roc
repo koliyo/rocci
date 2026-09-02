@@ -1,1 +1,1 @@
-package [Ast, Cursor, Parse] {}
+package [Ast, Cursor, Parse, Template] {}

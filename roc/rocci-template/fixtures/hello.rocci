@@ -1,0 +1,3 @@
+@component Hello = |{ name : Str }| {
+    <p>Hello, {name}!</p>
+}
