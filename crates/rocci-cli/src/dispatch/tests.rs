@@ -128,6 +128,38 @@ fn http_module_platform_override_replaces_release_url() {
 }
 
 #[test]
+fn rocci_platform_pin_writes_in_tree_path() {
+    let pin = resolve_platform_pin(Some("rocci")).expect("resolve rocci pin");
+    let pin = pin.expect("rocci pin");
+    assert!(
+        pin.contains("crates/rocci-platform/platform/main.roc"),
+        "{pin}"
+    );
+    let main = generate_bound_main_roc(
+        "App",
+        None,
+        None,
+        &[],
+        &[],
+        DispatchOptions {
+            platform: Some(pin.clone()),
+            ..DispatchOptions::default()
+        },
+    );
+    assert!(
+        main.contains("crates/rocci-platform/platform/main.roc"),
+        "{main}"
+    );
+    assert!(!main.contains(PLATFORM), "{main}");
+}
+
+#[test]
+fn unknown_platform_pin_is_an_error() {
+    let err = resolve_platform_pin(Some("basic-webserver")).unwrap_err();
+    assert!(err.contains("unknown --platform"), "{err}");
+}
+
+#[test]
 fn log_handlers_wraps_route_arms() {
     let main = generate_bound_main_roc(
         "Counter",

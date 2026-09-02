@@ -57,6 +57,7 @@ impl IslandServicePlan {
                 .collect(),
             redirect_trailing_slash: self.redirect_trailing_slash,
             log_handlers: false,
+            platform: None,
         }
     }
 }
@@ -375,6 +376,7 @@ pub fn serve_islands(
             log_handlers,
             false,
             public,
+            None,
         );
     }
 

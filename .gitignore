@@ -32,6 +32,7 @@ crates/rocci-platform/platform/targets/*/libhost.a
 crates/rocci-platform/platform/targets/*/host.lib
 crates/rocci-platform/examples/hello-web
 /hello-web
+/server
 datastar.js
 
 # SQLite databases

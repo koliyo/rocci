@@ -40,6 +40,7 @@ fn plan_ready(path: &Path) -> GenericAppPlan {
                 .collect(),
             redirect_trailing_slash: plan.redirect_trailing_slash,
             log_handlers: false,
+            platform: None,
         },
         StandaloneReady::Failed(files) => {
             panic!(

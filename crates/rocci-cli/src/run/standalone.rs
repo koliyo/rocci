@@ -167,6 +167,7 @@ pub(crate) fn plan_standalone(
             modules,
             redirect_trailing_slash: redirect_trailing_slash_for(&app_root),
             log_handlers: false,
+            platform: None,
         }),
         profile,
         inspect_pages,

@@ -47,6 +47,7 @@ pub struct GenericAppPlan {
     pub modules: Vec<GenericModule>,
     pub redirect_trailing_slash: bool,
     pub log_handlers: bool,
+    pub platform: Option<String>,
 }
 
 impl GenericAppPlan {
@@ -66,6 +67,7 @@ impl GenericAppPlan {
     }
 
     fn main_roc_with_options(&self, platform: Option<&str>) -> String {
+        let platform = platform.or(self.platform.as_deref());
         let primary = &self.modules[0];
         let siblings: Vec<DispatchSource<'_>> = self.modules[1..]
             .iter()
@@ -387,6 +389,33 @@ pub fn compile_app_plan(
     target: Option<crate::native_target::NativeTarget>,
 ) -> Result<()> {
     compile_app_plan_with_options(plan, src_dir, output, target, false)
+}
+
+pub fn compile_standalone_input(
+    input: &Path,
+    output: &Path,
+    platform: Option<String>,
+    verbose: bool,
+) -> Result<()> {
+    let cwd = env::current_dir()?;
+    let input = if input.is_absolute() {
+        input.to_path_buf()
+    } else {
+        cwd.join(input)
+    };
+    let entry = if input.is_dir() {
+        crate::run::resolve_standalone_entry(&input)?
+    } else {
+        input.clone()
+    };
+    let src_dir = entry
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or(cwd);
+    let mut plan = crate::run::standalone_app_plan(&entry)?;
+    plan.platform = platform;
+    compile_app_plan_with_options(&plan, &src_dir, output, None, verbose)
 }
 
 pub fn compile_app_plan_with_options(

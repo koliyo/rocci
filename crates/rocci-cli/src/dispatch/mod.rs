@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
 
@@ -8,6 +8,35 @@ use crate::serve;
 
 pub const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 pub const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
+pub const ROCCI_PLATFORM_NAME: &str = "rocci";
+
+pub fn rocci_platform_main_roc() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../rocci-platform/platform/main.roc")
+}
+
+pub fn resolve_platform_pin(spec: Option<&str>) -> Result<Option<String>, String> {
+    match spec.map(str::trim).filter(|value| !value.is_empty()) {
+        None => Ok(None),
+        Some(ROCCI_PLATFORM_NAME) => {
+            let path = rocci_platform_main_roc();
+            if !path.is_file() {
+                return Err(format!(
+                    "in-tree Rocci platform missing at {}",
+                    path.display()
+                ));
+            }
+            let pin = path
+                .canonicalize()
+                .unwrap_or(path)
+                .to_string_lossy()
+                .into_owned();
+            Ok(Some(pin))
+        }
+        Some(other) => Err(format!(
+            "unknown --platform `{other}`; use `{ROCCI_PLATFORM_NAME}` for the in-tree Rocci platform"
+        )),
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct DispatchSource<'a> {
