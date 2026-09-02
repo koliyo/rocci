@@ -322,7 +322,9 @@ pub(crate) fn stage_app_workspace(
     plan.validate_dispatch()?;
     let type_name = plan.primary_name.clone();
     let workspace = TempDir::create(kind)?;
-    runtime_assets::stage_into(&workspace.path)?;
+    if !crate::dispatch::uses_rocci_platform(plan.platform.as_deref()) {
+        runtime_assets::stage_into(&workspace.path)?;
+    }
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
     let sibling_assets = src_dir.join("assets");
     let workspace_assets = workspace.path.join("assets");

@@ -150,6 +150,9 @@ fn rocci_platform_pin_writes_in_tree_path() {
         main.contains("crates/rocci-platform/platform/main.roc"),
         "{main}"
     );
+    assert!(main.contains("import pf.Datastar"), "{main}");
+    assert!(main.contains("import pf.Html"), "{main}");
+    assert!(!main.contains("\nimport Datastar\n"), "{main}");
     assert!(!main.contains(PLATFORM), "{main}");
 }
 

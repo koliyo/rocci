@@ -20,6 +20,7 @@ platform "rocci"
 		Env,
 		File,
 		Html,
+		Datastar,
 		Http,
 		IOErr,
 		MultipartFormData,
@@ -125,7 +126,9 @@ import Env
 import File
 import Host
 import Attribute
+import InternalHtml
 import Html
+import Datastar
 import Http
 import IOErr
 import OsStr

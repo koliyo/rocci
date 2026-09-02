@@ -14,6 +14,15 @@ pub fn rocci_platform_main_roc() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../rocci-platform/platform/main.roc")
 }
 
+pub fn uses_rocci_platform(platform: Option<&str>) -> bool {
+    platform.is_some_and(|pin| {
+        let rocci = rocci_platform_main_roc();
+        Path::new(pin) == rocci
+            || pin.contains("crates/rocci-platform/platform/main.roc")
+            || pin.ends_with("rocci-platform/platform/main.roc")
+    })
+}
+
 pub fn resolve_platform_pin(spec: Option<&str>) -> Result<Option<String>, String> {
     match spec.map(str::trim).filter(|value| !value.is_empty()) {
         None => Ok(None),
@@ -289,6 +298,11 @@ pub fn generate_bound_main_roc(
         ""
     };
     let platform = options.platform.as_deref().unwrap_or(PLATFORM);
+    let html_datastar = if uses_rocci_platform(Some(platform)) {
+        "import pf.Datastar\nimport pf.Html\n"
+    } else {
+        "import Datastar\nimport Html\n"
+    };
 
     let mut out = format!(
         r#"app [Context, program] {{
@@ -302,9 +316,7 @@ import pf.Server
 import pf.Sse
 {stderr_import}import http.Method
 import http.Response
-{imports}import Datastar
-import Html
-
+{imports}{html_datastar}
 Context : {context_ty}
 
 program = {{ init!, respond!, shutdown! }}
