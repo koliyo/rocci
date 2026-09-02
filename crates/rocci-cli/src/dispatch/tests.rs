@@ -104,7 +104,13 @@ fn generates_state_init_get_and_patch_routes() {
     assert!(!main.contains("on_get_root!!"));
     assert!(!main.contains("import pf.Stderr"));
     assert!(!main.contains("handler_log!"));
-    assert!(main.contains(PLATFORM), "{main}");
+    assert!(
+        main.contains("crates/rocci-platform/platform/main.roc"),
+        "{main}"
+    );
+    assert!(!main.contains(BASIC_WEBSERVER_0_16_URL), "{main}");
+    assert!(main.contains("import pf.Datastar"), "{main}");
+    assert!(main.contains("import pf.Html"), "{main}");
 }
 
 #[test]
@@ -124,7 +130,11 @@ fn http_module_platform_override_replaces_release_url() {
         main.contains("pf: platform \"/tmp/fork/platform/main.roc\""),
         "{main}"
     );
-    assert!(!main.contains(PLATFORM), "{main}");
+    assert!(!main.contains(BASIC_WEBSERVER_0_16_URL), "{main}");
+    assert!(
+        !main.contains("crates/rocci-platform/platform/main.roc"),
+        "{main}"
+    );
 }
 
 #[test]
@@ -153,7 +163,19 @@ fn rocci_platform_pin_writes_in_tree_path() {
     assert!(main.contains("import pf.Datastar"), "{main}");
     assert!(main.contains("import pf.Html"), "{main}");
     assert!(!main.contains("\nimport Datastar\n"), "{main}");
-    assert!(!main.contains(PLATFORM), "{main}");
+    assert!(!main.contains(BASIC_WEBSERVER_0_16_URL), "{main}");
+}
+
+#[test]
+fn rocci_pin_rewrites_sibling_html_import() {
+    let src = "import Html\nimport Datastar\nhello = 1\n";
+    let rewritten = rewrite_runtime_imports_for_pin(src, None);
+    assert!(rewritten.contains("import pf.Html\n"), "{rewritten}");
+    assert!(rewritten.contains("import pf.Datastar\n"), "{rewritten}");
+    assert!(!rewritten.contains("\nimport Html\n"), "{rewritten}");
+    let kept = rewrite_runtime_imports_for_pin(src, Some(BASIC_WEBSERVER_0_16_URL));
+    assert!(kept.contains("import Html\n"), "{kept}");
+    assert!(kept.contains("import Datastar\n"), "{kept}");
 }
 
 #[test]
@@ -606,11 +628,12 @@ fn route_and_live_collision_is_rejected() {
 #[test]
 fn json_encoder_probe_uses_platform_imports_and_both_encoders() {
     let main = json_encoder_probe_main_roc();
-    assert!(main.contains(PLATFORM), "{main}");
+    assert!(main.contains("rocci-platform/platform/main.roc"), "{main}");
     assert!(main.contains(HTTP_PKG), "{main}");
     assert!(main.contains("import pf.Server"), "{main}");
-    assert!(main.contains("import Datastar"), "{main}");
-    assert!(main.contains("import Html"), "{main}");
+    assert!(main.contains("import pf.Datastar"), "{main}");
+    assert!(main.contains("import pf.Html"), "{main}");
+    assert!(!main.contains(BASIC_WEBSERVER_0_16_URL), "{main}");
     assert!(main.contains("Encoding.Json.to_str(probe)"), "{main}");
     assert!(main.contains("Encoding.Json.to_str_try(probe)"), "{main}");
     assert!(main.contains("Encoding.Json.to_str(\"plain\")"), "{main}");
@@ -630,7 +653,6 @@ fn json_encoder_probe_compiles_through_rocci_platform() {
     let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
     let workspace =
         crate::driver::TempDir::create("json-encoder-probe").expect("create probe workspace");
-    crate::runtime_assets::stage_into(&workspace.path).expect("stage Html and Datastar");
     fs::create_dir_all(workspace.path.join("assets")).expect("create assets");
     fs::write(
         workspace.path.join("main.roc"),

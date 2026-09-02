@@ -6,7 +6,7 @@ use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
 use crate::error_page::{self, ListedRoute};
 use crate::serve;
 
-pub const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
+pub const BASIC_WEBSERVER_0_16_URL: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 pub const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 pub const ROCCI_PLATFORM_NAME: &str = "rocci";
 
@@ -14,13 +14,51 @@ pub fn rocci_platform_main_roc() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../rocci-platform/platform/main.roc")
 }
 
+pub fn default_platform_pin() -> String {
+    let path = rocci_platform_main_roc();
+    path.canonicalize()
+        .unwrap_or(path)
+        .to_string_lossy()
+        .into_owned()
+}
+
 pub fn uses_rocci_platform(platform: Option<&str>) -> bool {
-    platform.is_some_and(|pin| {
-        let rocci = rocci_platform_main_roc();
-        Path::new(pin) == rocci
-            || pin.contains("crates/rocci-platform/platform/main.roc")
-            || pin.ends_with("rocci-platform/platform/main.roc")
-    })
+    let pin = match platform.map(str::trim).filter(|value| !value.is_empty()) {
+        Some(pin) => pin.to_string(),
+        None => default_platform_pin(),
+    };
+    is_rocci_platform_path(&pin)
+}
+
+fn is_rocci_platform_path(pin: &str) -> bool {
+    let rocci = rocci_platform_main_roc();
+    Path::new(pin) == rocci
+        || pin.contains("crates/rocci-platform/platform/main.roc")
+        || pin.ends_with("rocci-platform/platform/main.roc")
+}
+
+pub fn rewrite_runtime_imports_for_pin(src: &str, platform: Option<&str>) -> String {
+    if uses_rocci_platform(platform) {
+        rewrite_runtime_imports_to_pf(src)
+    } else {
+        src.to_string()
+    }
+}
+
+fn rewrite_runtime_imports_to_pf(src: &str) -> String {
+    let mut out = String::with_capacity(src.len() + 16);
+    for line in src.lines() {
+        let trimmed = line.trim();
+        if trimmed == "import Html" {
+            out.push_str("import pf.Html\n");
+        } else if trimmed == "import Datastar" {
+            out.push_str("import pf.Datastar\n");
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
 }
 
 pub fn resolve_platform_pin(spec: Option<&str>) -> Result<Option<String>, String> {
@@ -297,7 +335,8 @@ pub fn generate_bound_main_roc(
     } else {
         ""
     };
-    let platform = options.platform.as_deref().unwrap_or(PLATFORM);
+    let default_pin = default_platform_pin();
+    let platform = options.platform.as_deref().unwrap_or(&default_pin);
     let html_datastar = if uses_rocci_platform(Some(platform)) {
         "import pf.Datastar\nimport pf.Html\n"
     } else {
@@ -419,9 +458,10 @@ datastar_request = |request|
 
 #[cfg(test)]
 pub fn json_encoder_probe_main_roc() -> String {
+    let platform = default_platform_pin();
     let mut out = format!(
         r#"app [Context, program] {{
-    pf: platform "{PLATFORM}",
+    pf: platform "{platform}",
     http: "{HTTP_PKG}",
 }}
 
@@ -431,8 +471,8 @@ import pf.Server
 import pf.Sse
 import http.Method
 import http.Response
-import Datastar
-import Html
+import pf.Datastar
+import pf.Html
 
 Probe : {{
     name : Str,

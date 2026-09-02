@@ -15,11 +15,9 @@ use crate::datastar_asset;
 use crate::error_page::{self, FailedFile, ListedRoute, MappedModule};
 use crate::logs::{self, LogHub, LogLevel, Progress};
 use crate::roc_module::{type_name_from_path, wrap_type_module};
-use crate::runtime_assets;
 use crate::serve;
 use crate::style;
 
-const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 
 #[allow(clippy::too_many_arguments)]
@@ -97,8 +95,8 @@ pub fn view(
 
     let workspace = crate::driver::TempDir::create("view")?;
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
+    crate::driver::rewrite_workspace_runtime_imports(&workspace.path)?;
     let workspace_assets = workspace.path.join("assets");
-    runtime_assets::stage_into(&workspace.path)?;
     if sibling_assets.is_dir() {
         copy_tree(&sibling_assets, &workspace_assets)?;
     }
@@ -110,7 +108,10 @@ pub fn view(
     }
     fs::write(
         workspace.path.join(format!("{type_name}.roc")),
-        wrap_type_module(&roc, &type_name),
+        wrap_type_module(
+            &crate::dispatch::rewrite_runtime_imports_for_pin(&roc, None),
+            &type_name,
+        ),
     )
     .with_context(|| format!("failed to write {type_name}.roc"))?;
     fs::write(
@@ -362,6 +363,7 @@ pub(crate) fn build_component_call(
 }
 
 pub(crate) fn generate_main_roc(type_name: &str, call: &str, wrap_in_shell: bool) -> String {
+    let platform = crate::dispatch::default_platform_pin();
     let render = if wrap_in_shell {
         format!(
             "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci view\")]),\n                            Html.element(\"script\", [Html.attribute(\"type\", \"module\"), Html.attribute(\"src\", \"/assets/datastar.js\")], []),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
@@ -371,7 +373,7 @@ pub(crate) fn generate_main_roc(type_name: &str, call: &str, wrap_in_shell: bool
     };
     let mut out = format!(
         r#"app [Context, program] {{
-    pf: platform "{PLATFORM}",
+    pf: platform "{platform}",
     http: "{HTTP_PKG}",
 }}
 
@@ -381,7 +383,7 @@ import pf.Server
 import http.Method
 import http.Response
 import {type_name}
-import Html
+import pf.Html
 
 Context : {{}}
 
@@ -630,6 +632,15 @@ mod tests {
         assert!(main.contains("ROC_BASIC_WEBSERVER_PORT"));
         assert!(main.contains("ROC_BASIC_WEBSERVER_HOST"));
         assert!(main.contains("host: listen_host!({})"));
+        assert!(
+            main.contains("crates/rocci-platform/platform/main.roc"),
+            "{main}"
+        );
+        assert!(
+            !main.contains("basic-webserver/releases/download/0.16.0"),
+            "{main}"
+        );
+        assert!(main.contains("import pf.Html"), "{main}");
 
         let page = generate_main_roc("Counter", "Counter.counterPage({ count: 0 })", false);
         assert!(page.contains("import pf.Path"));

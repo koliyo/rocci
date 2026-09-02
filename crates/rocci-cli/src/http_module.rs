@@ -5,7 +5,7 @@ use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 
-use crate::dispatch::PLATFORM;
+use crate::dispatch::BASIC_WEBSERVER_0_16_URL;
 use crate::driver;
 use crate::run;
 
@@ -27,15 +27,16 @@ pub fn build_http_module(input: &Path, dest: &Path) -> Result<()> {
         );
     }
 
-    let plan = run::standalone_http_module_app_plan(input)?;
+    let mut plan = run::standalone_http_module_app_plan(input)?;
+    plan.platform = Some(BASIC_WEBSERVER_0_16_URL.to_string());
     let src_dir = input
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
     let workspace = driver::stage_app_workspace(&plan, src_dir, "http-module")?;
     let generated = plan.main_roc();
-    if !generated.contains(PLATFORM) {
-        bail!("generated main.roc did not pin the 0.16.0 platform URL");
+    if !generated.contains(BASIC_WEBSERVER_0_16_URL) {
+        bail!("--http-module still requires basic-webserver 0.16.0");
     }
     let platform_ref = platform
         .canonicalize()

@@ -59,11 +59,12 @@ enum Commands {
         /// Experimental WASI HTTP component compiled from the input `.rocci`
         /// entry (sibling `.rocci` / `.roc` in the standalone tree included;
         /// not `--host wasm` apply). Writes a `wasi:http/service` artifact
-        /// for `wasmtime serve`; `rocci run` stays native 0.16.
+        /// for `wasmtime serve`; `rocci run` stays native Rocci platform.
         #[arg(long)]
         http_module: bool,
-        /// Pin generated apps to the in-tree Rocci platform (`rocci`) instead of
-        /// basic-webserver 0.16.0. Also `ROCCI_PLATFORM=rocci`.
+        /// Pin generated apps to the in-tree Rocci platform (`rocci`).
+        /// Default is already that pin; `--http-module` still requires 0.16.0.
+        /// Also `ROCCI_PLATFORM=rocci`.
         #[arg(long, value_name = "NAME", env = "ROCCI_PLATFORM")]
         platform: Option<String>,
     },
@@ -71,8 +72,8 @@ enum Commands {
     Run {
         #[command(flatten)]
         serve: serve::ServeOptions,
-        /// Pin generated apps to the in-tree Rocci platform (`rocci`) instead of
-        /// basic-webserver 0.16.0. Also `ROCCI_PLATFORM=rocci`.
+        /// Pin generated apps to the in-tree Rocci platform (`rocci`).
+        /// Default is already that pin. Also `ROCCI_PLATFORM=rocci`.
         #[arg(long, value_name = "NAME", env = "ROCCI_PLATFORM")]
         platform: Option<String>,
         /// Roc app file, directory, or standalone .rocci file

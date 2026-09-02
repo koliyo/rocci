@@ -14,12 +14,10 @@ use crate::datastar_asset;
 use crate::error_page;
 use crate::logs::Progress;
 use crate::roc_module::{type_name_from_path, wrap_type_module};
-use crate::runtime_assets;
 use crate::serve;
 use crate::style;
 
-const PLATFORM: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
-const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
+pub(crate) const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 const BROWSER_ROCCI: &str = include_str!("../../templates/browser/Browser.rocci");
 const QUERY_ROC: &str = include_str!("../../templates/browser/Query.roc");
 const BROWSER_CSS: &str = include_str!("../../templates/browser/assets/app.css");
@@ -56,8 +54,7 @@ pub fn browse(
         let src_dir = module.path.parent().unwrap_or_else(|| Path::new("."));
         copy_sibling_roc(src_dir, &workspace.path, &skip_names, &mut copied)?;
     }
-
-    runtime_assets::stage_into(&workspace.path)?;
+    crate::driver::rewrite_workspace_runtime_imports(&workspace.path)?;
 
     let mut available = copied_module_names(&copied);
     available.insert("Html".to_string());
@@ -69,7 +66,10 @@ pub fn browse(
     for module in &compiled_modules {
         fs::write(
             workspace.path.join(format!("{}.roc", module.type_name)),
-            wrap_type_module(&module.roc, &module.type_name),
+            wrap_type_module(
+                &crate::dispatch::rewrite_runtime_imports_for_pin(&module.roc, None),
+                &module.type_name,
+            ),
         )
         .with_context(|| format!("failed to write {}.roc", module.type_name))?;
     }
@@ -349,7 +349,10 @@ fn compile_browser(workspace: &Path) -> Result<()> {
     }
     fs::write(
         workspace.join("Browser.roc"),
-        wrap_type_module(&compiled.roc, "Browser"),
+        wrap_type_module(
+            &crate::dispatch::rewrite_runtime_imports_for_pin(&compiled.roc, None),
+            "Browser",
+        ),
     )
     .context("failed to write Browser.roc")?;
     Ok(())

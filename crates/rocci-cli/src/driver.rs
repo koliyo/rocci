@@ -326,6 +326,9 @@ pub(crate) fn stage_app_workspace(
         runtime_assets::stage_into(&workspace.path)?;
     }
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
+    if crate::dispatch::uses_rocci_platform(plan.platform.as_deref()) {
+        rewrite_workspace_runtime_imports(&workspace.path)?;
+    }
     let sibling_assets = src_dir.join("assets");
     let workspace_assets = workspace.path.join("assets");
     if sibling_assets.is_dir() {
@@ -375,7 +378,13 @@ pub(crate) fn stage_app_workspace(
     for module in &plan.modules {
         fs::write(
             workspace.path.join(format!("{}.roc", module.type_name)),
-            wrap_type_module(&module.roc, &module.type_name),
+            wrap_type_module(
+                &crate::dispatch::rewrite_runtime_imports_for_pin(
+                    &module.roc,
+                    plan.platform.as_deref(),
+                ),
+                &module.type_name,
+            ),
         )
         .with_context(|| format!("failed to write {}.roc", module.type_name))?;
     }
@@ -731,6 +740,25 @@ pub fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<
     let skip = format!("{type_name}.roc");
     let mut seen = HashMap::new();
     copy_authored_roc(src_dir, dest, &skip, &mut seen)
+}
+
+pub(crate) fn rewrite_workspace_runtime_imports(dir: &Path) -> Result<()> {
+    if !dir.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("roc") {
+            continue;
+        }
+        let src = fs::read_to_string(&path)?;
+        let rewritten = crate::dispatch::rewrite_runtime_imports_for_pin(&src, None);
+        if rewritten != src {
+            fs::write(&path, rewritten)
+                .with_context(|| format!("rewrite imports in {}", path.display()))?;
+        }
+    }
+    Ok(())
 }
 
 fn skip_staging_dir(name: &str) -> bool {
