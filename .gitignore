@@ -25,6 +25,13 @@ Html.roc
 Datastar.roc
 !crates/**/runtime/Html.roc
 !crates/**/runtime/Datastar.roc
+!crates/rocci-platform/platform/Html.roc
+
+# Rocci platform host libraries (rebuilt by crates/rocci-platform/build.sh)
+crates/rocci-platform/platform/targets/*/libhost.a
+crates/rocci-platform/platform/targets/*/host.lib
+crates/rocci-platform/examples/hello-web
+/hello-web
 datastar.js
 
 # SQLite databases
