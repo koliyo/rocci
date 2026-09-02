@@ -248,5 +248,8 @@ governance live beside it at the repository root.
 Copyright 2026 Nils Hjelte.
 
 Rocci is licensed under the [Apache License, Version 2.0](LICENSE).
+`crates/rocci-platform` also contains a UPL-1.0 snapshot of
+[basic-webserver](https://github.com/roc-lang/basic-webserver); see
+[`LICENSE-UPL`](crates/rocci-platform/LICENSE-UPL) in that crate.
 Third-party components retain their own licenses; see
 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

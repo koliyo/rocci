@@ -10,13 +10,21 @@ The platform exposes `Datastar` and a wrapper `Html` (`import pf.Datastar`
 
 ## Host origin
 
-The Rust host and Roc modules are a vendored snapshot of sibling
+The Rust host and most `platform/` Roc modules are a vendored snapshot of
+[roc-lang/basic-webserver](https://github.com/roc-lang/basic-webserver)
+(UPL-1.0), copied from sibling
 [`roc-basic-webserver`](https://github.com/koliyo/roc-basic-webserver) at
-`241061577473444a11777abc2f9376cc224e0e5f` (0.16 line). That host is UPL-1.0;
-see `LICENSE-UPL`. This is not a git submodule. Host crate versions are
-workspace-compatible (not the upstream `=` pins) so one Cargo.lock can
-resolve; `libsqlite3-sys` stays on the `0.30` line that `rocci-wasi-http`
-already links.
+`241061577473444a11777abc2f9376cc224e0e5f` (0.16 line). Copyright
+© 2023 Richard Feldman and subsequent Roc authors. The full UPL text is
+`LICENSE-UPL`. This is not a git submodule.
+
+Rocci-original modules in this crate (`platform/Datastar.roc` and the
+wrapper `platform/Html.roc`) are Apache-2.0, same as the rest of Rocci.
+Crate SPDX is `Apache-2.0 AND UPL-1.0`.
+
+Host crate versions are workspace-compatible (not the upstream `=` pins)
+so one Cargo.lock can resolve; `libsqlite3-sys` stays on the `0.30` line
+that `rocci-wasi-http` already links.
 
 ## App pin (dev)
 

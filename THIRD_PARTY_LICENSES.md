@@ -1,6 +1,6 @@
 # Third-Party Licenses and Grammar Revisions
 
-This repository incorporates third-party Tree-sitter grammars and query definitions for embedded language highlighting in `rocci-highlight` (used by `rocci-lsp` and static site tooling).
+This repository incorporates third-party Tree-sitter grammars and query definitions for embedded language highlighting in `rocci-highlight` (used by `rocci-lsp` and static site tooling), and a UPL-1.0 Roc platform host in `rocci-platform`.
 
 ---
 
@@ -41,7 +41,19 @@ This repository incorporates third-party Tree-sitter grammars and query definiti
 
 ---
 
-## 3. Core Rust Dependencies
+## 3. Roc platform host (`rocci-platform`)
+
+- **Purpose:** Native HTTP/SSE/SQLite Roc platform used as `pf` by generated and custom Rocci apps.
+- **Public origin:** [https://github.com/roc-lang/basic-webserver](https://github.com/roc-lang/basic-webserver)
+- **Snapshot copied from:** [https://github.com/koliyo/roc-basic-webserver](https://github.com/koliyo/roc-basic-webserver) at `241061577473444a11777abc2f9376cc224e0e5f` (0.16 line)
+- **Copyright:** © 2023 Richard Feldman and subsequent Roc authors
+- **License:** Universal Permissive License 1.0
+- **License location:** [`crates/rocci-platform/LICENSE-UPL`](crates/rocci-platform/LICENSE-UPL)
+- **Rocci-original (Apache-2.0):** `platform/Datastar.roc` and wrapper `platform/Html.roc`. Remaining host Rust and `platform/` Roc in that crate is the UPL snapshot, adapted for `platform "rocci"` and workspace crate versions.
+
+---
+
+## 4. Core Rust Dependencies
 
 | Crate | Version | License | Purpose |
 | --- | --- | --- | --- |

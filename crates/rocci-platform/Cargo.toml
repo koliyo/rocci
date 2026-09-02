@@ -3,7 +3,7 @@ name = "rocci-platform"
 version.workspace = true
 edition = "2021"
 rust-version = "1.97"
-license = "UPL-1.0"
+license = "Apache-2.0 AND UPL-1.0"
 description = "Roc platform host for Rocci apps (adapted basic-webserver 0.16 native HTTP/SSE/SQLite host)"
 
 [lib]
