@@ -4,7 +4,7 @@ title: Rocci should be a Roc platform, not a package on basic-webserver
 description: "The app-facing Rocci runtime belongs in a Roc platform that adapts the basic-webserver host. A Datastar package on basic-webserver is the Rails split Richard rejects; the .rocci compiler stays Rust. Luke's rust platform template is the packaging mechanics, not the HTTP engine."
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T20:25:00Z }
+generated: { by: process:cursor, at: 2026-09-02T20:35:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -194,10 +194,10 @@ basic-webserver**. This record answers packaging and host ownership.
   **compiler that emits basic-webserver apps** (the pre-cutover pin),
   (3) **Rocci domain platform** whose host adapts basic-webserver. This
   record recommended (3); Phases 0–6 are that cutover.
-- Html on `pf` is option value for a later [Roc-native compiler](/plans/rocci/roc-native-template-compiler.md)
-  vision check that typechecks generated modules without CLI staging.
-  That plan is an unstarted parity POC; Rust stays the product compiler.
-  Do not assume it lands soon.[^postmortem][^native-plan]
+- The [Roc-native compiler](/plans/rocci/roc-native-template-compiler.md)
+  vision is consuming **pure templates** in a normal Roc app with **no
+  rocci CLI**. `pf.Html` is not that path (one platform per app). That
+  plan is an unstarted parity POC; do not assume it lands soon.[^postmortem][^native-plan]
 - Do not encode Datastar SSE policy in the `.rocci` parser. If wrap
   helpers move, they move into platform Roc modules, where generated
   `Datastar.roc` already lives.[^datastar-runtime][^dispatch]
@@ -441,4 +441,4 @@ First-cut outcome:
 [^boundary]: Rocci owns the app framework; Rocdown owns documents.
 [^plan]: Paired implementation plan; Phases 0–6 are on `rocci-as-roc-platform`.
 [^postmortem]: First-cut payoff is pf ownership; Snake `respond!` unchanged.
-[^native-plan]: Unstarted emit-parity POC; Rust stays product compiler; not a product switch.
+[^native-plan]: Unstarted emit-parity POC; motivating vision is pure templates in a normal Roc app, no rocci CLI.
