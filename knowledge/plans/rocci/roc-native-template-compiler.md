@@ -359,6 +359,12 @@ render needs the web platform is enough.
 not marked complete until CI and Knowledge workflows succeed on the
 revision that contains the Roc sources.
 
+**Phase 6 pin (2026-09-02):** Host smoke is
+`roc check roc/rocci-template/fixtures/host.roc`. That file stubs `Html`,
+inlines the Hello golden, and binds `sample = hello({ name: "Ada" })`.
+`Html.render` is not available without the web platform; check is enough.
+Knowledge log stays incomplete until hosted CI and Knowledge succeed.
+
 ## Tests (whole plan)
 
 ```sh

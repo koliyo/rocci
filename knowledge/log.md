@@ -30,6 +30,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 - Recorded [Roc-native template compiler](plans/rocci/roc-native-template-compiler.md) Phase 4: Hello and `@if` goldens match Rust; CSS scope ids and `roc check` of stub Html hosts are clean; AllSyntax routes, qualified call bytes, and CSS whitespace remain mismatches. Exploratory; do not log complete until CI and Knowledge succeed.
 - Recorded [Roc-native template compiler](plans/rocci/roc-native-template-compiler.md) Phase 5: POC `app.roc` on basic-cli 0.22.0 emits Hello stdout matching Rust `build`. Driver only; `rocci` still uses Rust. Exploratory; do not log complete until CI and Knowledge succeed.
+- Recorded [Roc-native template compiler](plans/rocci/roc-native-template-compiler.md) Phase 6: `roc check roc/rocci-template/fixtures/host.roc` typechecks a stub Html host that calls `hello({ name: "Ada" })`. Knowledge log is not complete until CI and Knowledge succeed.
 
 ## 2026-08-31
 

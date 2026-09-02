@@ -39,4 +39,8 @@ Stub `Html` hosts live under `check/`:
 roc check roc/rocci-template/check/hello.roc
 roc check roc/rocci-template/check/branch.roc
 roc check roc/rocci-template/check/css.roc
+roc check roc/rocci-template/fixtures/host.roc
 ```
+
+`fixtures/host.roc` calls `hello({ name: "Ada" })`. `Html.render` needs the
+web platform and is not part of this smoke.
