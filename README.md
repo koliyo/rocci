@@ -11,7 +11,7 @@ Rocci is an independent open-source project. It is built on Roc and is not an
 official Roc language project.
 
 The workspace is organized into focused packages with strictly enforced one-way boundaries:
-- **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components).
+- **Base Rocci:** `rocci-template` (`.rocci` parse/lower), `rocci-core` (configuration and runtime contracts), `rocci-desktop` (windowing and webview runtime), `rocci-cli` (`rocci` binary), `rocci-ui` (domain-neutral view records and presentation components), `rocci-platform` (in-tree Roc `pf` for generated and custom HTTP apps).
 - **Rocdown:** `rocci-rocdown` (format parser, static catalog, article rendering, site generator), `rocci-rocdown-cli` (`rocdown` binary), `rocci-theme` (document CSS theme resolver).
 - **Open Knowledge Format:** inert `knowledge/` bundle in this repo; parse, check, inspect, search, build, and preview with [okmate](https://github.com/koliyo/okmate).
 - **Tooling:** `rocci-lsp` (generic language-server core and Rocci analyzer), `rocci-rocdown-lsp` (shipped `rocci-language-server` for `.rocci` and `.rocdown`), `rocci-highlight` (pinned Tree-sitter highlighter library).
@@ -40,16 +40,18 @@ preview: a working `/error-demo/` page plus a broken file that still opens in th
 
 `rocci run path/to/app` is a standalone app directory: resolve a unique
 entry, generate an HTTP dispatcher from `@context` / `@init` /
-`@method:role` routes, and start it. `rocci run path/to/App.rocci` names
-the entry file and still loads sibling modules. At most one process
-`@init` is allowed. `rocci run` on a directory that contains `main.roc`
-compiles sibling `.rocci` modules and starts the authored Roc app. Both
-paths stage `Html.roc` / `Datastar.roc` from the CLI
-runtime and a pinned Datastar JS file in `assets/` (downloaded into
-`~/.rocci/cache` on first use). The preview window listens on a free local
-TCP port and prints the URL so you (or an agent) can inspect the same HTTP
-server. Pass `--no-window` to serve on port 8000 without a preview window. Override
-the port with `--port` or `ROC_BASIC_WEBSERVER_PORT`.
+`@method:role` routes, and start it. Generated apps pin the in-tree
+Rocci platform (`crates/rocci-platform`), not a basic-webserver release
+URL. `rocci run path/to/App.rocci` names the entry file and still loads
+sibling modules. At most one process `@init` is allowed. `rocci run` on
+a directory that contains `main.roc` compiles sibling `.rocci` modules
+and starts the authored Roc app. Datastar JS is staged under `assets/`
+(downloaded into `~/.rocci/cache` on first use). The preview window
+listens on a free local TCP port and prints the URL so you (or an agent)
+can inspect the same HTTP server. Pass `--no-window` to serve on port
+8000 without a preview window. Override the port with `--port` or
+`ROC_BASIC_WEBSERVER_PORT`. `--http-module` and `--host wasm` are not this
+platform.
 
 On Linux, Wry requires WebKitGTK development packages. macOS and Windows use
 the operating system webview. Datastar evaluates declarative expressions using

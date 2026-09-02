@@ -26,9 +26,11 @@ rocci run examples/rocci/custom/notes --no-window
 
 Open `/`. You should see the notes UI. A directory that contains
 `main.roc` is a custom app: `rocci run` compiles sibling `.rocci` modules
-and starts the authored Roc program. Those modules are not the generated
-standalone dispatcher; `main.roc` owns HTTP. A directory without
-`main.roc` is a [standalone app](/docs/applications/standalone/).
+and starts the authored Roc program. Datastar and snake pin
+`crates/rocci-platform` (`import pf.Html` / `import pf.Datastar`).
+Sibling `.rocci` modules are not the generated standalone dispatcher;
+`main.roc` owns HTTP. A directory without `main.roc` is a
+[standalone app](/docs/applications/standalone/).
 
 ## Pattern gallery
 

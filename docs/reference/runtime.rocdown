@@ -9,7 +9,11 @@
 # Runtime and HTTP
 
 Generated dispatch in `rocci-cli` (`dispatch.rs`) plus lowering in
-`rocci-template`. Custom `main.roc` apps skip this dispatcher.
+`rocci-template`. Custom `main.roc` apps skip this dispatcher. Generated
+apps and the custom datastar/snake examples pin the in-tree Rocci
+platform (`crates/rocci-platform`) as `pf` and import `pf.Datastar` /
+`pf.Html`. `--http-module` still compiles against basic-webserver 0.16.0.
+Wasm apply stays `crates/rocci-roc-host`.
 
 ## Handler matrix
 

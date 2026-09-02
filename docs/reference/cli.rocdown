@@ -26,7 +26,9 @@ resolves a unique entry (`[app].entry`, then unique `@init` / `@context`,
 then unique `@get:view("/")`, then a single `.rocci`). Two process inits
 in one tree fail. Bare `rocci run` still defaults to `main.roc`. Starts
 HTTP and opens a preview window by default. Extra args after the entry go
-to the Roc binary.
+to the Roc binary. Generated apps pin the in-tree Rocci platform
+(`crates/rocci-platform`). `--platform rocci` is accepted and is now the
+default. `--http-module` is not this platform.
 
 ## View
 
@@ -168,5 +170,6 @@ Writes a WASI 0.3 `wasi:http/service` **component** against the sibling
 Missing fork or missing `roc` is an error. Serve with
 `wasmtime serve -Sp3 -Scli`. Sqlite apps need `--env DB_PATH=…` and
 `--dir=host::guest`. `--http-module` writes `<dest>.assets/`; map it with
-`--dir=<dest>.assets::/assets`. `rocci run` stays native 0.16.0. Still
-omitted: Cmd, in-guest TLS, desktop URL.
+`--dir=<dest>.assets::/assets`. `rocci run` stays the native Rocci
+platform. `--http-module` still requires basic-webserver 0.16.0 / the
+sibling fork wasm32 target. Still omitted: Cmd, in-guest TLS, desktop URL.
