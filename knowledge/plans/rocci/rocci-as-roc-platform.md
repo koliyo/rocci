@@ -4,7 +4,7 @@ title: Package Rocci as a Roc platform
 description: "Add an in-tree Rocci platform that adapts the basic-webserver host, exposes Datastar/Html, and becomes the pin for generated and custom apps. Do not rewrite the template compiler, desktop shell, wasm apply host, or WASI HTTP path."
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T19:45:00Z }
+generated: { by: process:cursor, at: 2026-09-02T20:10:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -28,7 +28,7 @@ sources:
     resource: ../../../crates/rocci-cli/src/dispatch/mod.rs
     title: PLATFORM constant and DispatchOptions.platform
     author: process:git
-    last_modified: 2026-08-31
+    last_modified: 2026-09-02
   - id: dispatch-tests
     resource: ../../../crates/rocci-cli/src/dispatch/tests.rs
     title: Platform override and 0.16.0 pin tests
@@ -48,7 +48,7 @@ sources:
     resource: ../../../examples/rocci/custom/datastar/main.roc
     title: Custom dispatcher pin
     author: process:git
-    last_modified: 2026-08-29
+    last_modified: 2026-09-02
   - id: bws-main
     resource: ../../../../roc-basic-webserver/platform/main.roc
     title: basic-webserver app contract
@@ -68,7 +68,7 @@ sources:
     resource: ../../../crates/rocci-cli/src/http_module.rs
     title: --http-module asserts 0.16.0
     author: process:git
-    last_modified: 2026-08-30
+    last_modified: 2026-09-02
   - id: roc-host
     resource: ../../../crates/rocci-roc-host/platform/main.roc
     title: wasm32 apply platform
@@ -99,11 +99,18 @@ sources:
     title: Classify new workspace members in the same change
     author: process:git
     last_modified: 2026-08-31
+  - id: postmortem
+    resource: ../../audits/rocci/rocci-as-roc-platform-postmortem.md
+    title: Rocci-as-platform post-mortem
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # Package Rocci as a Roc platform
 
-Exploratory. Do not start a phase until the user asks.
+Exploratory. Phases 0–6 are on `rocci-as-roc-platform`. Descriptive
+outcome: [post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).
+Do not log complete until CI and Knowledge succeed.[^postmortem]
 
 ## Goal
 
@@ -337,9 +344,9 @@ remain documented as **not** this platform.
 [^zulip]: Platform owns app-authoring runtime; no framework package on a thin host.
 [^dispatch]: Generated pin and `DispatchOptions.platform`.
 [^dispatch-tests]: Override already replaces the release URL in unit tests.
-[^html-runtime]: Wrapper to move into `exposes`.
-[^datastar-runtime]: Helpers to move into `exposes`.
-[^custom-main]: Custom apps pin 0.16.0 by hand today.
+[^html-runtime]: Wrapper moved into `exposes` in Phase 3.
+[^datastar-runtime]: Helpers moved into `exposes` in Phase 3.
+[^custom-main]: Custom snake/datastar pin in-tree platform after Phase 5; Notes still 0.16.0.
 [^bws-main]: `program` contract to preserve in Phase 0–4.
 [^workspace]: New member in root `Cargo.toml`.
 [^workspace-deps]: `BASE_ROCCI` classification required.
@@ -350,3 +357,4 @@ remain documented as **not** this platform.
 [^method-role]: Constructors are a different plan.
 [^boundary]: base-rocci vs rocdown classes.
 [^agents]: Classify workspace members in the same change.
+[^postmortem]: First-cut payoff is pf ownership; Snake `respond!` unchanged.

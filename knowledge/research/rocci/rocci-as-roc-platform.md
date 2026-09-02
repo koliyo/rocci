@@ -4,7 +4,7 @@ title: Rocci should be a Roc platform, not a package on basic-webserver
 description: "The app-facing Rocci runtime belongs in a Roc platform that adapts the basic-webserver host. A Datastar package on basic-webserver is the Rails split Richard rejects; the .rocci compiler stays Rust. Luke's rust platform template is the packaging mechanics, not the HTTP engine."
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T19:30:00Z }
+generated: { by: process:cursor, at: 2026-09-02T20:10:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -41,9 +41,9 @@ sources:
     last_modified: 2026-08-31
   - id: dispatch
     resource: ../../../crates/rocci-cli/src/dispatch/mod.rs
-    title: Generated main.roc pins basic-webserver 0.16
+    title: Default pin and platform override
     author: process:git
-    last_modified: 2026-08-31
+    last_modified: 2026-09-02
   - id: dispatch-tests
     resource: ../../../crates/rocci-cli/src/dispatch/tests.rs
     title: DispatchOptions.platform override
@@ -66,9 +66,9 @@ sources:
     last_modified: 2026-08-31
   - id: custom-main
     resource: ../../../examples/rocci/custom/datastar/main.roc
-    title: Authored dispatcher on basic-webserver
+    title: Authored gallery dispatcher
     author: process:git
-    last_modified: 2026-08-29
+    last_modified: 2026-09-02
   - id: bws-main
     resource: ../../../../roc-basic-webserver/platform/main.roc
     title: basic-webserver platform requires and hosted ABI
@@ -113,7 +113,7 @@ sources:
     resource: ../../../crates/rocci-cli/src/http_module.rs
     title: --http-module asserts the 0.16.0 pin
     author: process:git
-    last_modified: 2026-08-30
+    last_modified: 2026-09-02
   - id: playground
     resource: ../../../crates/rocci-cli/src/playground_html.rs
     title: Playground snapshot eval on basic-cli
@@ -149,13 +149,20 @@ sources:
     title: Package Rocci as a Roc platform
     author: process:cursor
     last_modified: 2026-09-02
+  - id: postmortem
+    resource: ../../audits/rocci/rocci-as-roc-platform-postmortem.md
+    title: Rocci-as-platform post-mortem
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # Rocci should be a Roc platform, not a package on basic-webserver
 
-Exploratory. This is not a description of shipped behavior and not a
-cutover until the paired [plan](/plans/rocci/rocci-as-roc-platform.md)
-lands.[^plan]
+Exploratory packaging argument. First-cut execution is the paired
+[plan](/plans/rocci/rocci-as-roc-platform.md) (Phases 0–6 on
+`rocci-as-roc-platform`). Descriptive outcome:
+[post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).
+[^plan][^postmortem]
 
 ## Scope and authority
 
@@ -174,14 +181,14 @@ basic-webserver**. This record answers packaging and host ownership.
 
 ## For a later agent
 
-- **Authority:** exploratory. Do not treat sketched `platform/main.roc`
-  as a public API.
-- Do not start phases unless the user asks. Writing this pair is not
-  executing the plan.[^plan]
+- **Authority:** exploratory for the packaging argument. The first-cut
+  pin is on the plan branch; the [post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md)
+  is descriptive. Do not log the plan complete until CI and Knowledge
+  succeed.[^plan][^postmortem]
 - Keep three designs distinct: (1) **package on basic-webserver**, (2)
-  **compiler that emits basic-webserver apps** (shipped), (3) **Rocci
-  domain platform** whose host adapts basic-webserver. This record
-  recommends (3).
+  **compiler that emits basic-webserver apps** (the pre-cutover pin),
+  (3) **Rocci domain platform** whose host adapts basic-webserver. This
+  record recommended (3); Phases 0–6 are that cutover.
 - Do not encode Datastar SSE policy in the `.rocci` parser. If wrap
   helpers move, they move into platform Roc modules, where generated
   `Datastar.roc` already lives.[^datastar-runtime][^dispatch]
@@ -189,17 +196,23 @@ basic-webserver**. This record answers packaging and host ownership.
   `h35-desktop` into this platform in the first cut.
   [^roc-host][^desktop][^http-module]
 
-## What shipped Rocci pins today
+## What Rocci pinned before this cutover
 
-Generated `main.roc` is an ordinary basic-webserver app:
+Snapshot of the tree when this research was written. Current pin,
+Snake-sized authored diffs, and leftover 0.16.0 paths:
+[post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).[^postmortem]
+
+Generated `main.roc` was an ordinary basic-webserver app:
 `app [Context, program]` with `init!`, `respond!`, `shutdown!`, pinned
-to the 0.16.0 release bundle. `DispatchOptions.platform` can replace
-that URL; `--http-module` currently **requires** the 0.16.0 string.
+to the 0.16.0 release bundle. `DispatchOptions.platform` could replace
+that URL; `--http-module` still **requires** the 0.16.0 string.
 [^dispatch][^dispatch-tests][^http-module]
 
-`rocci run` stages `Html.roc` and `Datastar.roc` next to that app.
-Those files wrap `pf.Html` / `pf.Sse`; they are not platform modules.
-Custom `main.roc` examples pin the same 0.16.0 URL by hand.[^html-runtime][^datastar-runtime][^readme][^custom-main]
+`rocci run` staged `Html.roc` and `Datastar.roc` next to that app.
+Those files wrap `pf.Html` / `pf.Sse`. Custom `main.roc` examples pinned
+the same 0.16.0 URL by hand. After the cutover, gallery and snake pin
+in-tree `crates/rocci-platform` and `import pf.*`; Notes still pins
+0.16.0.[^html-runtime][^datastar-runtime][^readme][^custom-main]
 
 The preview window is not a Roc effect. `rocci-desktop` is a facade over
 `h35-desktop`; the generated binary still listens on TCP.
@@ -386,7 +399,9 @@ Package Rocci as a Roc platform in this repository:
 That is Richard's "platform owns the domain authoring runtime" without
 pretending the Rust compiler is `platform/main.roc`. Implementation:
 [package Rocci as a Roc platform](/plans/rocci/rocci-as-roc-platform.md).
-[^zulip][^plan]
+First-cut outcome:
+[post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).
+[^zulip][^plan][^postmortem]
 
 [^zulip]: Richard: platform owns app-authoring experience; no framework-on-platform.
 [^template]: Template: build, glue, bundle, multi-target, CI rewrite of examples.
@@ -394,12 +409,12 @@ pretending the Rust compiler is `platform/main.roc`. Implementation:
 [^method-role]: Library-on-bws is the SDK analogue; platform was scored as packaging, not DX.
 [^bws-sse]: Rocci workarounds keepalives; does not fork 0.16 idle defaults.
 [^known-lim]: Shipped pin is basic-webserver 0.16; production packaging absent.
-[^dispatch]: Generated apps pin 0.16.0; emit `init!` / `respond!` / `shutdown!`.
-[^dispatch-tests]: `DispatchOptions.platform` replaces the release URL.
-[^html-runtime]: Staged `Html` wraps `pf.Html`.
-[^datastar-runtime]: Staged `Datastar` wraps `pf.Sse` events.
-[^readme]: `rocci run` stages runtime files and opens a preview window on TCP.
-[^custom-main]: Gallery `main.roc` pins the same 0.16.0 bundle.
+[^dispatch]: Generated apps pin in-tree `crates/rocci-platform` after Phase 4; emit `init!` / `respond!` / `shutdown!`.
+[^dispatch-tests]: `DispatchOptions.platform` replaces the default pin.
+[^html-runtime]: Staged `Html` wraps `pf.Html` on the 0.16.0 path.
+[^datastar-runtime]: Staged `Datastar` wraps `pf.Sse` events on the 0.16.0 path.
+[^readme]: `rocci run` stages runtime files on 0.16.0 and opens a preview window on TCP.
+[^custom-main]: Gallery `main.roc` now pins in-tree `crates/rocci-platform`.
 [^bws-main]: Platform name `webserver`; hosted ABI includes SSE advance.
 [^bws-design]: HTTP/SSE/SQLite platform, not a full-stack framework.
 [^bws-cargo]: Host is a Rust `staticlib` named `host`.
@@ -415,4 +430,5 @@ pretending the Rust compiler is `platform/main.roc`. Implementation:
 [^pure-render]: Components remain pure Html functions.
 [^server-owned]: Durable facts stay in SQLite or an external service.
 [^boundary]: Rocci owns the app framework; Rocdown owns documents.
-[^plan]: Paired implementation plan; writing it is not executing it.
+[^plan]: Paired implementation plan; Phases 0–6 are on `rocci-as-roc-platform`.
+[^postmortem]: First-cut payoff is pf ownership; Snake `respond!` unchanged.
