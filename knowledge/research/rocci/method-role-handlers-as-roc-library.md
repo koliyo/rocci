@@ -4,7 +4,7 @@ title: Method-role handlers as a pure Roc library or platform
 description: "Counterfactual: the shipped @method:role matrix can be encoded as Roc constructors on basic-webserver, with a custom platform buying little DX. That matches Datastar SDKs and eases the authored-main.roc cliff, but loses header inspectability, pre-Roc illegal-pair errors, and one-file HTML apps unless @component stays."
 tags: [domain/rocci, domain/runtime, integration/datastar, integration/roc, concern/architecture, concern/developer-experience, concern/language-design]
 status: draft
-generated: { by: process:cursor, at: 2026-08-24T12:40:00Z }
+generated: { by: process:cursor, at: 2026-09-02T19:30:00Z }
 stale_after: 2026-11-24
 authority: exploratory
 owners: [human:nils]
@@ -102,6 +102,16 @@ sources:
     title: basic-webserver SSE idle-timeout limits
     author: process:cursor
     last_modified: 2026-08-24
+  - id: as-platform
+    resource: rocci-as-roc-platform.md
+    title: Rocci should be a Roc platform, not a package on basic-webserver
+    author: process:cursor
+    last_modified: 2026-09-02
+  - id: as-platform-plan
+    resource: ../../plans/rocci/rocci-as-roc-platform.md
+    title: Package Rocci as a Roc platform
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # Method-role handlers as a pure Roc library or platform
@@ -221,6 +231,13 @@ research already refused: work around idle timeout with keepalives rather
 than fork basic-webserver.[^bws-sse] A custom platform is justified only if
 Rocci needs effects the host will not grow. It does not, by itself, improve
 handler DX over a package.
+
+That DX score does not settle **packaging**. Who owns the app's `pf` pin
+and staged `Html` / `Datastar` files is a separate question: a Rocci
+domain platform that adapts the basic-webserver host, not a `Rocci`
+package beside it. See [Rocci as a Roc platform](rocci-as-roc-platform.md)
+and the [implementation plan](/plans/rocci/rocci-as-roc-platform.md).
+[^as-platform][^as-platform-plan]
 
 ### Why constructors beat a response ADT
 
@@ -490,4 +507,5 @@ completeness on named escapes — not on dissolving `command` back into
 [^datastar-adr]: SDK contract is an SSE generator used from ordinary host handlers, not a route-role grammar.
 [^datastar-sdks]: Official per-language SDKs.
 [^bws-sse]: Idle-timeout workarounds: keepalives and empty SSE; do not fork the platform for live.
-)
+[^as-platform]: Packaging: domain platform adapting the basic-webserver host, not a Rocci package on that host.
+[^as-platform-plan]: Implementation plan for the in-tree Rocci platform; not started.

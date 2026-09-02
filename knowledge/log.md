@@ -6,6 +6,11 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-02
+
+- Recorded [package Rocci as a Roc platform](plans/rocci/rocci-as-roc-platform.md) Phase 0: froze `crates/rocci-platform` (`[lib] name = "host"`), `platform "rocci"`, 0.16 `requires`/`exposes`, vendored sibling host at `2410615`, `--platform rocci` opt-in, default pin cutover in Phase 4. Exploratory; do not log complete until CI and Knowledge succeed.
+- Filed draft [Rocci should be a Roc platform](research/rocci/rocci-as-roc-platform.md) and paired [package Rocci as a Roc platform](plans/rocci/rocci-as-roc-platform.md): adapt the basic-webserver host; expose Datastar/Html; pin generated and custom apps. Not a package on basic-webserver; compiler, wasm apply, WASI HTTP, and desktop stay. Pointed [method-role library vs platform](research/rocci/method-role-handlers-as-roc-library.md) at the packaging split. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 ## 2026-09-01
 ## 2026-09-03
 
