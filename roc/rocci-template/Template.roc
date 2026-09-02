@@ -1,9 +1,15 @@
 import Cursor
 
 Template := [].{
-    parse_body = parse_body
+    compile = do_compile_src
+    lower = do_compile_src
+    parse_body = do_parse_body
     kind = item_kind
+    ping = ping_str
+    lower_body = do_lower_body
 }
+
+ping_str = |s| s
 
 Span : { start : U64, end : U64 }
 
@@ -56,7 +62,7 @@ TemplateItem : [
         span : Span,
     }),
     LetDirective({ binder : Ident, expr : Span, span : Span }),
-    Css({ body : Span, span : Span }),
+    BodyCss({ body : Span, span : Span }),
 ]
 
 TemplateBlock : { nodes : List(TemplateItem), roots : List(U64), span : Span }
@@ -72,14 +78,14 @@ item_kind = |item|
         ForDirective(_) => "ForDirective"
         MatchDirective(_) => "MatchDirective"
         LetDirective(_) => "LetDirective"
-        Css(_) => "Css"
+        BodyCss(_) => "Css"
     }
 
 diag = |code, span, message| { code: code, span: span, message: message }
 
 empty_block = |pos| { nodes: [], roots: [], span: { start: pos, end: pos } }
 
-parse_body = |cur| {
+do_parse_body = |cur| {
     var $cur = Cursor.skip_trivia(cur)
     if Cursor.peek($cur) == Ok(123) {
         parse_template_block($cur)
@@ -97,8 +103,8 @@ parse_body = |cur| {
 parse_html_expr_body = |cur| {
     start = cur.pos
     match parse_tag(cur) {
-        Miss(rest) => { cur: rest.cur, block: empty_block(start), diagnostics: rest.diagnostics }
-        Hit(got) => {
+        NoForest(rest) => { cur: rest.cur, block: empty_block(start), diagnostics: rest.diagnostics }
+        Forest(got) => {
             {
                 cur: got.cur,
                 block: { nodes: got.nodes, roots: [got.root], span: { start: start, end: got.cur.pos } },
@@ -159,12 +165,12 @@ parse_template_items = |cur, stop_brace| {
             $diagnostics = List.concat($diagnostics, comment.diagnostics)
         } else if Cursor.peek($cur) == Ok(60) or Cursor.peek($cur) == Ok(123) or Cursor.peek($cur) == Ok(64) {
             match parse_template_item($cur, stop_brace) {
-                Miss(rest) => {
+                NoForest(rest) => {
                     $cur = rest.cur
                     $diagnostics = List.concat($diagnostics, rest.diagnostics)
                     $loop = Bool.False
                 }
-                Hit(got) => {
+                Forest(got) => {
                     base = List.len($nodes)
                     shifted = List.map(got.nodes, |item| offset_item(item, base))
                     $nodes = List.concat($nodes, shifted)
@@ -197,7 +203,7 @@ parse_template_item = |cur, stop_brace| {
         parse_tag(cur)
     } else if Cursor.peek(cur) == Ok(123) {
         interp = parse_interpolation(cur)
-        Hit({
+        Forest({
             cur: interp.cur,
             nodes: [Interpolation({ expr: interp.node.expr, span: interp.node.span })],
             root: 0.U64,
@@ -206,7 +212,7 @@ parse_template_item = |cur, stop_brace| {
     } else if Cursor.peek(cur) == Ok(64) {
         parse_directive(cur, stop_brace)
     } else {
-        Miss({ cur: cur, diagnostics: [] })
+        NoForest({ cur: cur, diagnostics: [] })
     }
 }
 
@@ -259,7 +265,7 @@ offset_item = |item, delta|
                 span: span,
             })
         LetDirective(n) => LetDirective(n)
-        Css(n) => Css(n)
+        BodyCss(n) => BodyCss(n)
     }
 
 append_block = |nodes, block| {
@@ -332,7 +338,7 @@ parse_tag = |cur| {
     start = cur.pos
     got = Cursor.eat(cur, 60)
     if !got.eaten {
-        Miss({ cur: cur, diagnostics: [] })
+        NoForest({ cur: cur, diagnostics: [] })
     } else {
         var $cur = got.cur
         if Cursor.peek($cur) == Ok(62) {
@@ -348,7 +354,7 @@ parse_tag = |cur| {
                     diag("RC1002", { start: start, end: $cur.pos }, "unclosed fragment; expected `</>`"),
                 )
             }
-            Hit({
+            Forest({
                 cur: $cur,
                 nodes: List.append(kids.nodes, Fragment({ children: kids.roots, span: { start: start, end: $cur.pos } })),
                 root: List.len(kids.nodes),
@@ -358,25 +364,25 @@ parse_tag = |cur| {
             $cur = Cursor.bump($cur)
             $cur =
                 match scan_tag_path($cur) {
-                    Miss(rest) => rest.cur
-                    Hit(path) => path.cur
+                    NoForest(rest) => rest.cur
+                    Forest(path) => path.cur
                 }
             $cur = Cursor.skip_spaces_tabs($cur)
             gt = Cursor.eat($cur, 62)
-            Miss({
+            NoForest({
                 cur: gt.cur,
                 diagnostics: [diag("RC1005", { start: start, end: gt.cur.pos }, "unexpected closing tag")],
             })
         } else {
             match scan_tag_path($cur) {
-                Miss(rest) => Miss({
+                NoForest(rest) => NoForest({
                     cur: rest.cur,
                     diagnostics: List.append(
                         rest.diagnostics,
                         diag("RC1005", { start: $cur.pos, end: $cur.pos }, "expected tag name after `<`"),
                     ),
                 })
-                Hit(path_got) => {
+                Forest(path_got) => {
                     $cur = path_got.cur
                     attrs_got = parse_attrs($cur)
                     $cur = attrs_got.cur
@@ -416,7 +422,7 @@ parse_tag = |cur| {
                                     span: { start: start, end: $cur.pos },
                                 })
                             }
-                        Hit({ cur: $cur, nodes: [item], root: 0.U64, diagnostics: $diagnostics })
+                        Forest({ cur: $cur, nodes: [item], root: 0.U64, diagnostics: $diagnostics })
                     } else {
                         kids = parse_template_items($cur, Bool.False)
                         $cur = kids.cur
@@ -453,7 +459,7 @@ parse_tag = |cur| {
                                     span: { start: start, end: $cur.pos },
                                 })
                             }
-                        Hit({
+                        Forest({
                             cur: $cur,
                             nodes: List.append(kids.nodes, item),
                             root: List.len(kids.nodes),
@@ -487,7 +493,7 @@ eat_closing_tag = |cur| {
 
 scan_tag_path = |cur| {
     match Cursor.scan_tag_name(cur) {
-        Err(rest) => Miss({ cur: rest, diagnostics: [] })
+        Err(rest) => NoForest({ cur: rest, diagnostics: [] })
         Ok(first) => {
             first_ident = { name: Cursor.ident_text(first.cur, first.span), span: first.span }
             var $cur = first.cur
@@ -526,7 +532,7 @@ scan_tag_path = |cur| {
                 roc_name: path_roc_name($parts),
                 span: { start: first_ident.span.start, end: last.span.end },
             }
-            Hit({ cur: $cur, path: path, diagnostics: $diagnostics })
+            Forest({ cur: $cur, path: path, diagnostics: $diagnostics })
         }
     }
 }
@@ -706,7 +712,7 @@ parse_directive = |cur, _stop_brace| {
             $value = Str.concat($value, ch)
             $cur = Cursor.bump($cur)
         }
-        Hit({
+        Forest({
             cur: $cur,
             nodes: [Text({ value: $value, span: { start: start, end: $cur.pos } })],
             root: 0.U64,
@@ -715,7 +721,7 @@ parse_directive = |cur, _stop_brace| {
     } else {
         var $cur = Cursor.bump(cur)
         match Cursor.scan_ident($cur) {
-            Err(_) => Miss({
+            Err(_) => NoForest({
                 cur: $cur,
                 diagnostics: [diag("RC1001", { start: start, end: start }, "expected directive name after `@`")],
             })
@@ -733,9 +739,9 @@ parse_directive = |cur, _stop_brace| {
                 } else if name == "css" {
                     parse_body_css($cur, start)
                 } else if name == "else" {
-                    Miss({ cur: cur, diagnostics: [] })
+                    NoForest({ cur: cur, diagnostics: [] })
                 } else {
-                    Miss({
+                    NoForest({
                         cur: $cur,
                         diagnostics: [diag("RC1001", { start: start, end: ident.span.end }, "unknown directive")],
                     })
@@ -793,7 +799,7 @@ parse_if = |cur, start| {
         else_roots: $else_roots,
         span: { start: start, end: $cur.pos },
     })
-    Hit({
+    Forest({
         cur: $cur,
         nodes: List.append($nodes, item),
         root: List.len($nodes),
@@ -818,7 +824,7 @@ parse_for = |cur, start| {
                 body_roots: body.block.roots,
                 span: { start: start, end: body.cur.pos },
             })
-            Hit({
+            Forest({
                 cur: body.cur,
                 nodes: List.append(body.block.nodes, item),
                 root: List.len(body.block.nodes),
@@ -844,7 +850,7 @@ parse_for = |cur, start| {
                 body_roots: body.block.roots,
                 span: { start: start, end: body.cur.pos },
             })
-            Hit({
+            Forest({
                 cur: body.cur,
                 nodes: List.append(body.block.nodes, item),
                 root: List.len(body.block.nodes),
@@ -860,7 +866,7 @@ parse_match = |cur, start| {
     var $diagnostics = scrut.diagnostics
     open = Cursor.eat($cur, 123)
     if !open.eaten {
-        Hit({
+        Forest({
             cur: $cur,
             nodes: [
                 MatchDirective({
@@ -889,12 +895,12 @@ parse_match = |cur, start| {
             } else {
                 arm_start = $cur.pos
                 match scan_pattern($cur) {
-                    Miss(rest) => {
+                    NoForest(rest) => {
                         $cur = rest.cur
                         $diagnostics = List.concat($diagnostics, rest.diagnostics)
                         $loop = Bool.False
                     }
-                    Hit(pat) => {
+                    Forest(pat) => {
                         $cur = Cursor.skip_whitespace(pat.cur)
                         if !Cursor.starts_with($cur, "=>") {
                             $diagnostics = List.append(
@@ -905,11 +911,11 @@ parse_match = |cur, start| {
                             $cur = Cursor.eat_str($cur, "=>")
                         }
                         match parse_match_value($cur) {
-                            Miss(rest) => {
+                            NoForest(rest) => {
                                 $cur = rest.cur
                                 $diagnostics = List.concat($diagnostics, rest.diagnostics)
                             }
-                            Hit(val) => {
+                            Forest(val) => {
                                 absorbed = append_block($nodes, { nodes: val.nodes, roots: [val.root], span: { start: 0, end: 0 } })
                                 $nodes = absorbed.nodes
                                 value_id =
@@ -942,7 +948,7 @@ parse_match = |cur, start| {
             arms: $arms,
             span: { start: start, end: $cur.pos },
         })
-        Hit({
+        Forest({
             cur: $cur,
             nodes: List.append($nodes, item),
             root: List.len($nodes),
@@ -960,7 +966,7 @@ parse_match_value = |cur| {
     if Cursor.peek($cur) == Ok(60) or Cursor.peek($cur) == Ok(123) or Cursor.peek($cur) == Ok(64) {
         parse_template_item($cur, Bool.False)
     } else {
-        Miss({
+        NoForest({
             cur: $cur,
             diagnostics: [diag("RC1001", { start: $cur.pos, end: $cur.pos }, "match arm must produce a tag, fragment, interpolation, or directive")],
         })
@@ -970,7 +976,7 @@ parse_match_value = |cur| {
 parse_let = |cur, start| {
     var $cur = Cursor.skip_whitespace(cur)
     match Cursor.scan_ident($cur) {
-        Err(_) => Hit({
+        Err(_) => Forest({
             cur: $cur,
             nodes: [
                 LetDirective({
@@ -994,7 +1000,7 @@ parse_let = |cur, start| {
                 )
             }
             expr = scan_line_expr(eq.cur)
-            Hit({
+            Forest({
                 cur: expr.cur,
                 nodes: [
                     LetDirective({
@@ -1014,9 +1020,9 @@ parse_body_css = |cur, start| {
     var $cur = Cursor.skip_trivia(cur)
     open = Cursor.eat($cur, 123)
     if !open.eaten {
-        Hit({
+        Forest({
             cur: $cur,
-            nodes: [Css({ body: { start: $cur.pos, end: $cur.pos }, span: { start: start, end: $cur.pos } })],
+            nodes: [BodyCss({ body: { start: $cur.pos, end: $cur.pos }, span: { start: start, end: $cur.pos } })],
             root: 0.U64,
             diagnostics: [diag("RC1001", { start: $cur.pos, end: $cur.pos }, "expected `{` to open a `@css` block")],
         })
@@ -1029,10 +1035,10 @@ parse_body_css = |cur, start| {
             } else {
                 $cur.pos
             }
-        Hit({
+        Forest({
             cur: $cur,
             nodes: [
-                Css({
+                BodyCss({
                     body: { start: body_start, end: body_end },
                     span: { start: start, end: $cur.pos },
                 }),
@@ -1155,7 +1161,7 @@ scan_pattern = |cur| {
     var $cur = Cursor.skip_formatting_ws(cur)
     start = $cur.pos
     if Cursor.peek($cur) == Ok(125) {
-        Miss({ cur: $cur, diagnostics: [diag("RC1001", { start: start, end: start }, "expected match pattern")] })
+        NoForest({ cur: $cur, diagnostics: [diag("RC1001", { start: start, end: start }, "expected match pattern")] })
     } else {
         var $paren = 0.U64
         var $bracket = 0.U64
@@ -1209,9 +1215,9 @@ scan_pattern = |cur| {
             }
         }
         if $cur.pos == start {
-            Miss({ cur: $cur, diagnostics: [diag("RC1001", { start: start, end: start }, "expected match pattern")] })
+            NoForest({ cur: $cur, diagnostics: [diag("RC1001", { start: start, end: start }, "expected match pattern")] })
         } else {
-            Hit({ cur: $cur, span: Cursor.trim_span($cur.text, start, $cur.pos), diagnostics: [] })
+            Forest({ cur: $cur, span: Cursor.trim_span($cur.text, start, $cur.pos), diagnostics: [] })
         }
     }
 }
@@ -1276,8 +1282,344 @@ nodes_have_kind = |nodes, kind|
         |acc, item| acc or item_kind(item) == kind,
     )
 
+do_lower_body = |src, indent| {
+    parsed = do_parse_body(Cursor.new(src))
+    emit_roots(parsed.block, src, indent)
+}
+
+emit_roots = |block, src, indent| {
+    if List.len(block.roots) == 0 {
+        Str.concat(emit_spaces(indent), "Html.empty")
+    } else if List.len(block.roots) == 1 {
+        match List.get(block.roots, 0) {
+            Ok(id) => Str.concat(emit_spaces(indent), emit_node(block, src, id, indent))
+            Err(_) => Str.concat(emit_spaces(indent), "Html.empty")
+        }
+    } else {
+        emit_node_array(block, src, block.roots, indent)
+    }
+}
+
+emit_node_array = |block, src, ids, indent| {
+    var $out = "[\n"
+    var $i = 0.U64
+    while $i < List.len(ids) {
+        match List.get(ids, $i) {
+            Ok(id) => {
+                $out = Str.concat(
+                    $out,
+                    Str.concat(emit_spaces(indent + 1), Str.concat(emit_node(block, src, id, indent + 1), ",\n")),
+                )
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    Str.concat($out, Str.concat(emit_spaces(indent), "]"))
+}
+
+emit_node = |block, src, id, indent|
+    match List.get(block.nodes, id) {
+        Err(_) => "Html.empty"
+        Ok(item) =>
+            match item {
+                Element({ name, attrs, children, self_closing, span: _ }) =>
+                    emit_element(block, src, name.name, attrs, children, self_closing, indent)
+                ComponentCall({ path, attrs: _, children: _, span: _ }) =>
+                    Str.concat(path.roc_name, "(...)")
+                Fragment({ children, span: _ }) =>
+                    Str.concat("Html.fragment(", Str.concat(emit_node_array(block, src, children, indent + 1), ")"))
+                Text({ value, span: _ }) => Str.concat("Html.text(", Str.concat(emit_quote(value), ")"))
+                Interpolation({ expr, span: _ }) => {
+                    e = Str.trim(Cursor.slice(src, expr))
+                    Str.concat("Html.text(", Str.concat(e, ")"))
+                }
+                IfDirective(_) => "Html.empty"
+                ForDirective(_) => "Html.empty"
+                MatchDirective(_) => "Html.empty"
+                LetDirective(_) => "Html.empty"
+                BodyCss(_) => "Html.empty"
+            }
+    }
+
+emit_element = |block, src, name, attrs, children, self_closing, indent| {
+    void_el = self_closing and (name == "br" or name == "hr" or name == "img" or name == "input" or name == "meta" or name == "link")
+    head = if void_el { "Html.void_element(\n" } else { "Html.element(\n" }
+    var $out = head
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), Str.concat(emit_quote(name), ",\n")))
+    attr_s = if List.len(attrs) == 0 { "[]" } else { "[...]" }
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), attr_s))
+    if !void_el {
+        $out = Str.concat($out, ",\n")
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), emit_node_array(block, src, children, indent + 1)))
+    }
+    $out = Str.concat($out, ",\n")
+    $out = Str.concat($out, Str.concat(emit_spaces(indent), ")"))
+    $out
+}
+
+emit_spaces = |n| {
+    var $s = ""
+    var $i = 0.U64
+    while $i < n {
+        $s = Str.concat($s, "    ")
+        $i = $i + 1
+    }
+    $s
+}
+
+emit_quote = |value| {
+    bytes = Str.to_utf8(value)
+    var $out = "\""
+    var $i = 0.U64
+    while $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(92) => {
+                $out = Str.concat($out, "\\\\")
+            }
+            Ok(34) => {
+                $out = Str.concat($out, "\\\"")
+            }
+            Ok(10) => {
+                $out = Str.concat($out, "\\n")
+            }
+            Ok(_) => {
+                ch = Cursor.slice(value, { start: $i, end: $i + 1 })
+                $out = Str.concat($out, ch)
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    Str.concat($out, "\"")
+}
+
+do_compile_src = |src, _file_name| {
+    name = extract_component_name(src)
+    pattern = extract_param_pattern(src)
+    body = extract_template_body(src)
+    inner = do_lower_body(body, 1)
+    roc_name = pascal_to_camel(name)
+    Str.concat(
+        roc_name,
+        Str.concat(" = ", Str.concat(pattern, Str.concat(" {\n", Str.concat(inner, "\n}\n\n")))),
+    )
+}
+
+extract_component_name = |src| {
+    var $cur = Cursor.new(src)
+    var $loop = Bool.True
+    while $loop and !Cursor.is_eof($cur) {
+        if Cursor.starts_with($cur, "@component") {
+            $cur = Cursor.eat_str($cur, "@component")
+            $cur = Cursor.skip_trivia($cur)
+            match Cursor.scan_ident($cur) {
+                Ok(got) => {
+                    return Cursor.ident_text(got.cur, got.span)
+                }
+                Err(_) => {
+                    $loop = Bool.False
+                }
+            }
+        } else {
+            before = $cur.pos
+            $cur = Cursor.bump($cur)
+            if $cur.pos <= before {
+                $loop = Bool.False
+            }
+        }
+    }
+    "component"
+}
+
+extract_param_pattern = |src| {
+    var $cur = Cursor.new(src)
+    var $loop = Bool.True
+    while $loop and !Cursor.is_eof($cur) {
+        if Cursor.peek($cur) == Ok(124) {
+            start = $cur.pos
+            $cur = Cursor.bump($cur)
+            while !Cursor.is_eof($cur) and Cursor.peek($cur) != Ok(124) {
+                $cur = Cursor.bump($cur)
+            }
+            if Cursor.peek($cur) == Ok(124) {
+                $cur = Cursor.bump($cur)
+            }
+            raw = Cursor.slice(src, { start: start, end: $cur.pos })
+            return param_pattern(raw)
+        }
+        $cur = Cursor.bump($cur)
+    }
+    "||"
+}
+
+param_pattern = |raw| {
+    t = Str.trim(raw)
+    inner = strip_pipes(t)
+    inner_t = Str.trim(inner)
+    if str_starts_with(inner_t, "{") {
+        names = record_field_names(inner_t)
+        if List.len(names) == 0 {
+            "|{}|"
+        } else {
+            Str.concat("|", Str.concat(Str.concat("{ ", Str.concat(join_comma(names), " }")), "|"))
+        }
+    } else {
+        t
+    }
+}
+
+strip_pipes = |s| {
+    bytes = Str.to_utf8(s)
+    start =
+        if List.get(bytes, 0) == Ok(124) {
+            1.U64
+        } else {
+            0.U64
+        }
+    end = bytes.len()
+    last = if end > 0 { end - 1 } else { 0.U64 }
+    stop =
+        if end > start and List.get(bytes, last) == Ok(124) {
+            last
+        } else {
+            end
+        }
+    if stop > start {
+        Cursor.slice(s, { start: start, end: stop })
+    } else {
+        ""
+    }
+}
+
+record_field_names = |record| {
+    bytes = Str.to_utf8(record)
+    inner_start = 1.U64
+    inner_end = sat_sub(bytes.len())
+    inner = Cursor.slice(record, { start: inner_start, end: inner_end })
+    list_idents(inner)
+}
+
+list_idents = |s| {
+    bytes = Str.to_utf8(s)
+    var $i = 0.U64
+    var $names = []
+    var $depth = 0.U64
+    while $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(34) => {
+                $i = $i + 1
+                while $i < bytes.len() and List.get(bytes, $i) != Ok(34) {
+                    if List.get(bytes, $i) == Ok(92) {
+                        $i = $i + 1
+                    }
+                    $i = $i + 1
+                }
+                $i = $i + 1
+            }
+            Ok(123) => {
+                $depth = $depth + 1
+                $i = $i + 1
+            }
+            Ok(125) => {
+                $depth = sat_sub($depth)
+                $i = $i + 1
+            }
+            Ok(b) if $depth == 0 and is_ident_start(b) => {
+                start = $i
+                $i = $i + 1
+                while $i < bytes.len() {
+                    match List.get(bytes, $i) {
+                        Ok(c) if is_ident_continue(c) => {
+                            $i = $i + 1
+                        }
+                        _ => break
+                    }
+                }
+                name = Cursor.slice(s, { start: start, end: $i })
+                if name != "in" {
+                    $names = List.append($names, name)
+                }
+                while $i < bytes.len() and List.get(bytes, $i) != Ok(44) {
+                    match List.get(bytes, $i) {
+                        Ok(34) => {
+                            $i = $i + 1
+                            while $i < bytes.len() and List.get(bytes, $i) != Ok(34) {
+                                $i = $i + 1
+                            }
+                        }
+                        _ => {
+                            $i = $i + 1
+                        }
+                    }
+                }
+            }
+            _ => {
+                $i = $i + 1
+            }
+        }
+    }
+    $names
+}
+
+join_comma = |names| {
+    List.fold(
+        names,
+        { i: 0.U64, s: "" },
+        |acc, name|
+            if acc.i == 0 {
+                { i: 1.U64, s: name }
+            } else {
+                { i: acc.i + 1, s: Str.concat(acc.s, Str.concat(", ", name)) }
+            },
+    ).s
+}
+
+is_ident_start = |b| (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95
+
+is_ident_continue = |b| is_ident_start(b) or (b >= 48 and b <= 57)
+
+extract_template_body = |src| {
+    var $cur = Cursor.new(src)
+    var $seen_eq = Bool.False
+    while !Cursor.is_eof($cur) {
+        if !$seen_eq and Cursor.peek($cur) == Ok(61) {
+            $seen_eq = Bool.True
+            $cur = Cursor.bump($cur)
+            $cur = Cursor.skip_trivia($cur)
+            if Cursor.peek($cur) == Ok(124) {
+                $cur = Cursor.bump($cur)
+                while !Cursor.is_eof($cur) and Cursor.peek($cur) != Ok(124) {
+                    $cur = Cursor.bump($cur)
+                }
+                if Cursor.peek($cur) == Ok(124) {
+                    $cur = Cursor.bump($cur)
+                }
+            }
+        } else if $seen_eq and Cursor.peek($cur) == Ok(123) {
+            start = $cur.pos
+            $cur = Cursor.skip_balanced_braces($cur)
+            return Cursor.slice(src, { start: start, end: $cur.pos })
+        } else {
+            $cur = Cursor.bump($cur)
+        }
+    }
+    "{}"
+}
+
+str_starts_with = |s, needle| {
+    sb = Str.to_utf8(s)
+    nb = Str.to_utf8(needle)
+    nlen = nb.len()
+    if nlen > sb.len() {
+        Bool.False
+    } else {
+        List.sublist(sb, { start: 0, len: nlen }) == nb
+    }
+}
+
 expect {
-    out = parse_body(Cursor.new("<p/>"))
+    out = do_parse_body(Cursor.new("<p/>"))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "Element"
         Err(_) => Bool.False
@@ -1285,7 +1627,7 @@ expect {
 }
 
 expect {
-    out = parse_body(Cursor.new("<Hello />"))
+    out = do_parse_body(Cursor.new("<Hello />"))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "ComponentCall"
         Err(_) => Bool.False
@@ -1293,7 +1635,7 @@ expect {
 }
 
 expect {
-    out = parse_body(Cursor.new("<br>"))
+    out = do_parse_body(Cursor.new("<br>"))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "Element"
         Err(_) => Bool.False
@@ -1301,7 +1643,7 @@ expect {
 }
 
 expect {
-    out = parse_body(Cursor.new("{ <p>Hello, {name}!</p> }"))
+    out = do_parse_body(Cursor.new("{ <p>Hello, {name}!</p> }"))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "Element" and nodes_have_kind(out.block.nodes, "Interpolation")
         Err(_) => Bool.False
@@ -1309,12 +1651,12 @@ expect {
 }
 
 expect {
-    out = parse_body(Cursor.new("<p>{name"))
+    out = do_parse_body(Cursor.new("<p>{name"))
     List.len(out.diagnostics) > 0
 }
 
 expect {
-    out = parse_body(Cursor.new("<Badge>ok</Badge>"))
+    out = do_parse_body(Cursor.new("<Badge>ok</Badge>"))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "ComponentCall"
         Err(_) => Bool.False
@@ -1322,13 +1664,13 @@ expect {
 }
 
 expect {
-    out = parse_body(Cursor.new("<div>x"))
+    out = do_parse_body(Cursor.new("<div>x"))
     List.len(out.diagnostics) > 0
 }
 
 expect {
     src = "{ @if ready { <p>ok</p> } @else { <p>no</p> } }"
-    out = parse_body(Cursor.new(src))
+    out = do_parse_body(Cursor.new(src))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "IfDirective"
         Err(_) => Bool.False
@@ -1337,7 +1679,7 @@ expect {
 
 expect {
     src = "{ @for item in items { <li>{item}</li> } }"
-    out = parse_body(Cursor.new(src))
+    out = do_parse_body(Cursor.new(src))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "ForDirective"
         Err(_) => Bool.False
@@ -1346,7 +1688,7 @@ expect {
 
 expect {
     src = "{ @match x { Ok(v) => <p>{v}</p> Err(_) => <p>no</p> } }"
-    out = parse_body(Cursor.new(src))
+    out = do_parse_body(Cursor.new(src))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "MatchDirective"
         Err(_) => Bool.False
@@ -1355,15 +1697,28 @@ expect {
 
 expect {
     src = "{ @let n = 1\n<p>{n}</p> }"
-    out = parse_body(Cursor.new(src))
+    out = do_parse_body(Cursor.new(src))
     nodes_have_kind(out.block.nodes, "LetDirective")
 }
 
 expect {
     src = "{\n    <p>Hello, {name}!</p>\n}"
-    out = parse_body(Cursor.new(src))
+    out = do_parse_body(Cursor.new(src))
     match List.get(out.block.roots, 0) {
         Ok(id) => root_kind(out.block, id) == "Element" and nodes_have_kind(out.block.nodes, "Interpolation")
         Err(_) => Bool.False
     }
+}
+
+hello_emitted = "hello = |{ name }| {\n    Html.element(\n        \"p\",\n        [],\n        [\n            Html.text(\"Hello, \"),\n            Html.text(name),\n            Html.text(\"!\"),\n        ],\n    )\n}\n\n"
+
+expect {
+    inner = do_lower_body("{\n    <p>Hello, {name}!</p>\n}", 1)
+    got = Str.concat("hello = |{ name }| {\n", Str.concat(inner, "\n}\n\n"))
+    got == hello_emitted
+}
+
+expect {
+    src = "@component Hello = |{ name : Str }| {\n    <p>Hello, {name}!</p>\n}\n"
+    do_compile_src(src, "hello.rocci") == hello_emitted
 }

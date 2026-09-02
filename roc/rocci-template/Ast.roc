@@ -55,7 +55,7 @@ TemplateItem : [
         span : Span,
     }),
     LetDirective({ binder : Ident, expr : Span, span : Span }),
-    Css({ body : Span, span : Span }),
+    BodyCss({ body : Span, span : Span }),
 ]
 
 TemplateBlock : { nodes : List(TemplateItem), roots : List(U64), span : Span }
