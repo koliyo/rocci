@@ -1,0 +1,3 @@
+@component Page = |{}| {
+    <Design.Button>Go</Design.Button>
+}

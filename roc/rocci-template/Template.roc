@@ -7,6 +7,10 @@ Template := [].{
     kind = item_kind
     ping = ping_str
     lower_body = do_lower_body
+    component_source = emit_component
+    fixture_source = emit_named_fixture
+    file_css = collect_file_css
+    to_camel = pascal_to_camel
 }
 
 ping_str = |s| s
@@ -544,10 +548,26 @@ path_is_component = |path|
     }
 
 path_roc_name = |parts| {
-    match List.get(parts, List.len(parts) - 1) {
-        Ok(part) => pascal_to_camel(part.name)
-        Err(_) => ""
-    }
+    last = sat_sub(List.len(parts))
+    List.fold(
+        parts,
+        { i: 0.U64, s: "" },
+        |acc, part| {
+            name =
+                if acc.i == last {
+                    pascal_to_camel(part.name)
+                } else {
+                    part.name
+                }
+            s =
+                if acc.i == 0 {
+                    name
+                } else {
+                    Str.concat(acc.s, Str.concat(".", name))
+                }
+            { i: acc.i + 1, s: s }
+        },
+    ).s
 }
 
 parse_attrs = |cur| {
@@ -1283,24 +1303,124 @@ nodes_have_kind = |nodes, kind|
     )
 
 do_lower_body = |src, indent| {
-    parsed = do_parse_body(Cursor.new(src))
-    emit_roots(parsed.block, src, indent)
+    do_lower_html(src, indent, "", "")
 }
 
-emit_roots = |block, src, indent| {
-    if List.len(block.roots) == 0 {
-        Str.concat(emit_spaces(indent), "Html.empty")
-    } else if List.len(block.roots) == 1 {
-        match List.get(block.roots, 0) {
-            Ok(id) => Str.concat(emit_spaces(indent), emit_node(block, src, id, indent))
-            Err(_) => Str.concat(emit_spaces(indent), "Html.empty")
-        }
-    } else {
-        emit_node_array(block, src, block.roots, indent)
+do_lower_html = |src, indent, stamp, inject_css| {
+    parsed = do_parse_body(Cursor.new(src))
+    emit_html_value(parsed.block, src, stamp, indent, inject_css)
+}
+
+html_root_ids = |block| {
+    List.fold(
+        block.roots,
+        [],
+        |acc, id| {
+            kind = root_kind(block, id)
+            if kind == "Css" or kind == "LetDirective" {
+                acc
+            } else {
+                List.append(acc, id)
+            }
+        },
+    )
+}
+
+collect_body_css = |block, src| {
+    List.fold(
+        block.nodes,
+        "",
+        |acc, item| {
+            kind = item_kind(item)
+            if kind == "Css" {
+                inner = body_css_text(src, item)
+                if acc == "" {
+                    inner
+                } else if inner == "" {
+                    acc
+                } else {
+                    Str.concat(acc, Str.concat("\n", inner))
+                }
+            } else {
+                acc
+            }
+        },
+    )
+}
+
+body_css_text = |src, item| {
+    match item {
+        BodyCss({ body, span: _ }) => Str.trim(css_inner(src, body))
+        _ => ""
     }
 }
 
-emit_node_array = |block, src, ids, indent| {
+css_inner = |src, span| {
+    bytes = Str.to_utf8(Cursor.slice(src, span))
+    if bytes.len() >= 2 {
+        Cursor.slice(src, { start: span.start + 1, end: sat_sub(span.end) })
+    } else {
+        ""
+    }
+}
+
+emit_html_value = |block, src, stamp, indent, inject_css| {
+    ids = html_root_ids(block)
+    if inject_css != "" {
+        var $out = "Html.fragment(\n"
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "[\n"))
+        $out = Str.concat(
+            $out,
+            Str.concat(emit_spaces(indent + 2), Str.concat(emit_style_element(inject_css, indent + 2), ",\n")),
+        )
+        inner =
+            if List.len(ids) == 0 {
+                "Html.empty"
+            } else if List.len(ids) == 1 {
+                match List.get(ids, 0) {
+                    Ok(id) => emit_node(block, src, stamp, id, indent + 2)
+                    Err(_) => "Html.empty"
+                }
+            } else {
+                Str.concat("Html.fragment(\n", Str.concat(emit_node_array(block, src, stamp, ids, indent + 3), Str.concat(",\n", Str.concat(emit_spaces(indent + 2), ")"))))
+            }
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 2), Str.concat(inner, ",\n")))
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "],\n"))
+        Str.concat($out, Str.concat(emit_spaces(indent), ")"))
+    } else {
+        emit_roots_ids(block, src, stamp, ids, indent)
+    }
+}
+
+emit_style_element = |css, indent| {
+    var $out = "Html.element(\n"
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "\"style\",\n"))
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "[],\n"))
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "[\n"))
+    $out = Str.concat(
+        $out,
+        Str.concat(emit_spaces(indent + 2), Str.concat("Html.text(", Str.concat(emit_quote(css), "),\n"))),
+    )
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "],\n"))
+    Str.concat($out, Str.concat(emit_spaces(indent), ")"))
+}
+
+emit_roots = |block, src, stamp, indent| emit_roots_ids(block, src, stamp, block.roots, indent)
+
+emit_roots_ids = |block, src, stamp, ids, indent| {
+    if List.len(ids) == 0 {
+        Str.concat(emit_spaces(indent), "Html.empty")
+    } else if List.len(ids) == 1 {
+        match List.get(ids, 0) {
+            Ok(id) => Str.concat(emit_spaces(indent), emit_node(block, src, stamp, id, indent))
+            Err(_) => Str.concat(emit_spaces(indent), "Html.empty")
+        }
+    } else {
+        emit_node_array(block, src, stamp, ids, indent)
+    }
+}
+
+emit_node_array = |block, src, stamp, ids, indent| {
     var $out = "[\n"
     var $i = 0.U64
     while $i < List.len(ids) {
@@ -1308,7 +1428,7 @@ emit_node_array = |block, src, ids, indent| {
             Ok(id) => {
                 $out = Str.concat(
                     $out,
-                    Str.concat(emit_spaces(indent + 1), Str.concat(emit_node(block, src, id, indent + 1), ",\n")),
+                    Str.concat(emit_spaces(indent + 1), Str.concat(emit_node(block, src, stamp, id, indent + 1), ",\n")),
                 )
             }
             Err(_) => {}
@@ -1318,44 +1438,195 @@ emit_node_array = |block, src, ids, indent| {
     Str.concat($out, Str.concat(emit_spaces(indent), "]"))
 }
 
-emit_node = |block, src, id, indent|
+emit_node = |block, src, stamp, id, indent|
     match List.get(block.nodes, id) {
         Err(_) => "Html.empty"
         Ok(item) =>
             match item {
                 Element({ name, attrs, children, self_closing, span: _ }) =>
-                    emit_element(block, src, name.name, attrs, children, self_closing, indent)
-                ComponentCall({ path, attrs: _, children: _, span: _ }) =>
-                    Str.concat(path.roc_name, "(...)")
+                    emit_element(block, src, stamp, name.name, attrs, children, self_closing, indent)
+                ComponentCall({ path, attrs, children, span: _ }) =>
+                    emit_call(block, src, stamp, path, attrs, children, indent)
                 Fragment({ children, span: _ }) =>
-                    Str.concat("Html.fragment(", Str.concat(emit_node_array(block, src, children, indent + 1), ")"))
+                    Str.concat("Html.fragment(\n", Str.concat(emit_node_array(block, src, stamp, children, indent + 1), Str.concat(",\n", Str.concat(emit_spaces(indent), ")"))))
                 Text({ value, span: _ }) => Str.concat("Html.text(", Str.concat(emit_quote(value), ")"))
                 Interpolation({ expr, span: _ }) => {
                     e = Str.trim(Cursor.slice(src, expr))
                     Str.concat("Html.text(", Str.concat(e, ")"))
                 }
-                IfDirective(_) => "Html.empty"
-                ForDirective(_) => "Html.empty"
-                MatchDirective(_) => "Html.empty"
+                IfDirective({ condition, then_roots, else_ifs, else_roots, span: _ }) =>
+                    emit_if(block, src, stamp, condition, then_roots, else_ifs, else_roots, indent)
+                ForDirective({ binder, collection, body_roots, span: _ }) =>
+                    emit_for(block, src, stamp, binder, collection, body_roots, indent)
+                MatchDirective({ scrutinee, arms, span: _ }) =>
+                    emit_match(block, src, stamp, scrutinee, arms, indent)
                 LetDirective(_) => "Html.empty"
                 BodyCss(_) => "Html.empty"
             }
     }
 
-emit_element = |block, src, name, attrs, children, self_closing, indent| {
-    void_el = self_closing and (name == "br" or name == "hr" or name == "img" or name == "input" or name == "meta" or name == "link")
+emit_element = |block, src, stamp, name, attrs, children, self_closing, indent| {
+    void_el = self_closing and is_void(name)
     head = if void_el { "Html.void_element(\n" } else { "Html.element(\n" }
     var $out = head
     $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), Str.concat(emit_quote(name), ",\n")))
-    attr_s = if List.len(attrs) == 0 { "[]" } else { "[...]" }
-    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), attr_s))
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), emit_attrs(src, stamp, attrs, indent + 1)))
     if !void_el {
         $out = Str.concat($out, ",\n")
-        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), emit_node_array(block, src, children, indent + 1)))
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), emit_node_array(block, src, stamp, children, indent + 1)))
     }
     $out = Str.concat($out, ",\n")
     $out = Str.concat($out, Str.concat(emit_spaces(indent), ")"))
     $out
+}
+
+emit_attrs = |src, stamp, attrs, indent| {
+    if List.len(attrs) == 0 and stamp == "" {
+        "[]"
+    } else {
+        var $out = "[\n"
+        var $i = 0.U64
+        while $i < List.len(attrs) {
+            match List.get(attrs, $i) {
+                Ok(attr) => {
+                    $out = Str.concat(
+                        $out,
+                        Str.concat(emit_spaces(indent + 1), Str.concat(emit_attr(src, attr), ",\n")),
+                    )
+                }
+                Err(_) => {}
+            }
+            $i = $i + 1
+        }
+        if stamp != "" {
+            $out = Str.concat(
+                $out,
+                Str.concat(
+                    emit_spaces(indent + 1),
+                    Str.concat("Html.attribute(\"data-rocci-css\", ", Str.concat(emit_quote(stamp), "),\n")),
+                ),
+            )
+        }
+        Str.concat($out, Str.concat(emit_spaces(indent), "]"))
+    }
+}
+
+emit_attr = |src, attr|
+    match attr.value {
+        Static({ value, span: _ }) =>
+            Str.concat("Html.attribute(", Str.concat(emit_quote(attr.name.name), Str.concat(", ", Str.concat(emit_quote(value), ")"))))
+        Expr({ expr }) =>
+            Str.concat("Html.attribute(", Str.concat(emit_quote(attr.name.name), Str.concat(", ", Str.concat(Str.trim(Cursor.slice(src, expr)), ")"))))
+        Action({ name, args }) =>
+            Str.concat("Html.attribute(", Str.concat(emit_quote(attr.name.name), Str.concat(", ", Str.concat("Datastar.", Str.concat(name.name, Str.concat("(", Str.concat(Str.trim(Cursor.slice(src, args)), "))")))))))
+        Boolean =>
+            Str.concat("Html.boolean_attribute(", Str.concat(emit_quote(attr.name.name), ", True)"))
+    }
+
+emit_call = |block, src, stamp, path, attrs, children, indent| {
+    var $out = Str.concat(path.roc_name, "(\n")
+    $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), emit_props(src, attrs)))
+    if List.len(children) > 0 {
+        $out = Str.concat($out, ",\n")
+        child =
+            if List.len(children) == 1 {
+                match List.get(children, 0) {
+                    Ok(id) => emit_node(block, src, stamp, id, indent + 1)
+                    Err(_) => "Html.empty"
+                }
+            } else {
+                Str.concat("Html.fragment(\n", Str.concat(emit_node_array(block, src, stamp, children, indent + 2), Str.concat(",\n", Str.concat(emit_spaces(indent + 1), ")"))))
+            }
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), child))
+    }
+    $out = Str.concat($out, ",\n")
+    $out = Str.concat($out, Str.concat(emit_spaces(indent), ")"))
+    $out
+}
+
+emit_props = |src, attrs| {
+    if List.len(attrs) == 0 {
+        "{}"
+    } else {
+        var $out = "{ "
+        var $i = 0.U64
+        while $i < List.len(attrs) {
+            match List.get(attrs, $i) {
+                Ok(attr) => {
+                    if $i > 0 {
+                        $out = Str.concat($out, ", ")
+                    }
+                    $out = Str.concat($out, Str.concat(attr.name.name, ": "))
+                    $out = Str.concat($out, emit_prop_value(src, attr.value))
+                }
+                Err(_) => {}
+            }
+            $i = $i + 1
+        }
+        Str.concat($out, " }")
+    }
+}
+
+emit_prop_value = |src, value|
+    match value {
+        Static({ value: v, span: _ }) => emit_quote(v)
+        Expr({ expr }) => Str.trim(Cursor.slice(src, expr))
+        Action({ name, args }) =>
+            Str.concat("Datastar.", Str.concat(name.name, Str.concat("(", Str.concat(Str.trim(Cursor.slice(src, args)), ")"))))
+        Boolean => "Bool.true"
+    }
+
+emit_if = |block, src, stamp, condition, then_roots, else_ifs, else_roots, indent| {
+    cond = Str.trim(Cursor.slice(src, condition))
+    var $out = Str.concat("if ", Str.concat(cond, " {\n"))
+    $out = Str.concat($out, Str.concat(emit_roots_ids(block, src, stamp, then_roots, indent + 1), "\n"))
+    $out = Str.concat($out, emit_spaces(indent))
+    var $i = 0.U64
+    while $i < List.len(else_ifs) {
+        match List.get(else_ifs, $i) {
+            Ok(arm) => {
+                c = Str.trim(Cursor.slice(src, arm.condition))
+                $out = Str.concat($out, Str.concat("} else if ", Str.concat(c, " {\n")))
+                $out = Str.concat($out, Str.concat(emit_roots_ids(block, src, stamp, arm.roots, indent + 1), "\n"))
+                $out = Str.concat($out, emit_spaces(indent))
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    $out = Str.concat($out, "} else {\n")
+    if List.len(else_roots) == 0 {
+        $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), "Html.empty\n"))
+    } else {
+        $out = Str.concat($out, Str.concat(emit_roots_ids(block, src, stamp, else_roots, indent + 1), "\n"))
+    }
+    Str.concat($out, Str.concat(emit_spaces(indent), "}"))
+}
+
+emit_for = |block, src, stamp, binder, collection, body_roots, indent| {
+    coll = Str.trim(Cursor.slice(src, collection))
+    var $out = Str.concat("List.map(", Str.concat(coll, ", |"))
+    $out = Str.concat($out, Str.concat(binder.name, "| {\n"))
+    $out = Str.concat($out, Str.concat(emit_roots_ids(block, src, stamp, body_roots, indent + 1), "\n"))
+    Str.concat($out, Str.concat(emit_spaces(indent), "})"))
+}
+
+emit_match = |block, src, stamp, scrutinee, arms, indent| {
+    s = Str.trim(Cursor.slice(src, scrutinee))
+    var $out = Str.concat("match ", Str.concat(s, " {\n"))
+    var $i = 0.U64
+    while $i < List.len(arms) {
+        match List.get(arms, $i) {
+            Ok(arm) => {
+                pat = Str.trim(Cursor.slice(src, arm.pattern))
+                $out = Str.concat($out, Str.concat(emit_spaces(indent + 1), Str.concat(pat, " => ")))
+                $out = Str.concat($out, Str.concat(emit_node(block, src, stamp, arm.value, indent + 1), "\n"))
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    Str.concat($out, Str.concat(emit_spaces(indent), "}"))
 }
 
 emit_spaces = |n| {
@@ -1383,6 +1654,12 @@ emit_quote = |value| {
             Ok(10) => {
                 $out = Str.concat($out, "\\n")
             }
+            Ok(13) => {
+                $out = Str.concat($out, "\\r")
+            }
+            Ok(9) => {
+                $out = Str.concat($out, "\\t")
+            }
             Ok(_) => {
                 ch = Cursor.slice(value, { start: $i, end: $i + 1 })
                 $out = Str.concat($out, ch)
@@ -1394,16 +1671,583 @@ emit_quote = |value| {
     Str.concat($out, "\"")
 }
 
-do_compile_src = |src, _file_name| {
-    name = extract_component_name(src)
-    pattern = extract_param_pattern(src)
-    body = extract_template_body(src)
-    inner = do_lower_body(body, 1)
+do_compile_src = |src, file_name| {
+    bytes = Str.to_utf8(src)
+    file_css = collect_file_css(src)
+    imported_ds = str_contains(src, "import Datastar")
+    needs_ds =
+        str_contains(src, "@get(")
+        or str_contains(src, "@post(")
+        or str_contains(src, "@put(")
+        or str_contains(src, "@patch(")
+        or str_contains(src, "@delete(")
+    var $out =
+        if needs_ds and !imported_ds {
+            "import Datastar\n\n"
+        } else {
+            ""
+        }
+    var $i = 0.U64
+    var $opaque = 0.U64
+    while $i < bytes.len() {
+        $i = skip_ws_bytes(bytes, $i)
+        if $i >= bytes.len() {
+            break
+        }
+        if at_bytes(bytes, $i, "@component") {
+            start_i = $i
+            if $opaque < $i {
+                $out = Str.concat($out, Cursor.slice(src, { start: $opaque, end: $i }))
+            }
+            taken = take_component_bytes(src, bytes, $i)
+            $out = Str.concat(
+                $out,
+                emit_component(file_name, file_css, taken.name, taken.params, taken.body),
+            )
+            $opaque = taken.end
+            $i = taken.end
+            if $i <= start_i {
+                $i = start_i + 1
+            }
+        } else if at_bytes(bytes, $i, "@fixture") {
+            if $opaque < $i {
+                $out = Str.concat($out, Cursor.slice(src, { start: $opaque, end: $i }))
+            }
+            taken = take_fixture_bytes(src, bytes, $i)
+            $out = Str.concat($out, emit_named_fixture(taken.name, taken.value))
+            $opaque = taken.end
+            $i = taken.end
+        } else if at_bytes(bytes, $i, "@css") {
+            $i = skip_at_block_bytes(bytes, $i)
+            $opaque = $i
+        } else if at_bytes(bytes, $i, "@test") {
+            $i = skip_test_bytes(bytes, $i)
+            $opaque = $i
+        } else if at_bytes(bytes, $i, "@") {
+            $i = skip_at_block_bytes(bytes, $i)
+            $opaque = $i
+        } else {
+            $i = $i + 1
+        }
+    }
+    src_len = bytes.len()
+    if $opaque < src_len {
+        $out = Str.concat($out, Cursor.slice(src, { start: $opaque, end: src_len }))
+    }
+    $out
+}
+
+emit_component = |file_name, file_css, name, params, body| {
     roc_name = pascal_to_camel(name)
-    Str.concat(
-        roc_name,
-        Str.concat(" = ", Str.concat(pattern, Str.concat(" {\n", Str.concat(inner, "\n}\n\n")))),
-    )
+    pattern = param_pattern(params)
+    parsed = do_parse_body(Cursor.new(body))
+    comp_css = collect_body_css(parsed.block, body)
+    file_id = if file_css == "" { "" } else { file_scope_id(file_name) }
+    comp_id = if comp_css == "" { "" } else { component_scope_id(file_name, roc_name) }
+    stamp = join_stamp(file_id, comp_id)
+    inject = join_scoped_css(file_css, file_id, comp_css, comp_id)
+    inner = emit_html_value(parsed.block, body, stamp, 1, inject)
+    Str.concat(roc_name, Str.concat(" = ", Str.concat(pattern, Str.concat(" {\n", Str.concat(inner, "\n}\n")))))
+}
+
+emit_named_fixture = |name, value| {
+    roc_name = pascal_to_camel(name)
+    Str.concat(roc_name, Str.concat(" = ", Str.concat(value, "\n")))
+}
+
+join_stamp = |file_id, comp_id| {
+    if file_id == "" {
+        comp_id
+    } else if comp_id == "" {
+        file_id
+    } else {
+        Str.concat(file_id, Str.concat(" ", comp_id))
+    }
+}
+
+join_scoped_css = |file_css, file_id, comp_css, comp_id| {
+    file_part = if file_css == "" or file_id == "" { "" } else { scope_css(file_css, file_id) }
+    comp_part = if comp_css == "" or comp_id == "" { "" } else { scope_css(comp_css, comp_id) }
+    if file_part == "" {
+        comp_part
+    } else if comp_part == "" {
+        file_part
+    } else {
+        Str.concat(file_part, Str.concat("\n", comp_part))
+    }
+}
+
+scope_css = |css, id| {
+    trimmed = Str.trim(css)
+    Str.concat("@scope ([data-rocci-css~=\"", Str.concat(id, Str.concat("\"]) {\n", Str.concat(trimmed, "\n}"))))
+}
+
+collect_file_css = |src| {
+    bytes = Str.to_utf8(src)
+    var $i = 0.U64
+    var $css = ""
+    var $depth = 0.U64
+    while $i < bytes.len() {
+        if $depth == 0 and at_bytes(bytes, $i, "@css") {
+            $i = skip_ws_bytes(bytes, $i + 4)
+            if at_bytes(bytes, $i, "{") {
+                end = skip_braces_bytes(bytes, $i)
+                inner = Str.trim(Cursor.slice(src, { start: $i + 1, end: sat_sub(end) }))
+                if $css == "" {
+                    $css = inner
+                } else {
+                    $css = Str.concat($css, Str.concat("\n", inner))
+                }
+                $i = end
+            } else {
+                $i = $i + 1
+            }
+        } else {
+            match List.get(bytes, $i) {
+                Ok(34) => {
+                    $i = $i + 1
+                    while $i < bytes.len() and List.get(bytes, $i) != Ok(34) {
+                        if List.get(bytes, $i) == Ok(92) {
+                            $i = $i + 1
+                        }
+                        $i = $i + 1
+                    }
+                    $i = $i + 1
+                }
+                Ok(123) => {
+                    $depth = $depth + 1
+                    $i = $i + 1
+                }
+                Ok(125) => {
+                    $depth = sat_sub($depth)
+                    $i = $i + 1
+                }
+                _ => {
+                    $i = $i + 1
+                }
+            }
+        }
+    }
+    $css
+}
+
+at_bytes = |bytes, i, needle| {
+    n = Str.to_utf8(needle)
+    nlen = n.len()
+    if i + nlen > bytes.len() {
+        Bool.False
+    } else {
+        List.sublist(bytes, { start: i, len: nlen }) == n
+    }
+}
+
+skip_ws_bytes = |bytes, i| {
+    var $i = i
+    var $loop = Bool.True
+    while $loop and $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(32) => {
+                $i = $i + 1
+            }
+            Ok(9) => {
+                $i = $i + 1
+            }
+            Ok(10) => {
+                $i = $i + 1
+            }
+            Ok(13) => {
+                $i = $i + 1
+            }
+            _ => {
+                $loop = Bool.False
+            }
+        }
+    }
+    $i
+}
+
+skip_braces_bytes = |bytes, i| {
+    var $i = i
+    var $depth = 0.U64
+    var $loop = Bool.True
+    while $loop and $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(34) => {
+                $i = $i + 1
+                while $i < bytes.len() and List.get(bytes, $i) != Ok(34) {
+                    if List.get(bytes, $i) == Ok(92) {
+                        $i = $i + 1
+                    }
+                    $i = $i + 1
+                }
+                $i = $i + 1
+            }
+            Ok(123) => {
+                $depth = $depth + 1
+                $i = $i + 1
+            }
+            Ok(125) => {
+                $depth = sat_sub($depth)
+                $i = $i + 1
+                if $depth == 0 {
+                    $loop = Bool.False
+                }
+            }
+            _ => {
+                $i = $i + 1
+            }
+        }
+    }
+    $i
+}
+
+take_component_bytes = |src, bytes, start| {
+    var $i = start + 10
+    $i = skip_ws_bytes(bytes, $i)
+    name = scan_ident_bytes(src, bytes, $i)
+    $i = skip_ws_bytes(bytes, name.end)
+    if at_bytes(bytes, $i, "=") {
+        $i = skip_ws_bytes(bytes, $i + 1)
+    }
+    params = take_pipes_bytes(src, bytes, $i)
+    $i = skip_ws_bytes(bytes, params.end)
+    body_start = $i
+    if at_bytes(bytes, $i, "{") {
+        $i = skip_braces_bytes(bytes, $i)
+    }
+    {
+        name: name.text,
+        params: params.text,
+        body: Cursor.slice(src, { start: body_start, end: $i }),
+        end: $i,
+    }
+}
+
+take_fixture_bytes = |src, bytes, start| {
+    var $i = start + 8
+    $i = skip_ws_bytes(bytes, $i)
+    if at_bytes(bytes, $i, "{") {
+        $i = skip_braces_bytes(bytes, $i)
+    }
+    $i = skip_ws_bytes(bytes, $i)
+    name = scan_ident_bytes(src, bytes, $i)
+    $i = skip_ws_bytes(bytes, name.end)
+    if at_bytes(bytes, $i, "=") {
+        $i = $i + 1
+    }
+    $i = skip_ws_bytes(bytes, $i)
+    val_start = $i
+    $i = skip_expr_bytes(bytes, $i)
+    {
+        name: name.text,
+        value: Str.trim(Cursor.slice(src, { start: val_start, end: $i })),
+        end: $i,
+    }
+}
+
+skip_test_bytes = |bytes, start| {
+    var $i = start + 5
+    $i = skip_ws_bytes(bytes, $i)
+    if at_bytes(bytes, $i, "{") {
+        $i = skip_braces_bytes(bytes, $i)
+    }
+    $i = skip_ws_bytes(bytes, $i)
+    name = scan_ident_bytes_only(bytes, $i)
+    $i = skip_ws_bytes(bytes, name)
+    if at_bytes(bytes, $i, "=") {
+        $i = $i + 1
+    }
+    skip_expr_bytes(bytes, skip_ws_bytes(bytes, $i))
+}
+
+skip_at_block_bytes = |bytes, start| {
+    var $i = start + 1
+    $i = scan_ident_bytes_only(bytes, $i)
+    if at_bytes(bytes, $i, ":") {
+        $i = scan_ident_bytes_only(bytes, $i + 1)
+    }
+    $i = skip_ws_bytes(bytes, $i)
+    if at_bytes(bytes, $i, "(") {
+        $i = skip_parens_bytes(bytes, $i)
+    }
+    $i = skip_ws_bytes(bytes, $i)
+    if at_bytes(bytes, $i, "{") {
+        skip_braces_bytes(bytes, $i)
+    } else {
+        skip_expr_bytes(bytes, $i)
+    }
+}
+
+take_pipes_bytes = |src, bytes, start| {
+    if !at_bytes(bytes, start, "|") {
+        { text: "||", end: start }
+    } else {
+        var $i = start + 1
+        while $i < bytes.len() and List.get(bytes, $i) != Ok(124) {
+            $i = $i + 1
+        }
+        if at_bytes(bytes, $i, "|") {
+            $i = $i + 1
+        }
+        { text: Cursor.slice(src, { start: start, end: $i }), end: $i }
+    }
+}
+
+scan_ident_bytes = |src, bytes, start| {
+    end = scan_ident_bytes_only(bytes, start)
+    { text: Cursor.slice(src, { start: start, end: end }), end: end }
+}
+
+scan_ident_bytes_only = |bytes, start| {
+    var $i = start
+    if $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(b) if (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 => {
+                $i = $i + 1
+                while $i < bytes.len() {
+                    match List.get(bytes, $i) {
+                        Ok(c) if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95 => {
+                            $i = $i + 1
+                        }
+                        _ => break
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    $i
+}
+
+skip_parens_bytes = |bytes, i| {
+    var $i = i
+    var $depth = 0.U64
+    var $loop = Bool.True
+    while $loop and $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(40) => {
+                $depth = $depth + 1
+                $i = $i + 1
+            }
+            Ok(41) => {
+                $depth = sat_sub($depth)
+                $i = $i + 1
+                if $depth == 0 {
+                    $loop = Bool.False
+                }
+            }
+            Ok(34) => {
+                $i = $i + 1
+                while $i < bytes.len() and List.get(bytes, $i) != Ok(34) {
+                    $i = $i + 1
+                }
+                $i = $i + 1
+            }
+            _ => {
+                $i = $i + 1
+            }
+        }
+    }
+    $i
+}
+
+skip_expr_bytes = |bytes, start| {
+    var $i = start
+    var $paren = 0.U64
+    var $bracket = 0.U64
+    var $brace = 0.U64
+    var $loop = Bool.True
+    while $loop and $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(10) if $paren == 0 and $bracket == 0 and $brace == 0 and $i > start => {
+                $loop = Bool.False
+            }
+            Ok(64) if $paren == 0 and $bracket == 0 and $brace == 0 and $i > start => {
+                $loop = Bool.False
+            }
+            Ok(40) => {
+                $paren = $paren + 1
+                $i = $i + 1
+            }
+            Ok(41) => {
+                $paren = sat_sub($paren)
+                $i = $i + 1
+            }
+            Ok(91) => {
+                $bracket = $bracket + 1
+                $i = $i + 1
+            }
+            Ok(93) => {
+                $bracket = sat_sub($bracket)
+                $i = $i + 1
+            }
+            Ok(123) => {
+                $brace = $brace + 1
+                $i = $i + 1
+            }
+            Ok(125) => {
+                $brace = sat_sub($brace)
+                $i = $i + 1
+            }
+            Ok(34) => {
+                $i = $i + 1
+                while $i < bytes.len() and List.get(bytes, $i) != Ok(34) {
+                    if List.get(bytes, $i) == Ok(92) {
+                        $i = $i + 1
+                    }
+                    $i = $i + 1
+                }
+                $i = $i + 1
+            }
+            _ => {
+                $i = $i + 1
+            }
+        }
+    }
+    $i
+}
+
+file_scope_id = |file_name| {
+    key = file_basename(file_name)
+    stem = file_stem(key)
+    hash = fnv1a32(Str.to_utf8(key))
+    Str.concat(stem, Str.concat("-", hex8(hash)))
+}
+
+component_scope_id = |file_name, component| {
+    key = file_basename(file_name)
+    bytes = List.concat(Str.to_utf8(key), List.prepend(Str.to_utf8(component), 0))
+    hash = fnv1a32(bytes)
+    Str.concat(sanitize_ident(component), Str.concat("-", hex8(hash)))
+}
+
+file_basename = |path| {
+    bytes = Str.to_utf8(path)
+    var $i = bytes.len()
+    var $start = 0.U64
+    while $i > 0 {
+        $i = $i - 1
+        match List.get(bytes, $i) {
+            Ok(47) => {
+                $start = $i + 1
+                break
+            }
+            Ok(92) => {
+                $start = $i + 1
+                break
+            }
+            _ => {}
+        }
+    }
+    Cursor.slice(path, { start: $start, end: bytes.len() })
+}
+
+file_stem = |name| {
+    bytes = Str.to_utf8(name)
+    var $dot = bytes.len()
+    var $i = bytes.len()
+    var $found = Bool.False
+    while $i > 0 and !$found {
+        $i = $i - 1
+        if List.get(bytes, $i) == Ok(46) {
+            $dot = $i
+            $found = Bool.True
+        }
+    }
+    raw = if $found { Cursor.slice(name, { start: 0, end: $dot }) } else { name }
+    sanitize_ident(raw)
+}
+
+sanitize_ident = |name| {
+    bytes = Str.to_utf8(name)
+    var $out = ""
+    var $i = 0.U64
+    while $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(b) if (b >= 48 and b <= 57) or (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 45 or b == 95 => {
+                $out = Str.concat($out, Cursor.slice(name, { start: $i, end: $i + 1 }))
+            }
+            Ok(_) => {
+                if $out != "" and !str_ends_with($out, "-") {
+                    $out = Str.concat($out, "-")
+                }
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    if $out == "" {
+        "file"
+    } else {
+        $out
+    }
+}
+
+fnv1a32 = |bytes| {
+    var $hash = 2166136261.U64
+    var $i = 0.U64
+    while $i < bytes.len() {
+        match List.get(bytes, $i) {
+            Ok(b) => {
+                $hash = U64.bitwise_xor($hash, U8.to_u64(b))
+                $hash = $hash * 16777619
+                $hash = U64.bitwise_and($hash, 4294967295)
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    $hash
+}
+
+hex8 = |n| {
+    var $out = ""
+    var $v = n
+    var $k = 0.U64
+    while $k < 8 {
+        nib = U64.bitwise_and($v, 15)
+        $out = Str.concat(hex_digit(nib), $out)
+        $v = $v / 16
+        $k = $k + 1
+    }
+    $out
+}
+
+hex_digit = |n| {
+    digits = "0123456789abcdef"
+    Cursor.slice(digits, { start: n, end: n + 1 })
+}
+
+str_contains = |text, needle| {
+    bytes = Str.to_utf8(text)
+    n = Str.to_utf8(needle)
+    nlen = n.len()
+    if nlen == 0 {
+        Bool.True
+    } else {
+        var $i = 0.U64
+        var $found = Bool.False
+        while $i + nlen <= bytes.len() and !$found {
+            if List.sublist(bytes, { start: $i, len: nlen }) == n {
+                $found = Bool.True
+            } else {
+                $i = $i + 1
+            }
+        }
+        $found
+    }
+}
+
+str_ends_with = |s, needle| {
+    sb = Str.to_utf8(s)
+    nb = Str.to_utf8(needle)
+    nlen = nb.len()
+    slen = sb.len()
+    if nlen > slen {
+        Bool.False
+    } else {
+        List.sublist(sb, { start: slen - nlen, len: nlen }) == nb
+    }
 }
 
 extract_component_name = |src| {
@@ -1721,4 +2565,26 @@ expect {
 expect {
     src = "@component Hello = |{ name : Str }| {\n    <p>Hello, {name}!</p>\n}\n"
     do_compile_src(src, "hello.rocci") == hello_emitted
+}
+
+branch_emitted = "branch = |{ ready }| {\n    if ready {\n        Html.element(\n            \"p\",\n            [],\n            [\n                Html.text(\"ok\"),\n            ],\n        )\n    } else {\n        Html.element(\n            \"p\",\n            [],\n            [\n                Html.text(\"no\"),\n            ],\n        )\n    }\n}\n\n"
+
+expect {
+    src = "@component Branch = |{ ready : Bool }| {\n    @if ready {\n        <p>ok</p>\n    } @else {\n        <p>no</p>\n    }\n}\n"
+    do_compile_src(src, "branch.rocci") == branch_emitted
+}
+
+expect {
+    src = "@css {\n    body { margin: 0; }\n}\n\n@component Card = |{}| {\n    @css {\n        .card { color: red; }\n    }\n    <div class=\"card\">x</div>\n}\n"
+    got = do_compile_src(src, "css.rocci")
+    str_contains(got, "css-e7b6899e")
+    and str_contains(got, "card-98509670")
+    and str_contains(got, "Html.fragment")
+    and str_contains(got, "data-rocci-css")
+}
+
+expect {
+    src = "@component Hello = |{ name : Str }| {\n    <p>{name}</p>\n}\n\n@fixture{target: Hello}\nhelloSample = { name: \"Ada\" }\n\n@test helloNamePresent = Bool.true\n"
+    got = do_compile_src(src, "markers.rocci")
+    str_contains(got, "helloSample = { name: \"Ada\" }") and !str_contains(got, "@test") and !str_contains(got, "@fixture")
 }

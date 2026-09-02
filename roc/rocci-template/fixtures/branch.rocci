@@ -1,0 +1,7 @@
+@component Branch = |{ ready : Bool }| {
+    @if ready {
+        <p>ok</p>
+    } @else {
+        <p>no</p>
+    }
+}

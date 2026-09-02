@@ -293,6 +293,30 @@ to skip routes to make a golden easier.
 A short list of known mismatches vs AllSyntax is recorded in the research
 or this plan as a draft revision.
 
+**Phase 4 pin (2026-09-02, `nightly-2026-08-23-fb208ba`):** Hello golden stays
+byte-identical to Rust. `branch.rocci` (`@if`/`@else`) is byte-identical.
+File + component `@css` emit the same `file_scope_id` /
+`component_scope_id` stamps as Rust (`css-e7b6899e`, `card-98509670`);
+`roc check roc/rocci-template/check/{hello,branch,css}.roc` is clean with a
+stub `Html`. `@fixture` bindings are copied and `@test` is stripped.
+
+Known mismatches vs `test/AllSyntax.rocci` / remaining fixtures:
+
+- Routes (`@get:view` and the rest of `@method:role`) are skipped here;
+  Rust lowers them. AllSyntax stays out of bound until that skip matches
+  Rust (it will not: Rust emits handlers).
+- Qualified `<Design.Button />` parses as `ComponentCall` but the emitted
+  call string is not yet byte-identical to `Design.button(...)`.
+- CSS `Html.fragment` wrapping can differ in whitespace from Rust even
+  when scope ids match.
+- Type-position `??` defaults are not emitted as annotations.
+- `Parse.roc` and `Template.roc` cannot be imported into the same file
+  (open-union / Cursor method collision). Compile walks bytes in
+  `Template.roc`; `collect_file_css` must not use `Cursor.skip_roc_token`
+  in that file. Do not match `Ok(BodyCss(_))` on `List.get` in
+  `Template.roc`.
+- In-body `@css` is `BodyCss` so it does not merge with file-level `Css`.
+
 ## Phase 5: Compiler app
 
 **Bound:** `roc/rocci-template/app.roc` reads a path (and stdin `-`), writes

@@ -1,0 +1,8 @@
+@component Hello = |{ name : Str }| {
+    <p>{name}</p>
+}
+
+@fixture{target: Hello}
+helloSample = { name: "Ada" }
+
+@test helloNamePresent = Bool.true

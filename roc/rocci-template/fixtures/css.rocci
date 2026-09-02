@@ -1,0 +1,10 @@
+@css {
+    body { margin: 0; }
+}
+
+@component Card = |{}| {
+    @css {
+        .card { color: red; }
+    }
+    <div class="card">x</div>
+}
