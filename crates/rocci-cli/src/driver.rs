@@ -47,6 +47,7 @@ pub struct GenericAppPlan {
     pub modules: Vec<GenericModule>,
     pub redirect_trailing_slash: bool,
     pub log_handlers: bool,
+    pub platform: Option<String>,
 }
 
 impl GenericAppPlan {
@@ -66,6 +67,7 @@ impl GenericAppPlan {
     }
 
     fn main_roc_with_options(&self, platform: Option<&str>) -> String {
+        let platform = platform.or(self.platform.as_deref());
         let primary = &self.modules[0];
         let siblings: Vec<DispatchSource<'_>> = self.modules[1..]
             .iter()
@@ -320,8 +322,13 @@ pub(crate) fn stage_app_workspace(
     plan.validate_dispatch()?;
     let type_name = plan.primary_name.clone();
     let workspace = TempDir::create(kind)?;
-    runtime_assets::stage_into(&workspace.path)?;
+    if !crate::dispatch::uses_rocci_platform(plan.platform.as_deref()) {
+        runtime_assets::stage_into(&workspace.path)?;
+    }
     copy_sibling_roc(src_dir, &workspace.path, &type_name)?;
+    if crate::dispatch::uses_rocci_platform(plan.platform.as_deref()) {
+        rewrite_workspace_runtime_imports(&workspace.path)?;
+    }
     let sibling_assets = src_dir.join("assets");
     let workspace_assets = workspace.path.join("assets");
     if sibling_assets.is_dir() {
@@ -371,7 +378,13 @@ pub(crate) fn stage_app_workspace(
     for module in &plan.modules {
         fs::write(
             workspace.path.join(format!("{}.roc", module.type_name)),
-            wrap_type_module(&module.roc, &module.type_name),
+            wrap_type_module(
+                &crate::dispatch::rewrite_runtime_imports_for_pin(
+                    &module.roc,
+                    plan.platform.as_deref(),
+                ),
+                &module.type_name,
+            ),
         )
         .with_context(|| format!("failed to write {}.roc", module.type_name))?;
     }
@@ -387,6 +400,49 @@ pub fn compile_app_plan(
     target: Option<crate::native_target::NativeTarget>,
 ) -> Result<()> {
     compile_app_plan_with_options(plan, src_dir, output, target, false)
+}
+
+pub fn compile_standalone_input(
+    input: &Path,
+    output: &Path,
+    platform: Option<String>,
+    verbose: bool,
+) -> Result<()> {
+    let cwd = env::current_dir()?;
+    let input = if input.is_absolute() {
+        input.to_path_buf()
+    } else {
+        cwd.join(input)
+    };
+    let entry = if input.is_dir() {
+        crate::run::resolve_standalone_entry(&input)?
+    } else {
+        input.clone()
+    };
+    let src_dir = entry
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or(cwd);
+    let mut plan = crate::run::standalone_app_plan(&entry)?;
+    plan.platform = platform;
+    compile_app_plan_with_options(&plan, &src_dir, output, None, verbose)
+}
+
+pub fn compile_custom_app_dir(app_dir: &Path, output: &Path, verbose: bool) -> Result<()> {
+    let app_dir = if app_dir.is_absolute() {
+        app_dir.to_path_buf()
+    } else {
+        env::current_dir()?.join(app_dir)
+    };
+    crate::datastar_asset::ensure_app(&app_dir, crate::datastar_asset::HintMode::Print)?;
+    if !crate::dispatch::source_pins_rocci_platform(
+        &fs::read_to_string(app_dir.join("main.roc")).unwrap_or_default(),
+    ) {
+        runtime_assets::stage_into(&app_dir)?;
+    }
+    crate::run::compile_rocci_modules(&app_dir)?;
+    crate::native_target::build_roc_server_with_options(&app_dir, output, None, verbose)
 }
 
 pub fn compile_app_plan_with_options(
@@ -700,6 +756,25 @@ pub fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<
     let skip = format!("{type_name}.roc");
     let mut seen = HashMap::new();
     copy_authored_roc(src_dir, dest, &skip, &mut seen)
+}
+
+pub(crate) fn rewrite_workspace_runtime_imports(dir: &Path) -> Result<()> {
+    if !dir.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("roc") {
+            continue;
+        }
+        let src = fs::read_to_string(&path)?;
+        let rewritten = crate::dispatch::rewrite_runtime_imports_for_pin(&src, None);
+        if rewritten != src {
+            fs::write(&path, rewritten)
+                .with_context(|| format!("rewrite imports in {}", path.display()))?;
+        }
+    }
+    Ok(())
 }
 
 fn skip_staging_dir(name: &str) -> bool {

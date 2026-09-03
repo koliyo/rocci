@@ -1,7 +1,7 @@
 ---
 type: Research Report
 title: A Roc-native template parser and lowerer
-description: "Exploratory proof of concept: a parallel Roc port of template parse and lower that aims at emit parity with crates/rocci-template. Rust stays the product compiler. Long-term vision is running templates from Roc; this record does not replace the Rust crate. Not shipped."
+description: "Exploratory proof of concept: a parallel Roc port of template parse and lower that aims at emit parity with crates/rocci-template. Rust stays the product compiler. Motivating vision is consuming pure .rocci templates in a normal Roc app with no rocci CLI; this record does not replace the Rust crate. Not shipped."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture, concern/language-design, concern/tooling]
 status: draft
 generated: { by: process:cursor, at: 2026-09-03T07:20:00Z }
@@ -149,6 +149,11 @@ sources:
     title: Implementation findings on nightly-2026-08-23-fb208ba
     author: process:cursor
     last_modified: 2026-09-03
+  - id: platform-postmortem
+    resource: ../../audits/rocci/rocci-as-roc-platform-postmortem.md
+    title: Rocci-as-platform post-mortem
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # A Roc-native template parser and lowerer
@@ -168,15 +173,24 @@ Roc). Goldens compare Roc output to `cargo run -p rocci-template -- build`.
 The two implementations are maintained **in parallel**: Rust on `main`'s
 product path; the Roc port on git branch `roc-native-template-compiler`.[^plan]
 
-**Long-term vision** (not this POC's delivery): a world where a Roc app can
-compile a `.rocci` template without linking the Rust crate. That vision
-motivates the port. It does not change who compiles production `.rocci`
-today.[^template-lib][^pure-render]
+**Long-term vision** (not this POC's delivery, not assumed soon): use
+Rocci **inside ordinary Roc**, with **no rocci CLI or tooling**. A
+`.rocci` template is loaded/consumed into a normal Roc application —
+especially **pure templates** (`@component` / `@css`, no `@init`, no
+routes, no server). The host app keeps its own platform (`basic-cli`,
+rocci-platform, or another). That vision motivates the port. It does
+not change who compiles production `.rocci` today.[^template-lib][^pure-render][^postmortem]
+
+There is still no `import Hello.rocci`. Honest consumption is: a Roc
+package lowers the template to `.roc`, then the host `import`s that
+module. End state C (`roc` learns `.rocci`) stays a Roc-lang change.[^roc-tutorial]
 
 It is the template half of the hybrid already named in [handlers as a Roc
 library](method-role-handlers-as-roc-library.md): keep `@component` / `@css`
 as a grammar. The library paper's route constructors are a different
 fork.[^roc-library]
+
+Related: [platform post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).[^platform-postmortem]
 
 ## What "run from Roc without Rust" can mean
 
@@ -196,9 +210,10 @@ Honest end states, in order of ambition:
 | **C. `roc` learns `.rocci`** | Compiler plugin or custom file type | Out of Rocci's hands |
 | **D. Runtime interpreter** | Parse markup and eval `{expr}` at run time | Non-goal |
 
-**Parity on A is the POC exit.** A+B is the long-term vision, not a product
-switch. C is a Roc-lang change. D is a non-goal: interpolations are opaque
-Roc *source*, not values.[^parser][^pure-render]
+**Parity on A is the POC exit.** A+B is the long-term vision: a normal
+Roc app consumes a lowered template with no rocci CLI, especially pure
+templates. Not a product switch. C is a Roc-lang change. D is a
+non-goal: interpolations are opaque Roc *source*, not values.[^parser][^pure-render]
 
 "Without Rust" in the vision sense means without this workspace's template
 crate. The POC still uses `roc` and still compares against Rust. Product
@@ -414,10 +429,16 @@ main! = |_| {
 }
 ```
 
-That `Hello.roc` is generated. The app never links `rocci-template`.
-Rendering still needs whatever `Html` the generated module imported
-(`import pf.Html` vs `import Html`); v1 can require the same import the
-Rust lowerer copies through.[^template-readme][^html-runtime]
+That `Hello.roc` is generated. The app never links `rocci-template` and
+never runs `rocci`. This is the motivating consumption shape: a normal
+Roc app calls a pure component.[^template-readme][^html-runtime]
+
+Rendering still needs an `Html` module the host can see. One platform
+per app: `import pf.Html` works only if **this** app's platform exposes
+`Html`. A `basic-cli` host cannot import rocci-platform's `pf.Html`.
+For pure templates in a foreign platform, Html has to be a **package**
+or a local module, not rocci-platform `exposes`. v1 can still copy
+through `import Html` the way Rust does today.[^html-runtime][^postmortem]
 
 A headerless `roc Hello.roc` only works if lowering also emitted `main!`,
 which **pure components do not**. Running a template "directly" means a
@@ -548,3 +569,4 @@ not restated here.[^postmortem]
 [^roc-parser-string]: `String :: {}.{` and `List(U8)` leftover parsing.
 [^cursor-spike]: `var $cur` plus `{ ..$cur, pos: n }`; `skip_string` understands `"\${"`; `roc test roc/rocci-template/main.roc`.
 [^postmortem]: Open-union merge, `parse = do_parse`, Parse/Template isolation; not product behavior.
+[^platform-postmortem]: Platform Html on pf is for apps that pin rocci; pure-template hosts on another platform need a package or local Html.

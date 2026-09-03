@@ -98,13 +98,63 @@ fn roc_build_staged_standalone_locked(relative: &str) -> crate::driver::TempDir 
     workspace
 }
 
+fn smoke_server(workspace: &crate::driver::TempDir, label: &str) -> (KillOnDrop, u16) {
+    let server = workspace.path.join("server");
+    let port = crate::serve::free_port().expect("free port");
+    let mut child = KillOnDrop(
+        Command::new(&server)
+            .current_dir(&workspace.path)
+            .env("ROC_BASIC_WEBSERVER_HOST", "127.0.0.1")
+            .env("ROC_BASIC_WEBSERVER_PORT", port.to_string())
+            .stdout(Stdio::null())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .unwrap_or_else(|err| panic!("spawn {label} server: {err}")),
+    );
+    if let Err(err) =
+        crate::serve::wait_for_server(&mut child.0, port, crate::logs::Progress::default())
+    {
+        panic!("{label} server did not listen: {err:#}");
+    }
+    (child, port)
+}
+
 #[test]
 fn live_counter_generated_app_roc_builds() {
     if skip_without_roc() {
         return;
     }
-    let _workspace =
-        roc_build_staged_standalone("examples/rocci/standalone/live-counter/LiveCounter.rocci");
+    let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+    let workspace = roc_build_staged_standalone_locked(
+        "examples/rocci/standalone/live-counter/LiveCounter.rocci",
+    );
+    let main = fs::read_to_string(workspace.path.join("main.roc")).expect("read generated main");
+    assert!(
+        !main.contains("basic-webserver/releases/download/0.16.0"),
+        "{main}"
+    );
+    assert!(
+        main.contains("crates/rocci-platform/platform/main.roc")
+            || main.contains("rocci-platform/platform/main.roc"),
+        "{main}"
+    );
+    let (_child, port) = smoke_server(&workspace, "live-counter");
+    let document = http_exchange(
+        port,
+        &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(document.contains("200"), "{document}");
+    assert!(document.contains("Live counter"), "{document}");
+    let increment = http_exchange(
+        port,
+        &format!(
+            "POST /actions/counter/increment HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        increment.contains("204") || increment.contains("200"),
+        "{increment}"
+    );
 }
 
 #[test]
@@ -112,7 +162,32 @@ fn counter_generated_app_roc_builds() {
     if skip_without_roc() {
         return;
     }
-    let _workspace = roc_build_staged_standalone("examples/rocci/standalone/counter/Counter.rocci");
+    let _guard = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+    let workspace =
+        roc_build_staged_standalone_locked("examples/rocci/standalone/counter/Counter.rocci");
+    let main = fs::read_to_string(workspace.path.join("main.roc")).expect("read generated main");
+    assert!(
+        !main.contains("basic-webserver/releases/download/0.16.0"),
+        "{main}"
+    );
+    let (_child, port) = smoke_server(&workspace, "counter");
+    let document = http_exchange(
+        port,
+        &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+    );
+    assert!(document.contains("200"), "{document}");
+    assert!(document.contains("Welcome to Rocci"), "{document}");
+    assert!(document.contains("id=\"counter\""), "{document}");
+    let increment = http_exchange(
+        port,
+        &format!(
+            "POST /actions/counter/increment HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        ),
+    );
+    assert!(
+        increment.contains("datastar-patch-elements") && increment.contains("counter"),
+        "{increment}"
+    );
 }
 
 #[test]

@@ -59,14 +59,23 @@ enum Commands {
         /// Experimental WASI HTTP component compiled from the input `.rocci`
         /// entry (sibling `.rocci` / `.roc` in the standalone tree included;
         /// not `--host wasm` apply). Writes a `wasi:http/service` artifact
-        /// for `wasmtime serve`; `rocci run` stays native 0.16.
+        /// for `wasmtime serve`; `rocci run` stays native Rocci platform.
         #[arg(long)]
         http_module: bool,
+        /// Pin generated apps to the in-tree Rocci platform (`rocci`).
+        /// Default is already that pin; `--http-module` still requires 0.16.0.
+        /// Also `ROCCI_PLATFORM=rocci`.
+        #[arg(long, value_name = "NAME", env = "ROCCI_PLATFORM")]
+        platform: Option<String>,
     },
     /// Compile sibling .rocci modules and run a Roc app, or run a standalone .rocci file.
     Run {
         #[command(flatten)]
         serve: serve::ServeOptions,
+        /// Pin generated apps to the in-tree Rocci platform (`rocci`).
+        /// Default is already that pin. Also `ROCCI_PLATFORM=rocci`.
+        #[arg(long, value_name = "NAME", env = "ROCCI_PLATFORM")]
+        platform: Option<String>,
         /// Roc app file, directory, or standalone .rocci file
         #[arg(default_value = "main.roc")]
         file: PathBuf,
@@ -193,7 +202,12 @@ fn try_main() -> Result<()> {
             verbose,
             opt,
             http_module,
+            platform,
         } => {
+            if http_module && platform.is_some() {
+                bail!("`--http-module` requires basic-webserver 0.16.0; do not pass `--platform`");
+            }
+            let platform = rocci_cli::resolve_platform_pin(platform.as_deref())?;
             if http_module {
                 if release {
                     bail!("`--http-module` is not a musl/process `--release` package");
@@ -224,31 +238,55 @@ fn try_main() -> Result<()> {
                     target,
                     verbose,
                     opt,
+                    platform.clone(),
                 )?;
                 println!(
                     "{}",
                     style::success_text(&report.output.display().to_string())
                 );
                 Ok(())
+            } else if let Some(platform) = platform {
+                if target.is_some() || opt.is_some() {
+                    bail!(
+                        "`--target` and `--opt` require `--release` (Linux server packaging, not template-to-Roc)"
+                    );
+                }
+                build_standalone_with_platform(&input, output.as_deref(), platform, verbose)
             } else {
                 if target.is_some() || opt.is_some() {
                     bail!(
                         "`--target` and `--opt` require `--release` (Linux server packaging, not template-to-Roc)"
                     );
                 }
-                build_module(&input, output.as_deref())
+                if input.is_dir() && input.join("main.roc").is_file() {
+                    let dest = output.clone().unwrap_or_else(|| PathBuf::from("server"));
+                    rocci_cli::driver::compile_custom_app_dir(&input, &dest, verbose)?;
+                    println!("{}", style::success_text(&dest.display().to_string()));
+                    Ok(())
+                } else {
+                    build_module(&input, output.as_deref())
+                }
             }
         }
-        Commands::Run { file, args, serve } => run::run(
-            &file,
-            &args,
-            serve.no_window,
-            serve.port,
-            serve.live_reload(),
-            serve.log_handlers,
-            serve.verbose,
-            serve.public,
-        ),
+        Commands::Run {
+            file,
+            args,
+            serve,
+            platform,
+        } => {
+            let platform = rocci_cli::resolve_platform_pin(platform.as_deref())?;
+            run::run(
+                &file,
+                &args,
+                serve.no_window,
+                serve.port,
+                serve.live_reload(),
+                serve.log_handlers,
+                serve.verbose,
+                serve.public,
+                platform,
+            )
+        }
         Commands::Inspect { input, ast } => inspect_module(&input, ast),
         Commands::Ast { input } => ast_module(&input),
         Commands::Test { path } => rocci_test::run(&path),
@@ -303,6 +341,20 @@ fn try_main() -> Result<()> {
 
 fn write_http_module(input: &Path, dest: &Path) -> Result<()> {
     rocci_cli::http_module::build_http_module(input, dest)
+}
+
+fn build_standalone_with_platform(
+    input: &Path,
+    output: Option<&Path>,
+    platform: String,
+    verbose: bool,
+) -> Result<()> {
+    let dest = output
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("server"));
+    rocci_cli::driver::compile_standalone_input(input, &dest, Some(platform), verbose)?;
+    println!("{}", style::success_text(&dest.display().to_string()));
+    Ok(())
 }
 
 #[cfg(test)]
@@ -512,8 +564,10 @@ mod tests {
                 verbose,
                 opt,
                 http_module,
+                platform,
             } => {
                 assert!(!http_module);
+                assert!(platform.is_none());
                 assert_eq!(input, PathBuf::from("examples/rocci/custom/datastar"));
                 assert_eq!(output, Some(PathBuf::from("target/release/rocci-server")));
                 assert!(release);
@@ -541,6 +595,33 @@ mod tests {
                 assert!(target.is_none());
             }
             _ => panic!("expected build without --release"),
+        }
+    }
+
+    #[test]
+    fn build_and_run_parse_platform_rocci() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "build",
+            "examples/rocci/standalone/counter",
+            "--platform",
+            "rocci",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Build { platform, .. } => {
+                assert_eq!(platform.as_deref(), Some("rocci"));
+            }
+            _ => panic!("expected build --platform rocci"),
+        }
+
+        let cli =
+            Cli::try_parse_from(["rocci", "run", "--platform", "rocci", "Counter.rocci"]).unwrap();
+        match cli.command {
+            Commands::Run { platform, .. } => {
+                assert_eq!(platform.as_deref(), Some("rocci"));
+            }
+            _ => panic!("expected run --platform rocci"),
         }
     }
 

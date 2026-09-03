@@ -109,6 +109,11 @@ sources:
     title: Implementation findings on nightly-2026-08-23-fb208ba
     author: process:cursor
     last_modified: 2026-09-03
+  - id: platform-postmortem
+    resource: ../../audits/rocci/rocci-as-roc-platform-postmortem.md
+    title: Rocci-as-platform post-mortem
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # Roc-native template parser and lowerer
@@ -128,6 +133,16 @@ product compiler (`rocci` CLI, playground, LSP). The Roc package exists to
 prove **emit parity** on the template subset and to keep a long-term
 vision testable. Implementation commits stay on git branch
 `roc-native-template-compiler`, in parallel with `main`.[^research]
+
+Related, not this plan's Bound: the motivating vision is consuming **pure
+templates** in a normal Roc app with **no rocci CLI**. That host keeps its
+own platform. `import pf.Html` only works if that host already pins a
+platform that exposes Html; a `basic-cli` app cannot use rocci-platform
+`pf`. Html for that path is a package or a local module. This plan's
+goldens and `basic-cli` driver are unchanged. Do not start a phase from
+the platform cutover.
+[platform post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).
+[^platform-postmortem]
 
 Use `rocci-language-dev` for grammar fidelity against Rust. Author new
 `.roc` in the dialect this repo already compiles (`Html := [].{`, `|x|`,
@@ -361,3 +376,4 @@ crate). Default Cargo tests must not spawn `roc` unless
 [^roc-parser]: Not the file walker.
 [^cursor-spike]: `roc test roc/rocci-template/main.roc` on `Cursor.roc`; `{a + {b}}` and `"\${x}"` stay depth-correct.
 [^postmortem]: Open-union merge, `foo = foo` recursion, Parse/Template isolation on `fb208ba`.
+[^platform-postmortem]: Motivating vision is pure templates in a normal Roc app, no rocci CLI; pf.Html is not that path.

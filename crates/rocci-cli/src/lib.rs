@@ -24,3 +24,7 @@ pub mod style;
 pub mod view;
 
 pub use playground_html::render_file;
+
+pub fn resolve_platform_pin(spec: Option<&str>) -> anyhow::Result<Option<String>> {
+    dispatch::resolve_platform_pin(spec).map_err(|err| anyhow::anyhow!("{err}"))
+}

@@ -229,7 +229,7 @@ pub fn package_server_with_options(
     target: Option<crate::native_target::NativeTarget>,
     verbose: bool,
 ) -> Result<ServerPackage> {
-    package_server_with_opt(input, output, target, verbose, None)
+    package_server_with_opt(input, output, target, verbose, None, None)
 }
 
 pub fn package_server_with_opt(
@@ -238,6 +238,7 @@ pub fn package_server_with_opt(
     target: Option<crate::native_target::NativeTarget>,
     verbose: bool,
     opt: Option<crate::native_target::RocOpt>,
+    platform: Option<String>,
 ) -> Result<ServerPackage> {
     let cwd = env::current_dir()?;
     let input = if input.is_absolute() {
@@ -270,7 +271,11 @@ pub fn package_server_with_opt(
     match resolve_server_input(&input)? {
         ServerInput::AppDir(app_dir) => {
             datastar_asset::ensure_app(&app_dir, datastar_asset::HintMode::Quiet)?;
-            runtime_assets::stage_into(&app_dir)?;
+            if !crate::dispatch::source_pins_rocci_platform(
+                &fs::read_to_string(app_dir.join("main.roc")).unwrap_or_default(),
+            ) {
+                runtime_assets::stage_into(&app_dir)?;
+            }
             run::compile_rocci_modules(&app_dir)?;
             crate::native_target::build_roc_server_with_opt(
                 &app_dir, &server, target, verbose, opt,
@@ -283,7 +288,8 @@ pub fn package_server_with_opt(
                 .filter(|parent| !parent.as_os_str().is_empty())
                 .map(Path::to_path_buf)
                 .unwrap_or_else(|| cwd.clone());
-            let plan = run::standalone_app_plan(&file)?;
+            let mut plan = run::standalone_app_plan(&file)?;
+            plan.platform = platform;
             crate::driver::compile_app_plan_with_opt(
                 &plan, &src_dir, &server, target, verbose, opt,
             )?;

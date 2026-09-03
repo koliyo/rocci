@@ -63,9 +63,9 @@ Functions that perform I/O end in `!`. `?` unwraps a `Result` and forwards
 `Err`. `@component` bodies are pure: no `!`, no logging, no SQLite. Put
 effects in `@init` and handlers.
 
-The selected platform for generated standalone apps is the webserver platform
-Rocci stages for you (`pf.Html`, `pf.Sqlite`, `pf.Stderr`, and friends). You
-do not pick a platform to preview a component.
+The selected platform for generated standalone apps is the in-tree Rocci
+platform (`crates/rocci-platform`: `pf.Html`, `pf.Datastar`, `pf.Sqlite`,
+`pf.Stderr`, and friends). You do not pick a platform to preview a component.
 
 ## What stays Rocci
 

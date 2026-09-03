@@ -15,7 +15,7 @@ cargo run -p rocci-cli -- validate [rocci.toml]
 # Compile a single .rocci template to Roc
 cargo run -p rocci-cli -- build path/to/App.rocci [-o output.roc]
 
-# Experimental WASI HTTP component (not `--host wasm`; `rocci run` stays native).
+# Experimental WASI HTTP component (not `--host wasm`; `rocci run` stays the native Rocci platform).
 # Pass the entry `.rocci`; sibling `.rocci` / `.roc` in that tree are included.
 cargo run -p rocci-cli -- build --http-module \
   examples/rocci/standalone/counter/Counter.rocci -o http-module.wasm

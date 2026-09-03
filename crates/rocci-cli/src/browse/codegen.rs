@@ -5,7 +5,7 @@ use super::infer::{
     form_params, is_float, is_i64, record_has_field, strip_num_suffix, top_level_fields,
 };
 use super::{
-    BrowseFixture, BrowseParam, CatalogEntry, HTTP_PKG, ModuleGroup, PLATFORM, ParamKind,
+    BrowseFixture, BrowseParam, CatalogEntry, HTTP_PKG, ModuleGroup, ParamKind,
     can_preview_from_form,
 };
 
@@ -141,7 +141,7 @@ pub(crate) fn generate_preview_roc(groups: &[ModuleGroup]) -> String {
     imports.sort();
     imports.dedup();
 
-    let mut out = String::from("import Html\nimport Query\n");
+    let mut out = String::from("import pf.Html\nimport Query\n");
     for name in &imports {
         out.push_str("import ");
         out.push_str(name);
@@ -366,6 +366,7 @@ pub(crate) fn value_expr(param: &BrowseParam) -> String {
 }
 
 pub(crate) fn generate_main_roc() -> String {
+    let platform = crate::dispatch::default_platform_pin();
     let listed = [
         ListedRoute::new("GET", "/", "Browser.homePage"),
         ListedRoute::new("GET", "/c", "inspector"),
@@ -379,7 +380,7 @@ pub(crate) fn generate_main_roc() -> String {
     };
     let mut out = format!(
         r#"app [Context, program] {{
-    pf: platform "{PLATFORM}",
+    pf: platform "{platform}",
     http: "{HTTP_PKG}",
 }}
 
@@ -390,7 +391,7 @@ import http.Method
 import http.Response
 import Browser
 import Catalog
-import Html
+import pf.Html
 import Preview
 import Query
 

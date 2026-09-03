@@ -837,6 +837,7 @@ fn run_standalone_doc(
             .collect(),
         redirect_trailing_slash: plan.redirect_trailing_slash,
         log_handlers,
+        platform: None,
     };
 
     let driver_options = DriverOptions {

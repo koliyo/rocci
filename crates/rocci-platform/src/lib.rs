@@ -1,0 +1,91 @@
+//! Roc platform host for Rocci apps (vendored basic-webserver 0.16 host).
+//!
+//! Direct-symbol host ABI. Snapshot origin is recorded in this crate's README.
+//!
+//! The root module keeps the staticlib entrypoint small. The ABI module owns
+//! Roc host state and shared generated-type aliases; top-level host modules
+//! implement the hosted functions declared in platform/main.roc.
+
+#![allow(improper_ctypes_definitions)]
+
+mod abi;
+#[cfg(feature = "benchmark-instrumentation")]
+mod allocation_benchmark;
+#[cfg(feature = "benchmark-simulation")]
+mod benchmark_simulation;
+mod body_sink;
+mod bounded_gate;
+mod brotli_executor;
+mod capability;
+mod cmd;
+mod compression;
+mod dir;
+mod env;
+mod file;
+mod file_server;
+mod host_resource;
+mod http;
+mod http_error;
+mod http_server;
+mod native_router;
+mod os_str;
+mod path;
+mod readiness;
+mod request_body;
+mod request_limits;
+mod request_parts;
+mod request_target;
+mod response;
+mod response_body;
+mod roc_alloc;
+mod roc_executor;
+mod roc_platform_abi;
+mod server_transport;
+mod shutdown;
+mod sqlite;
+mod stdio;
+mod tcp;
+mod telemetry;
+mod time;
+
+#[cfg(not(test))]
+#[no_mangle]
+pub extern "C" fn main(_argc: i32, _argv: *const *const std::ffi::c_char) -> i32 {
+    rust_main()
+}
+
+pub fn rust_main() -> i32 {
+    env::initialize_launch_dir();
+    abi::initialize_roc_host();
+    #[cfg(feature = "benchmark-simulation")]
+    let exit_code = benchmark_simulation::start();
+    #[cfg(not(feature = "benchmark-simulation"))]
+    let exit_code = http_server::start();
+    let live_resources = sqlite::active_resources()
+        + file::active_resources()
+        + tcp::active_resources()
+        + request_parts::active_backings()
+        + request_body::metrics().active_bodies
+        + request_body::metrics().active_backings
+        + readiness::active_resources();
+    let result = if live_resources != 0 {
+        eprintln!(
+            "host resource lifecycle error: {live_resources} native resources remained after \
+             shutdown (high-water marks: sqlite={}, file_readers={}, tcp_streams={}, \
+             request_backings={}, request_bodies={}, body_backings={}, readiness={})",
+            sqlite::resource_high_water(),
+            file::resource_high_water(),
+            tcp::resource_high_water(),
+            request_parts::high_water(),
+            request_body::metrics().body_high_water,
+            request_body::metrics().backing_high_water,
+            readiness::resource_high_water(),
+        );
+        1
+    } else {
+        exit_code
+    };
+    #[cfg(feature = "benchmark-instrumentation")]
+    allocation_benchmark::report();
+    result
+}

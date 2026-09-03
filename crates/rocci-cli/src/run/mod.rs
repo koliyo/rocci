@@ -25,6 +25,7 @@ pub fn run(
     log_handlers: bool,
     verbose: bool,
     public: bool,
+    platform: Option<String>,
 ) -> Result<()> {
     if is_standalone_file(file) {
         return run_standalone(StandaloneRun {
@@ -36,6 +37,7 @@ pub fn run(
             log_handlers,
             verbose,
             public,
+            platform,
         });
     }
     let path = if file.is_absolute() {
@@ -61,11 +63,16 @@ pub fn run(
             log_handlers,
             verbose,
             public,
+            platform,
         });
     }
     let resolved = resolve_entry(file)?;
     datastar_asset::ensure_app(&resolved.app_dir, datastar_asset::HintMode::Print)?;
-    runtime_assets::stage_into(&resolved.app_dir)?;
+    if !crate::dispatch::source_pins_rocci_platform(
+        &fs::read_to_string(resolved.app_dir.join("main.roc")).unwrap_or_default(),
+    ) {
+        runtime_assets::stage_into(&resolved.app_dir)?;
+    }
     let compiled = compile_rocci_app(&resolved.app_dir, Progress::from_verbose(verbose))?;
     if !compiled.failures.is_empty() {
         return driver::serve_template_errors(
@@ -425,6 +432,7 @@ struct StandaloneRun<'a> {
     log_handlers: bool,
     verbose: bool,
     public: bool,
+    platform: Option<String>,
 }
 
 fn run_standalone(req: StandaloneRun<'_>) -> Result<()> {
@@ -436,6 +444,7 @@ fn run_standalone(req: StandaloneRun<'_>) -> Result<()> {
     let log_handlers = req.log_handlers;
     let verbose = req.verbose;
     let public = req.public;
+    let platform = req.platform;
     let path = if file.is_absolute() {
         file.to_path_buf()
     } else {
@@ -468,7 +477,8 @@ fn run_standalone(req: StandaloneRun<'_>) -> Result<()> {
         }
         (StandaloneReady::Ready(plan), profile, inspect_pages) => (plan, profile, inspect_pages),
     };
-    let (plan, profile, inspect_pages) = plan;
+    let (mut plan, profile, inspect_pages) = plan;
+    plan.platform = platform;
     ensure_unique_process_init(&plan)?;
     let options = driver::DriverOptions {
         args: args.to_vec(),
