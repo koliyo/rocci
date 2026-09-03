@@ -17,6 +17,11 @@ Request : [
     CheckZed,
     CheckZedUsage,
     CiArgs(List(Str)),
+    BuildArgs(List(Str)),
+    InstallArgs(List(Str)),
+    PackageArgs(List(Str)),
+    ServeArgs(List(Str)),
+    SiteArgs(List(Str)),
     NotImpl(Str),
 ]
 
@@ -59,12 +64,12 @@ do_parse = |args|
         Ok("-h") => Help
         Ok("--help") => Help
         Ok("check") => do_parse_check(args.drop_first(1))
-        Ok("build") => NotImpl("build")
+        Ok("build") => BuildArgs(args.drop_first(1))
         Ok("ci") => CiArgs(args.drop_first(1))
-        Ok("install") => NotImpl("install")
-        Ok("package") => NotImpl("package")
-        Ok("site") => NotImpl("site")
-        Ok("serve") => NotImpl("serve")
+        Ok("install") => InstallArgs(args.drop_first(1))
+        Ok("package") => PackageArgs(args.drop_first(1))
+        Ok("site") => SiteArgs(args.drop_first(1))
+        Ok("serve") => ServeArgs(args.drop_first(1))
         Ok("deploy") => NotImpl("deploy")
         Ok("origin") => NotImpl("origin")
         Ok("push-worktrees") => NotImpl("push-worktrees")

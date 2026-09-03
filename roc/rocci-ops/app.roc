@@ -5,6 +5,7 @@ app [main!] {
 import Cli
 import Ci
 import DocsCoverage
+import Local
 import WorkspaceDeps
 import pf.Cmd
 import pf.Env
@@ -410,6 +411,129 @@ run_ci! = |args| {
     }
 }
 
+usage_exit! = |msg| {
+    Stderr.line!(msg)?
+    Err(Exit(1))
+}
+
+run_argv! = |root, argv, cwd_rel| {
+    step = { argv: argv, cwd: cwd_rel, stdout_path: "", extra_env: [] }
+    code = run_step!(step, root)?
+    if code == 0.I32 {
+        Ok({})
+    } else {
+        Err(Exit(code))
+    }
+}
+
+platform_os! = |_| {
+    plat = Env.platform!()
+    match plat.os {
+        MACOS => "macos"
+        LINUX => "linux"
+        WINDOWS => "windows"
+        OTHER(_) => "other"
+    }
+}
+
+run_build! = |args| {
+    match Local.parse_build(args) {
+        BuildUsage => usage_exit!(Local.build_usage)
+        BuildRelease => {
+            root = repo_root!({})?
+            run_argv!(root, Local.build_release_argv, "")
+        }
+        BuildPlayground => {
+            root = repo_root!({})?
+            Path.create_all!(join_root(root, "playground/dist"))?
+            listed = Cmd.new_str("rustup").arg_str("target").arg_str("list").arg_str("--installed").exec_output!()
+            need_add = match listed {
+                Ok(out) => {
+                    match Str.split_first(out.stdout_utf8, "wasm32-unknown-unknown") {
+                        Ok({ before: _b, after: _a }) => Bool.False
+                        Err(_) => Bool.True
+                    }
+                }
+                Err(_) => Bool.True
+            }
+            if need_add {
+                run_argv!(root, ["rustup", "target", "add", "wasm32-unknown-unknown"], "")?
+            }
+            run_argv!(root, ["cargo", "build", "-p", "rocci-playground-wasm", "--target", "wasm32-unknown-unknown", "--release"], "")?
+            wasm = join_root(root, "target/wasm32-unknown-unknown/release/rocci_playground_wasm.wasm")
+            run_argv!(root, ["cp", path_str(wasm), "playground/dist/compiler.wasm"], "")?
+            node_modules = join_root(root, "playground/node_modules")
+            has_nm = match Path.is_dir!(node_modules) {
+                Ok(flag) => flag
+                Err(_) => Bool.False
+            }
+            if !has_nm {
+                run_argv!(root, ["npm", "install"], "playground")?
+            }
+            run_argv!(root, ["node", "build.js"], "playground")
+        }
+        _ => usage_exit!(Local.build_usage)
+    }
+}
+
+run_install! = |args| {
+    match Local.parse_install(args) {
+        InstallUsage => usage_exit!(Local.install_usage)
+        InstallCli => not_impl!("install cli")
+        InstallVscode => not_impl!("install vscode")
+        InstallCursor => not_impl!("install cursor")
+        _ => usage_exit!(Local.install_usage)
+    }
+}
+
+run_package! = |args| {
+    match Local.parse_package(args) {
+        PackageUsage => usage_exit!(Local.package_usage)
+        PackageOkf => usage_exit!("Rocci Knowledge.app is no longer built here; use https://github.com/koliyo/okmate")
+        PackageMacos => {
+            if Local.darwin_ok(platform_os!({})) {
+                root = repo_root!({})?
+                run_argv!(root, ["cargo", "run", "-p", "rocci-cli", "--", "bundle", "--config", "rocci.toml"], "")
+            } else {
+                usage_exit!("The macOS app bundle can only be built on macOS.")
+            }
+        }
+        PackageVscode => {
+            root = repo_root!({})?
+            run_argv!(root, ["npm", "install"], "editors/vscode")?
+            run_argv!(root, ["npm", "run", "vscode:package"], "editors/vscode")
+        }
+        PackageZed => not_impl!("package zed")
+        PackageIcons => not_impl!("package icons")
+        PackageSite(_) => not_impl!("package site")
+        _ => usage_exit!(Local.package_usage)
+    }
+}
+
+run_serve! = |args| {
+    match Local.parse_serve(args) {
+        ServeUsage => usage_exit!(Local.serve_usage)
+        ServeHybridUsage => usage_exit!("usage: rocci-ops serve hybrid DIST_DIR ISLANDS_BIN [compose args...]")
+        ServeHybrid(_) => not_impl!("serve hybrid")
+        ServeStatic(_) => not_impl!("serve static")
+        ServeSitePath(_) => not_impl!("serve site")
+        ServeApp(_) => not_impl!("serve app")
+        _ => usage_exit!(Local.serve_usage)
+    }
+}
+
+run_site! = |args| {
+    if List.len(args) == 0 {
+        root = repo_root!({})?
+        run_argv!(root, ["cargo", "run", "-q", "-p", "rocci-docs", "--", "--catalog", "examples/rocci/apps.toml", "--output", "dist/example-docs"], "")?
+        run_argv!(root, ["cargo", "run", "-q", "-p", "rocci-rocdown-cli", "--", "check", "site"], "")?
+        run_argv!(root, ["cargo", "run", "-q", "-p", "rocci-rocdown-cli", "--", "test", "site"], "")?
+        run_argv!(root, ["cargo", "run", "-q", "-p", "rocci-rocdown-cli", "--", "build", "site"], "")
+    } else {
+        usage_exit!(Local.site_usage)
+    }
+}
+
 main! = |args| {
     strs = decode_argv(args)?
     match Cli.parse(strs) {
@@ -458,6 +582,11 @@ main! = |args| {
         }
         CheckZed => not_impl!("check zed")
         CiArgs(rest) => run_ci!(rest)
+        BuildArgs(rest) => run_build!(rest)
+        InstallArgs(rest) => run_install!(rest)
+        PackageArgs(rest) => run_package!(rest)
+        ServeArgs(rest) => run_serve!(rest)
+        SiteArgs(rest) => run_site!(rest)
         NotImpl(name) => not_impl!(name)
     }
 }
