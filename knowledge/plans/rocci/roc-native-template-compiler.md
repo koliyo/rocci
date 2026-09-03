@@ -114,6 +114,11 @@ sources:
     title: Rocci-as-platform post-mortem
     author: process:cursor
     last_modified: 2026-09-02
+  - id: glue-plan
+    resource: template-parser-roc-glue.md
+    title: Hosted glue for the Rust template parser
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # Roc-native template parser and lowerer
@@ -143,6 +148,11 @@ goldens and `basic-cli` driver are unchanged. Do not start a phase from
 the platform cutover.
 [platform post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).
 [^platform-postmortem]
+
+If this rewrite never lands, consume-in-Roc can still use **hosted glue**
+to the Rust parser. Different plan:
+[hosted glue](template-parser-roc-glue.md). Do not start it from this
+POC.[^glue-plan]
 
 Use `rocci-language-dev` for grammar fidelity against Rust. Author new
 `.roc` in the dialect this repo already compiles (`Html := [].{`, `|x|`,
@@ -377,3 +387,4 @@ crate). Default Cargo tests must not spawn `roc` unless
 [^cursor-spike]: `roc test roc/rocci-template/main.roc` on `Cursor.roc`; `{a + {b}}` and `"\${x}"` stay depth-correct.
 [^postmortem]: Open-union merge, `foo = foo` recursion, Parse/Template isolation on `fb208ba`.
 [^platform-postmortem]: Motivating vision is pure templates in a normal Roc app, no rocci CLI; pf.Html is not that path.
+[^glue-plan]: Alternative: hosted compile/parse/apply; parser stays Rust.

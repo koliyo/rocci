@@ -154,6 +154,11 @@ sources:
     title: Rocci-as-platform post-mortem
     author: process:cursor
     last_modified: 2026-09-02
+  - id: glue-research
+    resource: template-parser-roc-glue.md
+    title: Expose the Rust template parser to Roc via hosted glue
+    author: process:cursor
+    last_modified: 2026-09-02
 ---
 
 # A Roc-native template parser and lowerer
@@ -191,6 +196,13 @@ as a grammar. The library paper's route constructors are a different
 fork.[^roc-library]
 
 Related: [platform post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.md).[^platform-postmortem]
+
+If the parser is never rewritten in Roc, the consume-in-Roc idea can
+still go through **hosted glue** to `crates/rocci-template` (a platform
+effect, not a package). That is a different pair:
+[glue research](template-parser-roc-glue.md) /
+[glue plan](/plans/rocci/template-parser-roc-glue.md).
+Do not start either plan from the other.[^glue-research]
 
 ## What "run from Roc without Rust" can mean
 
@@ -570,3 +582,4 @@ not restated here.[^postmortem]
 [^cursor-spike]: `var $cur` plus `{ ..$cur, pos: n }`; `skip_string` understands `"\${"`; `roc test roc/rocci-template/main.roc`.
 [^postmortem]: Open-union merge, `parse = do_parse`, Parse/Template isolation; not product behavior.
 [^platform-postmortem]: Platform Html on pf is for apps that pin rocci; pure-template hosts on another platform need a package or local Html.
+[^glue-research]: Alternative: hosted compile/parse/apply over the Rust crate; not a rewrite.
