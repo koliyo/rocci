@@ -4,18 +4,14 @@
 *.gif filter=lfs diff=lfs merge=lfs -text
 *.webp filter=lfs diff=lfs merge=lfs -text
 *.wasm filter=lfs diff=lfs merge=lfs -text
-
-# Vendored rocci-platform link inputs. libhost.a is gitignored and rebuilt.
-crates/rocci-platform/platform/targets/**/*.a filter=lfs diff=lfs merge=lfs -text
-crates/rocci-platform/platform/targets/**/*.o filter=lfs diff=lfs merge=lfs -text
-crates/rocci-platform/platform/targets/**/*.lib filter=lfs diff=lfs merge=lfs -text
-crates/rocci-platform/platform/targets/**/*.tbd filter=lfs diff=lfs merge=lfs -text
-crates/rocci-highlight/grammars/** linguist-vendored
-# Append-mostly knowledge changelog. Built-in union merge keeps unique lines
-# from both sides so concurrent bullets under the same date heading do not
-# conflict. See knowledge/research/okf/knowledge-log-concurrency.md
-knowledge/log.md merge=union
 *.a filter=lfs diff=lfs merge=lfs -text
 *.o filter=lfs diff=lfs merge=lfs -text
 *.lib filter=lfs diff=lfs merge=lfs -text
 *.tbd filter=lfs diff=lfs merge=lfs -text
+
+crates/rocci-highlight/grammars/** linguist-vendored
+
+# Append-mostly knowledge changelog. Built-in union merge keeps unique lines
+# from both sides so concurrent bullets under the same date heading do not
+# conflict. See knowledge/research/okf/knowledge-log-concurrency.md
+knowledge/log.md merge=union

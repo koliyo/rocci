@@ -19,9 +19,9 @@ The Rust host and most `platform/` Roc modules are a vendored snapshot of
 [roc-lang/basic-webserver](https://github.com/roc-lang/basic-webserver)
 at `50e064cdd1c4562c293598c61f6ce7a895d99bcf` (0.16 line). Copyright
 © 2023 Richard Feldman and subsequent Roc authors. The full UPL text is
-`LICENSE-UPL`. This is not a git submodule. Musl libc/crt/unwind and the
-macOS `libSystem.tbd` under `platform/targets/` are stored with Git LFS.
-`libhost.a` is rebuilt by `build.sh` and is not committed.
+`LICENSE-UPL`. This is not a git submodule. `*.a`, `*.o`, `*.lib`, and
+`*.tbd` are Git LFS. `libhost.a` is rebuilt by `build.sh` and is not
+committed.
 
 Rocci-original modules in this crate (`platform/Datastar.roc` and the
 compiler helpers on `platform/Html.roc`) are Apache-2.0, same as the rest
