@@ -1,0 +1,17 @@
+usage: rocci-ops <command> [args...]
+
+commands:
+  build         cargo release build of rocci, rocdown, and language-server; playground
+  ci            run GitHub Actions validation jobs on this machine
+  check         deps | docs | zed
+  install       cli | vscode | cursor
+  package       macos, vscode, zed, site, icons
+  site          stage generated examples, check, test, and build rocci.dev
+  serve         hybrid, static, site, app
+  deploy        probe, bootstrap, or push origin artifacts over SSH
+  origin        publish, up, or backup on the origin host
+  push-worktrees
+  pr-checkout   list open PRs, or checkout one here as pr/<branch>
+  promote       staging | production
+  release       patch, minor, major, v*, or dev
+  archive       version, package, params, wait-ci, publish

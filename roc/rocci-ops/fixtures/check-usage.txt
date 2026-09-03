@@ -1,0 +1,6 @@
+usage: rocci-ops check deps|docs|zed [args...]
+
+subcommands:
+  deps    check workspace package edges against the product boundary
+  docs    check coverage.toml, search-queries.toml, and first-use-sessions.toml
+  zed     check Zed manifest and build the language server WASM

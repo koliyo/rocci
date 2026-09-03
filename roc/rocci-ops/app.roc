@@ -2,10 +2,9 @@ app [main!] {
     pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
 }
 
-import pf.Cmd
-import pf.Env
+import Cli
 import pf.OsStr
-import pf.Path
+import pf.Stderr
 import pf.Stdout
 
 Metadata : {
@@ -36,13 +35,6 @@ decode_metadata : Str -> Try(Metadata, [InvalidJson(Str), MissingRequiredField(S
 decode_metadata = |src|
     Encoding.Json.parse(rename_packages_key(src))
 
-argv_tag = |arg|
-    match OsStr.to_raw(arg) {
-        Utf8(_) => "Utf8"
-        UnixBytes(_) => "UnixBytes"
-        WindowsU16s(_) => "WindowsU16s"
-    }
-
 os_utf8 = |arg|
     match OsStr.to_raw(arg) {
         Utf8(s) => Ok(s)
@@ -50,58 +42,70 @@ os_utf8 = |arg|
         _ => Err({})
     }
 
-path_display = |path|
-    match Path.to_str(path) {
-        Ok(s) => s
-        Err(_) => Path.display(path)
-    }
+decode_argv = |args|
+    List.fold(
+        args.drop_first(1),
+        Ok([]),
+        |acc, arg| {
+            match acc {
+                Err(e) => Err(e)
+                Ok(strs) => {
+                    match os_utf8(arg) {
+                        Ok(s) => Ok(List.concat(strs, [s]))
+                        Err(_) => Err(Exit(2))
+                    }
+                }
+            }
+        },
+    )
+
+not_impl! = |name| {
+    Stderr.write!("not implemented: ${name}\n")?
+    Err(Exit(3))
+}
 
 main! = |args| {
-    Stdout.line!("argv_count=${List.len(args).to_str()}")?
-    match List.get(args, 0) {
-        Ok(first) => Stdout.line!("argv0_tag=${argv_tag(first)}")?
-        Err(_) => Stdout.line!("argv0_tag=missing")?
-    }
-    match List.get(args, 1) {
-        Ok(second) => {
-            match os_utf8(second) {
-                Ok(s) => Stdout.line!("argv1=${s}")?
-                Err(_) => Stdout.line!("argv1=<non-utf8>")?
-            }
+    strs = decode_argv(args)?
+    match Cli.parse(strs) {
+        Help => {
+            Stdout.write!(Cli.usage)?
+            Ok({})
         }
-        Err(_) => Stdout.line!("argv1=<none>")?
+        NoArgs => {
+            Stdout.write!(Cli.usage)?
+            Err(Exit(2))
+        }
+        Unknown(cmd) => {
+            Stderr.write!("unknown command: ${cmd}\n")?
+            Stderr.write!(Cli.usage)?
+            Err(Exit(2))
+        }
+        CheckHelp => {
+            Stdout.write!(Cli.check_usage)?
+            Ok({})
+        }
+        CheckNoArgs => {
+            Stdout.write!(Cli.check_usage)?
+            Err(Exit(2))
+        }
+        CheckUnknown(cmd) => {
+            Stderr.write!("unknown check subcommand: ${cmd}\n")?
+            Stderr.write!(Cli.check_usage)?
+            Err(Exit(2))
+        }
+        CheckDepsUsage => {
+            Stderr.write!("usage: rocci-ops check deps\n")?
+            Err(Exit(2))
+        }
+        CheckZedUsage => {
+            Stderr.write!("usage: rocci-ops check zed\n")?
+            Err(Exit(2))
+        }
+        CheckDeps => not_impl!("check deps")
+        CheckDocs(_) => not_impl!("check docs")
+        CheckZed => not_impl!("check zed")
+        NotImpl(name) => not_impl!(name)
     }
-
-    true_code = Cmd.new("true").exec_exit_code!()?
-    false_code = Cmd.new("false").exec_exit_code!()?
-    Stdout.line!("true_exit=${true_code.to_str()}")?
-    Stdout.line!("false_exit=${false_code.to_str()}")?
-
-    tmp = Env.temp_dir!()
-    pin_path = Path.join(tmp, "rocci-ops-pin.txt")
-    Path.write_utf8!(pin_path, "pin-ok")?
-    read_back = Path.read_utf8!(pin_path)?
-    Path.delete!(pin_path)?
-    Stdout.line!("path_roundtrip=${read_back}")?
-
-    match Env.var_str!(OsStr.utf8("HOME")) {
-        Ok(home) => Stdout.line!("env_HOME_len=${Str.to_utf8(home).len().to_str()}")?
-        Err(_) => Stdout.line!("env_HOME=<unset>")?
-    }
-
-    fixture = Path.read_utf8!(Path.utf8("roc/rocci-ops/fixtures/cargo-metadata-subset.json"))?
-    meta = decode_metadata(fixture)?
-    Stdout.line!("json_members=${List.len(meta.workspace_members).to_str()}")?
-    Stdout.line!("json_pkgs=${List.len(meta.pkgs).to_str()}")?
-
-    before = Env.cwd!()?
-    Env.set_cwd!(tmp)?
-    pwd = Cmd.new("pwd").exec_output!()?
-    Env.set_cwd!(before)?
-    Stdout.line!("cwd_before=${path_display(before)}")?
-    Stdout.line!("cwd_tmp=${path_display(tmp)}")?
-    Stdout.line!("cwd_pwd=${Str.trim_end(pwd.stdout_utf8)}")?
-    Ok({})
 }
 
 expect
