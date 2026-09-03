@@ -4,7 +4,7 @@ title: A Roc-native template parser and lowerer
 description: "Exploratory proof of concept: a parallel Roc port of template parse and lower that aims at emit parity with crates/rocci-template. Rust stays the product compiler. Long-term vision is running templates from Roc; this record does not replace the Rust crate. Not shipped."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture, concern/language-design, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T11:05:00Z }
+generated: { by: process:cursor, at: 2026-09-03T07:20:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -139,6 +139,16 @@ sources:
     title: "String :: {}.{ combinators; parse_str on UTF-8 bytes"
     author: human:lukewilliamboswell
     last_modified: 2026-07-10
+  - id: cursor-spike
+    resource: ../../../roc/rocci-template/Cursor.roc
+    title: Phase 0 cursor spike on the pinned nightly
+    author: process:cursor
+    last_modified: 2026-09-02
+  - id: postmortem
+    resource: ./roc-native-template-compiler-postmortem.md
+    title: Implementation findings on nightly-2026-08-23-fb208ba
+    author: process:cursor
+    last_modified: 2026-09-03
 ---
 
 # A Roc-native template parser and lowerer
@@ -149,7 +159,8 @@ Exploratory **proof of concept**. Nothing here is shipped. `crates/rocci-templat
 remains the language contract and the **product compiler**. This is not a
 cutover, not a replacement for Rust in `rocci` / playground / LSP, and not
 permission to delete or idle the Rust crate. Implementation: [Roc-native
-template compiler](/plans/rocci/roc-native-template-compiler.md).[^plan][^template-readme]
+template compiler](/plans/rocci/roc-native-template-compiler.md). After
+Phases 0–6: [implementation post-mortem](/research/rocci/roc-native-template-compiler-postmortem.md).[^plan][^template-readme][^postmortem]
 
 **Near-term goal:** a Roc package that matches Rust **emit parity** on the
 template subset (`@component`, `@css`, `@fixture`, `@test`, copy-through
@@ -495,6 +506,20 @@ The 2026 compiler's `var` / `for` / `match` / `expect` stack is what makes
 the port tractable. Phase 0 exists to confirm those features on `fb208ba`
 before a thousand-line `Parse.roc`.[^roc-tutorial][^inventory]
 
+**Phase 4 (2026-09-02):** On branch `roc-native-template-compiler`, Hello and
+`@if` goldens match Rust `build`. CSS scope ids match; `roc check` of stub
+`Html` hosts for hello/branch/css is clean. Remaining vs AllSyntax: routes
+(Rust lowers them; the POC skips), qualified `Design.button` byte emit,
+CSS fragment whitespace, and type-position `??`. `Parse` and `Template`
+cannot share a Roc file on this pin.
+
+**Phase 6 host command:** `roc check roc/rocci-template/fixtures/host.roc`.
+Render still needs the web `Html` platform.
+
+Compiler surprises on this pin (open-union merge, `foo = foo` recursion,
+Parse/Template isolation) are in the [post-mortem](/research/rocci/roc-native-template-compiler-postmortem.md),
+not restated here.[^postmortem]
+
 [^plan]: Paired implementation plan; writing it is not executing a phase.
 [^template-readme]: `.rocci` is a Roc module; `@component` bodies are HTML; copy-through of non-`@` regions; no typecheck in the crate.
 [^template-lib]: Public `parse` / `lower` / `compile`; no Roc compiler, no HTTP.
@@ -521,3 +546,5 @@ before a thousand-line `Parse.roc`.[^roc-tutorial][^inventory]
 [^roc-tutorial]: New compiler: `var $x`, `for`, `Try`, `?`, methods, `expect`, packages, no `.rocci` imports; constant folding is not macros.
 [^roc-parser]: Combinators including XML; not HTML+Roc spans.
 [^roc-parser-string]: `String :: {}.{` and `List(U8)` leftover parsing.
+[^cursor-spike]: `var $cur` plus `{ ..$cur, pos: n }`; `skip_string` understands `"\${"`; `roc test roc/rocci-template/main.roc`.
+[^postmortem]: Open-union merge, `parse = do_parse`, Parse/Template isolation; not product behavior.

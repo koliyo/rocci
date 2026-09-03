@@ -7,6 +7,11 @@ the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
 ## 2026-09-01
+## 2026-09-03
+
+- Filed draft [Roc-native template compiler post-mortem](research/rocci/roc-native-template-compiler-postmortem.md): `var`/`while`/`expect` on `nightly-2026-08-23-fb208ba` worked; unexpected cost was open tag-union merging, `foo = foo` recursion, and Parse/Template import poisoning. POC only; Rust stays the product compiler. Exploratory; do not log Phases 0–6 complete until CI and Knowledge succeed.
+
+## 2026-09-02
 
 - Recorded [editorial polish](plans/site/docs-editorial-polish.md) Phase 5: voice sweep — `Related:` dumps removed, banned openers only remain on the contributor checklist as forbidden examples. Exploratory; do not log complete until CI and Knowledge succeed.
 

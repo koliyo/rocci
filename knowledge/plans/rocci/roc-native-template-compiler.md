@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Roc-native template parser and lowerer
-description: "Phased proof of concept: a Roc package on a parallel branch that matches crates/rocci-template emit on the template subset. Rust stays the product compiler. Not a replacement or CLI cutover. Exploratory; do not start a phase until asked."
+description: "Phased proof of concept: a Roc package on a parallel branch that matches crates/rocci-template emit on the template subset. Rust stays the product compiler. Not a replacement or CLI cutover. Exploratory; Phases 0–6 implemented on roc-native-template-compiler; not logged complete until CI and Knowledge succeed."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T11:05:00Z }
+generated: { by: process:cursor, at: 2026-09-03T07:20:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -13,7 +13,7 @@ sources:
     resource: ../../research/rocci/roc-native-template-compiler.md
     title: Research for a Roc-native template parser and lowerer
     author: process:cursor
-    last_modified: 2026-08-31
+    last_modified: 2026-09-03
   - id: template-readme
     resource: ../../../crates/rocci-template/README.md
     title: Implemented template language contract
@@ -99,6 +99,16 @@ sources:
     title: Combinators not used as the file walker
     author: human:lukewilliamboswell
     last_modified: 2026-07-10
+  - id: cursor-spike
+    resource: ../../../roc/rocci-template/Cursor.roc
+    title: Phase 0 cursor spike on the pinned nightly
+    author: process:cursor
+    last_modified: 2026-09-02
+  - id: postmortem
+    resource: ../../research/rocci/roc-native-template-compiler-postmortem.md
+    title: Implementation findings on nightly-2026-08-23-fb208ba
+    author: process:cursor
+    last_modified: 2026-09-03
 ---
 
 # Roc-native template parser and lowerer
@@ -108,8 +118,10 @@ sources:
 This is the implementation plan for [A Roc-native template parser and
 lowerer](/research/rocci/roc-native-template-compiler.md). It is an
 exploratory **proof of concept** until a human accepts a scope. Crate
-READMEs remain the current language contract. Do not start a phase until
-the user asks.[^research][^template-readme]
+READMEs remain the current language contract. Phases 0–6 are implemented
+on branch `roc-native-template-compiler`; do not log them complete until
+hosted CI and Knowledge succeed. Findings versus this pin:
+[post-mortem](/research/rocci/roc-native-template-compiler-postmortem.md).[^research][^template-readme][^postmortem]
 
 This plan does **not** replace `crates/rocci-template`. Rust stays the
 product compiler (`rocci` CLI, playground, LSP). The Roc package exists to
@@ -347,3 +359,5 @@ crate). Default Cargo tests must not spawn `roc` unless
 [^ungram-research]: Hand-written scanners.
 [^roc-tutorial]: New-compiler features for Phase 0.
 [^roc-parser]: Not the file walker.
+[^cursor-spike]: `roc test roc/rocci-template/main.roc` on `Cursor.roc`; `{a + {b}}` and `"\${x}"` stay depth-correct.
+[^postmortem]: Open-union merge, `foo = foo` recursion, Parse/Template isolation on `fb208ba`.
