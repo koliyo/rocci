@@ -3,6 +3,7 @@ app [main!] {
 }
 
 import Cli
+import Ci
 import DocsCoverage
 import WorkspaceDeps
 import pf.Cmd
@@ -209,6 +210,206 @@ run_check_docs! = |_| {
     }
 }
 
+bytes_range = |bytes, start, end| {
+    var $i = start
+    var $out = []
+    while $i < end {
+        match List.get(bytes, $i) {
+            Ok(b) => { $out = List.concat($out, [b]) }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    $out
+}
+
+parent_of = |rel| {
+    bytes = Str.to_utf8(rel)
+    var $i = List.len(bytes)
+    var $found = Bool.False
+    while !$found and $i > 0 {
+        $i = $i - 1
+        match List.get(bytes, $i) {
+            Ok(47) => { $found = Bool.True }
+            _ => {}
+        }
+    }
+    if $found {
+        Str.from_utf8_lossy(bytes_range(bytes, 0, $i))
+    } else {
+        ""
+    }
+}
+
+okmate_dir_str! = |root| {
+    match Env.var_str!(OsStr.utf8("OKMATE_DIR")) {
+        Ok(p) => Ok(p)
+        Err(_) => {
+            sibling = "${path_str(root)}/../okmate/Cargo.toml"
+            match Path.is_file!(Path.utf8(sibling)) {
+                Ok(is_file) => {
+                    if is_file {
+                        Ok("${path_str(root)}/../okmate")
+                    } else {
+                        Ok("${path_str(root)}/.okmate-tool")
+                    }
+                }
+                Err(_) => Ok("${path_str(root)}/.okmate-tool")
+            }
+        }
+    }
+}
+
+print_job_names! = |_| {
+    var $i = 0.U64
+    names = Ci.job_names
+    while $i < List.len(names) {
+        match List.get(names, $i) {
+            Ok(name) => Stdout.line!(name)?
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    Ok({})
+}
+
+build_cmd = |step| {
+    match List.get(step.argv, 0) {
+        Err(_) => Cmd.new_str("true")
+        Ok(prog) => {
+            var $cmd = Cmd.new_str(prog)
+            var $ai = 1.U64
+            while $ai < List.len(step.argv) {
+                match List.get(step.argv, $ai) {
+                    Ok(part) => {
+                        $cmd = $cmd.arg_str(part)
+                    }
+                    Err(_) => {}
+                }
+                $ai = $ai + 1
+            }
+            var $ei = 0.U64
+            while $ei < List.len(step.extra_env) {
+                match List.get(step.extra_env, $ei) {
+                    Ok(pair) => {
+                        $cmd = $cmd.env_str(pair.key, pair.val)
+                    }
+                    Err(_) => {}
+                }
+                $ei = $ei + 1
+            }
+            $cmd
+        }
+    }
+}
+
+run_step! = |step, root| {
+    before = Env.cwd!()?
+    target = if step.cwd == "" { root } else { join_root(root, step.cwd) }
+    Env.set_cwd!(target)?
+    cmd = build_cmd(step)
+    code = if step.stdout_path == "" {
+        match cmd.exec_exit_code!() {
+            Ok(n) => n
+            Err(_) => 1.I32
+        }
+    } else {
+        parent = parent_of(step.stdout_path)
+        if parent != "" {
+            Path.create_all!(join_root(root, parent))?
+        }
+        dest = join_root(root, step.stdout_path)
+        match cmd.exec_output!() {
+            Ok(out) => {
+                Path.write_utf8!(dest, out.stdout_utf8)?
+                0.I32
+            }
+            Err(NonZeroExitCode({ command: _c, exit_code, stdout_utf8_lossy, stderr_utf8_lossy: _e })) => {
+                Path.write_utf8!(dest, stdout_utf8_lossy)?
+                exit_code
+            }
+            Err(_) => 1.I32
+        }
+    }
+    Env.set_cwd!(before)?
+    Ok(code)
+}
+
+run_job! = |job, root, okmate_dir, rustup| {
+    Stdout.line!("==> ${job}")?
+    steps = Ci.steps_for(job, okmate_dir, rustup)
+    var $i = 0.U64
+    var $code = 0.I32
+    while $code == 0.I32 and $i < List.len(steps) {
+        match List.get(steps, $i) {
+            Err(_) => {
+                $i = List.len(steps)
+            }
+            Ok(step) => {
+                joined = List.fold(step.argv, "", |acc, part| if acc == "" { part } else { "${acc} ${part}" })
+                Stdout.line!("+ ${joined}")?
+                $code = run_step!(step, root)?
+                if $code != 0.I32 and step.stdout_path != "" {
+                    match Path.read_utf8!(join_root(root, step.stdout_path)) {
+                        Ok(text) => Stdout.write!(text)?
+                        Err(_) => {}
+                    }
+                }
+            }
+        }
+        $i = $i + 1
+    }
+    Ok($code)
+}
+
+run_ci! = |args| {
+    match Ci.parse(args) {
+        ListJobs => {
+            print_job_names!({})?
+            Ok({})
+        }
+        CiBad("help") => {
+            Stdout.write!("usage: rocci-ops ci [-h] [-k] [-l] [jobs ...]\n")?
+            Ok({})
+        }
+        CiBad(job) => {
+            Stderr.write!("unknown ci job: ${job}\n")?
+            Err(Exit(2))
+        }
+        RunJobs({ jobs, keep_going }) => {
+            root = repo_root!({})?
+            okmate_dir = okmate_dir_str!(root)?
+            rustup = Cmd.check_available!("rustup")
+            var $i = 0.U64
+            var $failed = Bool.False
+            var $code = 0.I32
+            while $i < List.len(jobs) {
+                match List.get(jobs, $i) {
+                    Err(_) => {
+                        $i = List.len(jobs)
+                    }
+                    Ok(job) => {
+                        job_code = run_job!(job, root, okmate_dir, rustup)?
+                        if job_code != 0.I32 {
+                            $failed = Bool.True
+                            $code = job_code
+                            if !keep_going {
+                                $i = List.len(jobs)
+                            }
+                        }
+                    }
+                }
+                $i = $i + 1
+            }
+            if $failed {
+                Err(Exit($code))
+            } else {
+                Ok({})
+            }
+        }
+    }
+}
+
 main! = |args| {
     strs = decode_argv(args)?
     match Cli.parse(strs) {
@@ -256,6 +457,7 @@ main! = |args| {
             }
         }
         CheckZed => not_impl!("check zed")
+        CiArgs(rest) => run_ci!(rest)
         NotImpl(name) => not_impl!(name)
     }
 }

@@ -16,6 +16,7 @@ Request : [
     CheckDocs(List(Str)),
     CheckZed,
     CheckZedUsage,
+    CiArgs(List(Str)),
     NotImpl(Str),
 ]
 
@@ -59,7 +60,7 @@ do_parse = |args|
         Ok("--help") => Help
         Ok("check") => do_parse_check(args.drop_first(1))
         Ok("build") => NotImpl("build")
-        Ok("ci") => NotImpl("ci")
+        Ok("ci") => CiArgs(args.drop_first(1))
         Ok("install") => NotImpl("install")
         Ok("package") => NotImpl("package")
         Ok("site") => NotImpl("site")
@@ -110,7 +111,12 @@ expect
 
 expect
     match do_parse(["ci", "--list"]) {
-        NotImpl("ci") => Bool.True
+        CiArgs(rest) => {
+            match List.get(rest, 0) {
+                Ok("--list") => Bool.True
+                _ => Bool.False
+            }
+        }
         _ => Bool.False
     }
 
