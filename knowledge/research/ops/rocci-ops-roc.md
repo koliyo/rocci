@@ -4,7 +4,7 @@ title: A Roc port of rocci-ops is a parallel exercise
 description: "Exploratory: rewrite rocci-ops in ordinary Roc on a parallel branch to test parity and basic-cli viability. Python plus uv stays the operator CLI until a later human cutover. Not shipped."
 tags: [domain/ops, domain/rocci, integration/roc, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T11:35:00Z }
+generated: { by: process:cursor, at: 2026-09-03T11:40:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -144,6 +144,11 @@ sources:
     title: Ordinary Roc for helpers; .rocci is UI and HTTP apps
     author: process:git
     last_modified: 2026-08-31
+  - id: impl-postmortem
+    resource: ./rocci-ops-roc-postmortem.md
+    title: Implementation findings after Phases 0–7
+    author: process:cursor
+    last_modified: 2026-09-03
 ---
 
 # A Roc port of rocci-ops is a parallel exercise
@@ -163,7 +168,8 @@ viability.[^template-plan][^plan][^postmortem]
 Phase 0 of the plan is recorded below on branch `rocci-ops-roc`. Phase 7
 records a go / no-go table: the four-command harness matches Python;
 origin x64musl is viable; CI uv replacement and cutover are no-go.
-Python still wins. Do not treat the spike as a cutover.[^pin-app][^plan][^parity-sh]
+Python still wins. Do not treat the spike as a cutover. After Phases
+0–7: [implementation post-mortem](/research/ops/rocci-ops-roc-postmortem.md).[^pin-app][^plan][^parity-sh][^impl-postmortem]
 
 ## Recommendation
 
@@ -411,4 +417,5 @@ Those are out of bound for the Roc rewrite.
 [^pin-fixture]: Subset JSON with `workspace_members` and `packages`.
 [^origin-roc]: `Origin.roc` lane/health/compose/`origin_publish_cmd`.
 [^parity-sh]: `roc/rocci-ops/parity.sh` vs `uv run --no-dev rocci-ops`.
+[^impl-postmortem]: Isolation, reserved words, x64musl; Python stays operator CLI.
 [^author]: Helpers are `.roc`; widgets are `.rocci`.

@@ -4,7 +4,7 @@ title: Roc rewrite of rocci-ops on a parallel branch
 description: "Phased exercise: ordinary Roc under roc/rocci-ops/ matching the Python CLI names. uv rocci-ops stays the operator surface until parity and viability are recorded. Not a replacement or workflow cutover. Exploratory; do not start a phase until asked."
 tags: [domain/ops, domain/rocci, integration/roc, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T11:35:00Z }
+generated: { by: process:cursor, at: 2026-09-03T11:40:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -12,6 +12,11 @@ sources:
   - id: research
     resource: ../../research/ops/rocci-ops-roc.md
     title: Research for a Roc rocci-ops exercise
+    author: process:cursor
+    last_modified: 2026-09-03
+  - id: postmortem
+    resource: ../../research/ops/rocci-ops-roc-postmortem.md
+    title: Implementation findings after Phases 0–7
     author: process:cursor
     last_modified: 2026-09-03
   - id: python-research
@@ -119,7 +124,9 @@ This plan does **not** replace `rocci-ops/`. uv stays the CI, origin, and
 localhost surface (`uv run --no-dev rocci-ops`). The Roc app exists to
 prove **command parity** and **basic-cli viability**. Implementation
 commits stay on git branch `rocci-ops-roc`, in parallel with
-`main`.[^research][^template-plan][^pyproject]
+`main`. Phases 0–7 are implemented on that branch; do not log them
+complete until hosted CI and Knowledge succeed. Findings versus this
+pin: [post-mortem](/research/ops/rocci-ops-roc-postmortem.md).[^research][^template-plan][^pyproject][^postmortem]
 
 Author ordinary `.roc` in the dialect this repo already compiles
 (`snake_case`, `List(Str)`, `match`, `main! : … => Try({}, [..])`). This
@@ -384,3 +391,4 @@ okmate check knowledge --profile base --format terminal
 [^basic-cli-pin]: Platform URL.
 [^basic-cli-cmd]: Exec API limits.
 [^author]: Ordinary Roc for this CLI.
+[^postmortem]: Isolation, reserved words, x64musl; Python stays operator CLI.

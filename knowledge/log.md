@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-03
 
+- Filed draft [Roc rocci-ops post-mortem](research/ops/rocci-ops-roc-postmortem.md): CLI pin and x64musl origin binary on `nightly-2026-08-23-fb208ba` worked; unexpected cost was reserved `packages`/`expect`, `Ok`/`Err` union merge, and one `LocalReq`. Python uv stays the operator CLI. Exploratory; do not log Phases 0–7 complete until CI and Knowledge succeed.
+
 - Revised [A Roc port of rocci-ops is a parallel exercise](research/ops/rocci-ops-roc.md) Phase 7 on branch `rocci-ops-roc`: `parity.sh` matches Python on `-h` / `check -h` / `ci --list` / `check deps`; Cmd, JSON, TOML subset, and x64musl origin binary are go; replacing uv on CI and a product cutover are no-go. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Revised [A Roc port of rocci-ops is a parallel exercise](research/ops/rocci-ops-roc.md) Phase 6 on branch `rocci-ops-roc`: health probes are curl argv (5s, noproxy, Host header), not `Http.get_utf8!`; `roc build --target=x64musl` from macOS arm64 emits a static ELF x86-64 that prints `origin --help` in `debian:bookworm-slim` linux/amd64 with no Roc. Exploratory; do not log complete until CI and Knowledge succeed.
