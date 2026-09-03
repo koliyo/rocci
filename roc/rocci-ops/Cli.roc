@@ -22,6 +22,11 @@ Request : [
     PackageArgs(List(Str)),
     ServeArgs(List(Str)),
     SiteArgs(List(Str)),
+    ArchiveArgs(List(Str)),
+    ReleaseArgs(List(Str)),
+    PromoteArgs(List(Str)),
+    PrCheckoutArgs(List(Str)),
+    PushWorktreesArgs(List(Str)),
     NotImpl(Str),
 ]
 
@@ -72,11 +77,11 @@ do_parse = |args|
         Ok("serve") => ServeArgs(args.drop_first(1))
         Ok("deploy") => NotImpl("deploy")
         Ok("origin") => NotImpl("origin")
-        Ok("push-worktrees") => NotImpl("push-worktrees")
-        Ok("pr-checkout") => NotImpl("pr-checkout")
-        Ok("promote") => NotImpl("promote")
-        Ok("release") => NotImpl("release")
-        Ok("archive") => NotImpl("archive")
+        Ok("push-worktrees") => PushWorktreesArgs(args.drop_first(1))
+        Ok("pr-checkout") => PrCheckoutArgs(args.drop_first(1))
+        Ok("promote") => PromoteArgs(args.drop_first(1))
+        Ok("release") => ReleaseArgs(args.drop_first(1))
+        Ok("archive") => ArchiveArgs(args.drop_first(1))
         Ok(other) => Unknown(other)
     }
 
@@ -158,5 +163,28 @@ expect
 expect
     match do_parse(["check", "zed", "x"]) {
         CheckZedUsage => Bool.True
+        _ => Bool.False
+    }
+
+expect
+    match do_parse(["archive", "version"]) {
+        ArchiveArgs(rest) => {
+            match List.get(rest, 0) {
+                Ok("version") => Bool.True
+                _ => Bool.False
+            }
+        }
+        _ => Bool.False
+    }
+
+expect
+    match do_parse(["release", "dev", "--dry-run"]) {
+        ReleaseArgs(rest) => List.len(rest) == 2
+        _ => Bool.False
+    }
+
+expect
+    match do_parse(["pr-checkout", "-n", "39"]) {
+        PrCheckoutArgs(rest) => List.len(rest) == 2
         _ => Bool.False
     }

@@ -5,6 +5,7 @@ app [main!] {
 import Cli
 import Ci
 import DocsCoverage
+import Git
 import Local
 import WorkspaceDeps
 import pf.Cmd
@@ -426,6 +427,21 @@ run_argv! = |root, argv, cwd_rel| {
     }
 }
 
+exec_capture! = |root, argv| {
+    before = Env.cwd!()?
+    Env.set_cwd!(root)?
+    cmd = build_cmd({ argv: argv, cwd: "", stdout_path: "", extra_env: [] })
+    captured = match cmd.exec_output!() {
+        Ok(out) => { code: 0.I32, out: out.stdout_utf8, err: "" }
+        Err(NonZeroExitCode({ command: _c, exit_code, stdout_utf8_lossy, stderr_utf8_lossy })) => {
+            { code: exit_code, out: stdout_utf8_lossy, err: stderr_utf8_lossy }
+        }
+        Err(_) => { code: 1.I32, out: "", err: "" }
+    }
+    Env.set_cwd!(before)?
+    Ok(captured)
+}
+
 platform_os! = |_| {
     plat = Env.platform!()
     match plat.os {
@@ -534,6 +550,338 @@ run_site! = |args| {
     }
 }
 
+env_or_empty! = |name| {
+    match Env.var_str!(OsStr.utf8(name)) {
+        Ok(v) => v
+        Err(_) => ""
+    }
+}
+
+write_gh_out! = |text| {
+    match Env.var_str!(OsStr.utf8("GITHUB_OUTPUT")) {
+        Ok(path) => {
+            prev = match Path.read_utf8!(Path.utf8(path)) {
+                Ok(p) => p
+                Err(_) => ""
+            }
+            Path.write_utf8!(Path.utf8(path), Str.concat(prev, text))?
+            Ok({})
+        }
+        Err(_) => Stdout.write!(text)
+    }
+}
+
+run_archive! = |args| {
+    match Git.parse_archive(args) {
+        ArchiveHelp => {
+            Stdout.write!(Git.archive_help)?
+            Ok({})
+        }
+        ArchiveUsage => {
+            Stderr.write!("usage: rocci-ops archive [-h] {version,package,params,wait-ci,publish} ...\n")?
+            Err(Exit(2))
+        }
+        ArchiveVersion => {
+            info = Git.version_from_ref(env_or_empty!("GITHUB_REF_TYPE"), env_or_empty!("GITHUB_REF_NAME"), env_or_empty!("GITHUB_SHA"))
+            pre = if info.prerelease { "true" } else { "false" }
+            write_gh_out!(Git.github_output([{ key: "version", val: info.version }, { key: "prerelease", val: pre }]))
+        }
+        ArchiveParams => {
+            info = Git.release_params(env_or_empty!("GITHUB_REF_TYPE"), env_or_empty!("GITHUB_REF_NAME"), env_or_empty!("GITHUB_SHA"))
+            pre = if info.prerelease { "true" } else { "false" }
+            write_gh_out!(Git.github_output([{ key: "tag", val: info.tag }, { key: "name", val: info.name }, { key: "prerelease", val: pre }]))
+        }
+        ArchiveOther(name) => not_impl!("archive ${name}")
+        _ => not_impl!("archive")
+    }
+}
+
+run_release! = |args| {
+    match Git.parse_release(args) {
+        RelUsage => usage_exit!(Git.release_usage)
+        RelRun({ tag, dry_run, force: _f, from_ref }) => {
+            if dry_run {
+                root = repo_root!({})?
+                run_argv!(root, ["git", "fetch", "origin", "refs/heads/${from_ref}:refs/remotes/origin/${from_ref}"], "")?
+                verify = exec_capture!(root, ["git", "rev-parse", "--verify", "origin/${from_ref}"])?
+                if verify.code != 0.I32 {
+                    usage_exit!("release requires origin/${from_ref}")
+                } else {
+                    Stdout.line!("rocci-ops release ${tag}")?
+                    if tag == "dev" {
+                        Stdout.line!("dry-run: would move dev")?
+                    } else {
+                        Stdout.line!("dry-run: release files match=unchecked")?
+                    }
+                    Ok({})
+                }
+            } else {
+                not_impl!("release ${tag}")
+            }
+        }
+        _ => usage_exit!(Git.release_usage)
+    }
+}
+
+abort_merge_if_needed! = |root| {
+    merge = exec_capture!(root, ["git", "rev-parse", "-q", "--verify", "MERGE_HEAD"])?
+    if merge.code == 0.I32 {
+        run_argv!(root, ["git", "merge", "--abort"], "")
+    } else {
+        Ok({})
+    }
+}
+
+promote_staging_body! = |root, original| {
+    run_argv!(root, ["git", "fetch", "origin"], "")?
+    if original != "staging" {
+        run_argv!(root, ["git", "switch", "staging"], "")?
+    } else {
+        Ok({})
+    }?
+    match run_argv!(root, ["git", "merge", "--ff-only", "origin/staging"], "") {
+        Ok(_) => Ok({})
+        Err(e) => {
+            abort_merge_if_needed!(root)?
+            Err(e)
+        }
+    }?
+    match run_argv!(root, ["git", "merge", "origin/main", "-m", "Promote main into staging"], "") {
+        Ok(_) => Ok({})
+        Err(e) => {
+            abort_merge_if_needed!(root)?
+            Err(e)
+        }
+    }?
+    match run_argv!(root, ["git", "push", "origin", "staging"], "") {
+        Ok(_) => Ok({})
+        Err(e) => {
+            abort_merge_if_needed!(root)?
+            Err(e)
+        }
+    }
+}
+
+run_promote! = |args| {
+    match Git.parse_promote(args) {
+        PromoteUsage => usage_exit!(Git.promote_usage)
+        PromoteStaging => {
+            root = repo_root!({})?
+            shown = exec_capture!(root, ["git", "branch", "--show-current"])?
+            original = Git.strip(shown.out)
+            if original == "" {
+                usage_exit!("promote staging requires a named starting branch")
+            } else {
+                body = promote_staging_body!(root, original)
+                restored = if original != "staging" {
+                    run_argv!(root, ["git", "switch", original], "")
+                } else {
+                    Ok({})
+                }
+                match (body, restored) {
+                    (Ok(_), Ok(_)) => Ok({})
+                    (Err(e), _) => Err(e)
+                    (_, Err(e)) => Err(e)
+                }
+            }
+        }
+        PromoteProduction => {
+            root = repo_root!({})?
+            run_argv!(root, ["git", "fetch", "origin"], "")?
+            verify = exec_capture!(root, ["git", "rev-parse", "--verify", "origin/staging"])?
+            if verify.code != 0.I32 {
+                usage_exit!("promote production requires origin/staging")
+            } else {
+                run_argv!(root, ["git", "push", "origin", "origin/staging:refs/heads/production"], "")
+            }
+        }
+        _ => usage_exit!(Git.promote_usage)
+    }
+}
+
+gh_head_ref! = |root, number| {
+    viewed = exec_capture!(root, ["gh", "pr", "view", number, "--json", "headRefName", "-q", ".headRefName"])?
+    name = Git.strip(viewed.out)
+    if viewed.code != 0.I32 {
+        err = Git.strip(viewed.err)
+        msg = if err == "" { Git.strip(viewed.out) } else { err }
+        fallback = if msg == "" { "gh pr view failed" } else { msg }
+        usage_exit!("could not resolve PR #${number}: ${fallback}")
+    } else if name == "" {
+        usage_exit!("could not resolve PR #${number}: empty headRefName")
+    } else {
+        Ok(name)
+    }
+}
+
+run_pr_checkout! = |args| {
+    parsed = Git.parse_pr_argv(args)
+    if parsed.help {
+        Stdout.write!(Git.pr_help)?
+        Ok({})
+    } else if parsed.bad {
+        Stderr.write!(Git.pr_help)?
+        Err(Exit(2))
+    } else if parsed.ref == "" {
+        root = repo_root!({})?
+        run_argv!(root, ["gh", "pr", "list", "--state", "open"], "")
+    } else {
+        spec = Git.parse_pr_ref(parsed.ref)
+        if spec.num == "" and spec.branch == "" {
+            usage_exit!("missing PR number, GitHub PR URL, or branch")
+        } else {
+            root = repo_root!({})?
+            head = if spec.num != "" {
+                gh_head_ref!(root, spec.num)?
+            } else {
+                spec.branch
+            }
+            local = Git.local_pr_branch(head)
+            if local == "" {
+                usage_exit!("PR head branch is empty")
+            } else if parsed.dry {
+                Stdout.line!("${Git.pr_label(spec)} (${head}) -> ${local}")?
+                Ok({})
+            } else {
+                dirty = exec_capture!(root, ["git", "status", "--porcelain"])?
+                if Git.strip(dirty.out) != "" {
+                    usage_exit!("this worktree has uncommitted changes; commit or stash them first")
+                } else {
+                    ref = if spec.num != "" { "pull/${spec.num}/head" } else { spec.branch }
+                    fetched = exec_capture!(root, ["git", "fetch", "origin", ref])?
+                    if fetched.code != 0.I32 {
+                        err = Git.strip(fetched.err)
+                        msg = if err == "" { Git.strip(fetched.out) } else { err }
+                        fallback = if msg == "" { "git fetch failed" } else { msg }
+                        usage_exit!("could not fetch ${ref} from origin: ${fallback}")
+                    } else {
+                        sha_cap = exec_capture!(root, ["git", "rev-parse", "--verify", "FETCH_HEAD"])?
+                        sha = Git.strip(sha_cap.out)
+                        switched = exec_capture!(root, ["git", "switch", "-C", local, sha])?
+                        if switched.code != 0.I32 {
+                            err = Git.strip(switched.err)
+                            msg = if err == "" { Git.strip(switched.out) } else { err }
+                            fallback = if msg == "" { "git switch failed" } else { msg }
+                            usage_exit!(fallback)
+                        } else {
+                            _up = exec_capture!(root, ["git", "branch", "--set-upstream-to", "origin/${head}"])?
+                            Stdout.line!("${Git.pr_label(spec)} (${head}) -> ${local}")?
+                            Ok({})
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+drop_refs_heads = |branch_ref| Git.parse_pr_ref(branch_ref).branch
+
+first_slash = |full| {
+    bytes = Str.to_utf8(full)
+    var $i = 0.U64
+    var $found = Bool.False
+    while !$found and $i < List.len(bytes) {
+        match List.get(bytes, $i) {
+            Ok(47) => {
+                $found = Bool.True
+            }
+            _ => {
+                $i = $i + 1
+            }
+        }
+    }
+    if $found {
+        Str.from_utf8_lossy(bytes_range(bytes, 0, $i))
+    } else {
+        full
+    }
+}
+
+run_push_worktrees! = |args| {
+    parsed = Git.parse_push_argv(args)
+    if parsed.help {
+        Stdout.write!(Git.push_help)?
+        Ok({})
+    } else if parsed.bad {
+        Stderr.write!(Git.push_help)?
+        Err(Exit(2))
+    } else {
+        root = repo_root!({})?
+        remote = if parsed.remote != "" {
+            parsed.remote
+        } else {
+                up = exec_capture!(root, ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])?
+                if up.code == 0.I32 {
+                    first_slash(Git.strip(up.out))
+                } else {
+                    "origin"
+                }
+        }
+        url = exec_capture!(root, ["git", "remote", "get-url", remote])?
+        if url.code != 0.I32 {
+            usage_exit!("Remote '${remote}' is not configured in ${path_str(root)}")
+        } else {
+            listed = exec_capture!(root, ["git", "worktree", "list", "--porcelain"])?
+            entries = Git.parse_worktrees(listed.out)
+            push_entries!(root, remote, parsed.dry, entries, 0.U64, 0.U64, 0.U64)
+        }
+    }
+}
+
+push_entries! = |root, remote, dry, entries, idx, pushed, skipped| {
+    if idx >= List.len(entries) {
+        Stdout.line!("")?
+        pstr = pushed.to_str()
+        sstr = skipped.to_str()
+        Stdout.line!("Summary: pushed ${pstr}, skipped ${sstr}")?
+        Ok({})
+    } else {
+        match List.get(entries, idx) {
+            Err(_) => Ok({})
+            Ok(entry) => {
+                if entry.branch == "" {
+                    Stdout.line!("Skipping ${entry.path} (detached HEAD)")?
+                    push_entries!(root, remote, dry, entries, idx + 1, pushed, skipped + 1)
+                } else {
+                    branch_name = drop_refs_heads(entry.branch)
+                    head_ok = exec_capture!(Path.utf8(entry.path), ["git", "rev-parse", "--verify", "HEAD"])?
+                    if head_ok.code != 0.I32 {
+                        Stdout.line!("Skipping ${entry.path} (no HEAD)")?
+                        push_entries!(root, remote, dry, entries, idx + 1, pushed, skipped + 1)
+                    } else {
+                        up = exec_capture!(Path.utf8(entry.path), ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"])?
+                        argv = if up.code == 0.I32 {
+                            if Git.strip(up.out) != "" {
+                                ahead = exec_capture!(Path.utf8(entry.path), ["git", "rev-list", "--count", "${Git.strip(up.out)}..HEAD"])?
+                                if Git.strip(ahead.out) == "0" {
+                                    []
+                                } else {
+                                    ["git", "-C", entry.path, "push", remote, "HEAD:${branch_name}"]
+                                }
+                            } else {
+                                ["git", "-C", entry.path, "push", "-u", remote, "HEAD:${branch_name}"]
+                            }
+                        } else {
+                            ["git", "-C", entry.path, "push", "-u", remote, "HEAD:${branch_name}"]
+                        }
+                        if List.len(argv) == 0 {
+                            Stdout.line!("Skipping ${branch_name} (${entry.path}): no commits ahead of ${Git.strip(up.out)}")?
+                            push_entries!(root, remote, dry, entries, idx + 1, pushed, skipped + 1)
+                        } else if dry {
+                            Stdout.line!("  ${Git.join_argv(argv)}")?
+                            push_entries!(root, remote, dry, entries, idx + 1, pushed + 1, skipped)
+                        } else {
+                            run_argv!(root, argv, "")?
+                            push_entries!(root, remote, dry, entries, idx + 1, pushed + 1, skipped)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 main! = |args| {
     strs = decode_argv(args)?
     match Cli.parse(strs) {
@@ -587,6 +935,11 @@ main! = |args| {
         PackageArgs(rest) => run_package!(rest)
         ServeArgs(rest) => run_serve!(rest)
         SiteArgs(rest) => run_site!(rest)
+        ArchiveArgs(rest) => run_archive!(rest)
+        ReleaseArgs(rest) => run_release!(rest)
+        PromoteArgs(rest) => run_promote!(rest)
+        PrCheckoutArgs(rest) => run_pr_checkout!(rest)
+        PushWorktreesArgs(rest) => run_push_worktrees!(rest)
         NotImpl(name) => not_impl!(name)
     }
 }
