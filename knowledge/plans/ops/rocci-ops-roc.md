@@ -4,7 +4,7 @@ title: Roc rewrite of rocci-ops on a parallel branch
 description: "Phased exercise: ordinary Roc under roc/rocci-ops/ matching the Python CLI names. uv rocci-ops stays the operator surface until parity and viability are recorded. Not a replacement or workflow cutover. Exploratory; do not start a phase until asked."
 tags: [domain/ops, domain/rocci, integration/roc, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T08:30:00Z }
+generated: { by: process:cursor, at: 2026-09-03T11:25:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -320,6 +320,11 @@ triple).
 **Exit:** Research notes whether a no-Roc Linux binary can print origin
 usage. If `--target` cannot produce that binary on the pin, that is a
 **viability fail** for origin, not a reason to install Roc on the VPS.
+
+**Recorded pin:** Health uses curl argv (`--max-time 5`, `--noproxy *`),
+not `Http.get_utf8!`. `roc build --target=x64musl` from macOS arm64
+emits a static ELF x86-64. `debian:bookworm-slim` `linux/amd64` with no
+Roc prints `origin --help`. Details: [research Phase 6 spike](/research/ops/rocci-ops-roc.md).
 
 ## Phase 7: Parity harness and viability gate
 

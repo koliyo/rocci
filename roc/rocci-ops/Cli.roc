@@ -27,6 +27,8 @@ Request : [
     PromoteArgs(List(Str)),
     PrCheckoutArgs(List(Str)),
     PushWorktreesArgs(List(Str)),
+    OriginArgs(List(Str)),
+    DeployArgs(List(Str)),
     NotImpl(Str),
 ]
 
@@ -75,8 +77,8 @@ do_parse = |args|
         Ok("package") => PackageArgs(args.drop_first(1))
         Ok("site") => SiteArgs(args.drop_first(1))
         Ok("serve") => ServeArgs(args.drop_first(1))
-        Ok("deploy") => NotImpl("deploy")
-        Ok("origin") => NotImpl("origin")
+        Ok("deploy") => DeployArgs(args.drop_first(1))
+        Ok("origin") => OriginArgs(args.drop_first(1))
         Ok("push-worktrees") => PushWorktreesArgs(args.drop_first(1))
         Ok("pr-checkout") => PrCheckoutArgs(args.drop_first(1))
         Ok("promote") => PromoteArgs(args.drop_first(1))
@@ -186,5 +188,22 @@ expect
 expect
     match do_parse(["pr-checkout", "-n", "39"]) {
         PrCheckoutArgs(rest) => List.len(rest) == 2
+        _ => Bool.False
+    }
+
+expect
+    match do_parse(["origin", "publish", "abc"]) {
+        OriginArgs(rest) => List.len(rest) == 2
+        _ => Bool.False
+    }
+
+expect
+    match do_parse(["deploy", "probe"]) {
+        DeployArgs(rest) => {
+            match List.get(rest, 0) {
+                Ok("probe") => Bool.True
+                _ => Bool.False
+            }
+        }
         _ => Bool.False
     }

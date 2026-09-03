@@ -4,7 +4,7 @@ title: A Roc port of rocci-ops is a parallel exercise
 description: "Exploratory: rewrite rocci-ops in ordinary Roc on a parallel branch to test parity and basic-cli viability. Python plus uv stays the operator CLI until a later human cutover. Not shipped."
 tags: [domain/ops, domain/rocci, integration/roc, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T08:30:00Z }
+generated: { by: process:cursor, at: 2026-09-03T11:25:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -121,7 +121,12 @@ sources:
     last_modified: 2026-09-03
   - id: pin-app
     resource: ../../../roc/rocci-ops/app.roc
-    title: Phase 0 basic-cli pin spike
+    title: Phase 0 basic-cli pin spike; Phase 6 x64musl driver
+    author: process:cursor
+    last_modified: 2026-09-03
+  - id: origin-roc
+    resource: ../../../roc/rocci-ops/Origin.roc
+    title: Lane, health URL, compose argv, origin_publish_cmd
     author: process:cursor
     last_modified: 2026-09-03
   - id: pin-fixture
@@ -231,6 +236,46 @@ cross-module import poisoning does not apply.[^postmortem][^pin-app]
 JSON parse of the checked-in subset fixture succeeded. Do not add a Rust
 JSON helper.[^pin-fixture][^encoding-json]
 
+## Phase 6 origin binary spike
+
+Health probes use **curl** argv (`--max-time 5`, `--noproxy *`, optional
+`Host:` header), not `Http.get_utf8!`. basic-cli Http is not wired for
+the Python 5s no-proxy opener plus per-check `Host` header in this
+port.[^origin][^origin-roc][^basic-cli-docs]
+
+Lane, health URL list, compose argv (`--remove-orphans`, optional
+`compose.origin.yml`), SHA hex check, and `origin_publish_cmd` live in
+`Origin.roc` and match the Python tests' expectations. Mutating
+publish/up/backup/SSH is still `not implemented` in the app so this
+branch cannot live-deploy.[^origin][^deploy][^origin-roc]
+
+`roc build` on this pin requires equals-form flags
+(`--target=x64musl`, `--output=path`). Space-separated `--target x64musl`
+errors with `no value was supplied`.[^pin-app]
+
+From macOS arm64 on `nightly-2026-08-23-fb208ba`:
+
+```sh
+roc build --target=x64musl --output=/tmp/rocci-ops-linux-spike/rocci-ops \
+  roc/rocci-ops/app.roc
+```
+
+The artifact is a **statically linked** ELF x86-64 (~1.7M). In Docker
+`debian:bookworm-slim` `--platform linux/amd64` with **no Roc** in the
+image:
+
+```sh
+docker run --rm --platform linux/amd64 \
+  -v /tmp/rocci-ops-linux-spike/rocci-ops:/rocci-ops:ro \
+  debian:bookworm-slim /rocci-ops origin --help
+```
+
+prints `usage: rocci-ops origin [-h] {publish,up,backup} ...` (exit 0).
+`command -v roc` is empty in that container. Origin viability for a
+**prebuilt binary** is a go on this pin; origin on the VPS must still
+stay Python until a later cutover copies a binary instead of
+`uv run`.[^origin][^deploy][^pin-app]
+
 ## Origin delivery is the hard viability question
 
 Today bootstrap copies Compose, Caddy, `uv.lock`, and the **Python
@@ -335,6 +380,7 @@ Those are out of bound for the Roc rewrite.
 [^basic-cli-docs]: `Path`, `Env.set_cwd!`, `Http.get_utf8!`.
 [^encoding-json]: Typed `Encoding.Json.parse`.
 [^postmortem]: UnixBytes argv; Path; no `parse = parse`; import isolation.
-[^pin-app]: Phase 0 `roc/rocci-ops/app.roc`.
+[^pin-app]: Phase 0 `roc/rocci-ops/app.roc`; Phase 6 x64musl `roc build`.
 [^pin-fixture]: Subset JSON with `workspace_members` and `packages`.
+[^origin-roc]: `Origin.roc` lane/health/compose/`origin_publish_cmd`.
 [^author]: Helpers are `.roc`; widgets are `.rocci`.

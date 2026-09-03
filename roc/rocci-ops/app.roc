@@ -7,6 +7,7 @@ import Ci
 import DocsCoverage
 import Git
 import Local
+import Origin
 import WorkspaceDeps
 import pf.Cmd
 import pf.Env
@@ -882,6 +883,84 @@ push_entries! = |root, remote, dry, entries, idx, pushed, skipped| {
     }
 }
 
+lane_env! = |_| {
+    keys = ["ROCCI_LANE", "ROCCI_ORIGIN_ROOT", "ROCCI_HTTP_PORT", "COMPOSE_PROJECT_NAME", "ROCCI_PUBLISH_LIVE", "ROCCI_IMAGE_TAG", "ROCCI_BOOTSTRAP_DEST"]
+    var $i = 0.U64
+    var $pairs = []
+    while $i < List.len(keys) {
+        match List.get(keys, $i) {
+            Ok(key) => {
+                match Env.var_str!(OsStr.utf8(key)) {
+                    Ok(val) => {
+                        $pairs = List.concat($pairs, [{ key: key, val: val }])
+                    }
+                    Err(_) => {}
+                }
+            }
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    $pairs
+}
+
+run_origin! = |args| {
+    match Origin.parse_origin(args) {
+        OriginHelp => {
+            Stdout.write!(Origin.origin_help)?
+            Ok({})
+        }
+        OriginUsage => {
+            Stderr.write!(Origin.origin_help)?
+            Err(Exit(2))
+        }
+        OriginPublish(sha) => {
+            if Origin.validate_sha(sha) {
+                cfg = Origin.resolved_lane(lane_env!({}))
+                if cfg.err != "" {
+                    usage_exit!(cfg.err)
+                } else {
+                    not_impl!("origin publish")
+                }
+            } else {
+                usage_exit!("error: SHA must be hex")
+            }
+        }
+        OriginUp(_) => not_impl!("origin up")
+        OriginBackup(_) => not_impl!("origin backup")
+        _ => not_impl!("origin")
+    }
+}
+
+run_deploy! = |args| {
+    match Origin.parse_deploy(args) {
+        DeployHelp => {
+            Stdout.write!(Origin.deploy_help)?
+            Ok({})
+        }
+        DeployUsage => {
+            Stderr.write!(Origin.deploy_help)?
+            Err(Exit(2))
+        }
+        DeployProbe => not_impl!("deploy probe")
+        DeployBootstrap => not_impl!("deploy bootstrap")
+        DeployPush({ dir: _d, sha }) => {
+            if Origin.validate_sha(sha) {
+                cfg = Origin.resolved_lane(lane_env!({}))
+                if cfg.err != "" {
+                    usage_exit!(cfg.err)
+                } else {
+                    _cmd = Origin.origin_publish_cmd(sha, cfg.origin_root, cfg)
+                    not_impl!("deploy push")
+                }
+            } else {
+                usage_exit!("error: SHA must be hex")
+            }
+        }
+        _ => not_impl!("deploy")
+    }
+}
+
 main! = |args| {
     strs = decode_argv(args)?
     match Cli.parse(strs) {
@@ -940,6 +1019,8 @@ main! = |args| {
         PromoteArgs(rest) => run_promote!(rest)
         PrCheckoutArgs(rest) => run_pr_checkout!(rest)
         PushWorktreesArgs(rest) => run_push_worktrees!(rest)
+        OriginArgs(rest) => run_origin!(rest)
+        DeployArgs(rest) => run_deploy!(rest)
         NotImpl(name) => not_impl!(name)
     }
 }
