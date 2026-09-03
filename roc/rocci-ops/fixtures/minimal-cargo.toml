@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "crates/rocci-cli",
+    "crates/rocci-core",
+]
+
+[workspace.package]
+version = "0.1.0"

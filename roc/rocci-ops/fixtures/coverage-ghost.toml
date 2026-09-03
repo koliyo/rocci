@@ -1,0 +1,11 @@
+schema_version = 1
+[[feature]]
+id = "syntax.ghost"
+name = "Ghost"
+area = "syntax"
+owner = "rocci-template"
+source = "x"
+contract = "x"
+canonical = "/docs/reference/missing/"
+example = ""
+status = "current"

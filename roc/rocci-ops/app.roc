@@ -3,37 +3,14 @@ app [main!] {
 }
 
 import Cli
+import DocsCoverage
+import WorkspaceDeps
+import pf.Cmd
+import pf.Env
 import pf.OsStr
+import pf.Path
 import pf.Stderr
 import pf.Stdout
-
-Metadata : {
-    workspace_members : List(Str),
-    pkgs : List(Pkg),
-}
-
-Pkg : {
-    name : Str,
-    id : Str,
-    dependencies : List(Dep),
-}
-
-Dep : {
-    name : Str,
-}
-
-subset_json = "{\"workspace_members\":[\"alpha 0.1.0 (path+file:///tmp/ws/alpha)\",\"beta 0.1.0 (path+file:///tmp/ws/beta)\"],\"packages\":[{\"name\":\"alpha\",\"id\":\"alpha 0.1.0 (path+file:///tmp/ws/alpha)\",\"dependencies\":[{\"name\":\"beta\"},{\"name\":\"serde\"}]},{\"name\":\"beta\",\"id\":\"beta 0.1.0 (path+file:///tmp/ws/beta)\",\"dependencies\":[]}]}"
-
-rename_packages_key = |src| {
-    match Str.split_first(src, "\"packages\":") {
-        Ok({ before, after }) => Str.concat(before, Str.concat("\"pkgs\":", after))
-        Err(_) => src
-    }
-}
-
-decode_metadata : Str -> Try(Metadata, [InvalidJson(Str), MissingRequiredField(Str), ..])
-decode_metadata = |src|
-    Encoding.Json.parse(rename_packages_key(src))
 
 os_utf8 = |arg|
     match OsStr.to_raw(arg) {
@@ -62,6 +39,174 @@ decode_argv = |args|
 not_impl! = |name| {
     Stderr.write!("not implemented: ${name}\n")?
     Err(Exit(3))
+}
+
+path_str = |path|
+    match Path.to_str(path) {
+        Ok(s) => s
+        Err(_) => Path.display(path)
+    }
+
+path_filename = |path| {
+    match Path.filename(path) {
+        Ok(fp) => path_str(fp)
+        Err(_) => path_str(path)
+    }
+}
+
+join_root = |root, rel| Path.utf8("${path_str(root)}/${rel}")
+
+repo_root! = |_| {
+    match Env.var_str!(OsStr.utf8("ROCCI_REPO_ROOT")) {
+        Ok(p) => Ok(Path.utf8(p))
+        Err(_) => Env.cwd!()
+    }
+}
+
+ends_with_rocdown = |name| {
+    bytes = Str.to_utf8(name)
+    suf = Str.to_utf8(".rocdown")
+    if List.len(bytes) < List.len(suf) {
+        Bool.False
+    } else {
+        var $i = 0.U64
+        var $ok = Bool.True
+        base = List.len(bytes) - List.len(suf)
+        while $ok and $i < List.len(suf) {
+            match (List.get(bytes, base + $i), List.get(suf, $i)) {
+                (Ok(a), Ok(b)) => {
+                    if a != b {
+                        $ok = Bool.False
+                    }
+                }
+                _ => {
+                    $ok = Bool.False
+                }
+            }
+            $i = $i + 1
+        }
+        $ok
+    }
+}
+
+collect_tree! = |root, start_rel| {
+    var $queue = [start_rel]
+    var $pages = []
+    var $qi = 0.U64
+    while $qi < List.len($queue) {
+        match List.get($queue, $qi) {
+            Err(_) => {}
+            Ok(rel) => {
+                match Path.list!(join_root(root, rel)) {
+                    Err(_) => {}
+                    Ok(entries) => {
+                        var $ei = 0.U64
+                        while $ei < List.len(entries) {
+                            match List.get(entries, $ei) {
+                                Err(_) => {}
+                                Ok(entry) => {
+                                    name = path_filename(entry)
+                                    child_rel = "${rel}/${name}"
+                                    match Path.type!(entry) {
+                                        Ok(IsDir) => {
+                                            $queue = List.concat($queue, [child_rel])
+                                        }
+                                        Ok(IsFile) => {
+                                            if ends_with_rocdown(name) or child_rel == "examples/rocci/apps.toml" {
+                                                match Path.read_utf8!(entry) {
+                                                    Ok(text) => {
+                                                        $pages = List.concat($pages, [{ path: child_rel, text: text }])
+                                                    }
+                                                    Err(_) => {}
+                                                }
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                            $ei = $ei + 1
+                        }
+                    }
+                }
+            }
+        }
+        $qi = $qi + 1
+    }
+    $pages
+}
+
+write_errors! = |lines| {
+    var $i = 0.U64
+    while $i < List.len(lines) {
+        match List.get(lines, $i) {
+            Ok(line) => Stderr.line!("  ${line}")?
+            Err(_) => {}
+        }
+        $i = $i + 1
+    }
+    Ok({})
+}
+
+run_check_deps! = |_| {
+    root = repo_root!({})?
+    before = Env.cwd!()?
+    Env.set_cwd!(root)?
+    output = Cmd.new("cargo").args_str(["metadata", "--format-version", "1", "--no-deps"]).exec_output!()
+    Env.set_cwd!(before)?
+    match output {
+        Ok(out) => {
+            match WorkspaceDeps.decode(out.stdout_utf8) {
+                Ok(meta) => {
+                    result = WorkspaceDeps.check(meta)
+                    if List.len(result.errors) == 0 {
+                        Stdout.line!("ok: ${result.package_count.to_str()} workspace packages, ${List.len(result.notes).to_str()} allowlisted reverse edges")?
+                        Ok({})
+                    } else {
+                        Stderr.line!("workspace dependency check failed:")?
+                        write_errors!(result.errors)?
+                        Err(Exit(1))
+                    }
+                }
+                Err(_) => {
+                    Stderr.line!("could not parse cargo metadata")?
+                    Err(Exit(1))
+                }
+            }
+        }
+        Err(NonZeroExitCode({ command: _cmd, exit_code, stdout_utf8_lossy: _out, stderr_utf8_lossy })) => {
+            Stderr.write!(stderr_utf8_lossy)?
+            Err(Exit(exit_code))
+        }
+        Err(_) => Err(Exit(1))
+    }
+}
+
+run_check_docs! = |_| {
+    root = repo_root!({})?
+    coverage = Path.read_utf8!(join_root(root, "docs/coverage.toml"))?
+    queries = Path.read_utf8!(join_root(root, "docs/search-queries.toml"))?
+    sessions_path = join_root(root, "docs/first-use-sessions.toml")
+    session_errors = match Path.is_file!(sessions_path) {
+        Ok(Bool.True) => DocsCoverage.check_sessions_text(Path.read_utf8!(sessions_path)?)
+        _ => ["missing docs/first-use-sessions.toml"]
+    }
+    pages = List.concat(
+        List.concat(collect_tree!(root, "docs"), collect_tree!(root, "site")),
+        collect_tree!(root, "examples/rocci"),
+    )
+    errors = List.concat(
+        List.concat(DocsCoverage.check_coverage_text(coverage, pages), DocsCoverage.check_queries_text(queries, pages)),
+        session_errors,
+    )
+    if List.len(errors) == 0 {
+        Stdout.line!("docs coverage ok")?
+        Ok({})
+    } else {
+        Stderr.line!("docs coverage failed:")?
+        write_errors!(errors)?
+        Err(Exit(1))
+    }
 }
 
 main! = |args| {
@@ -101,43 +246,16 @@ main! = |args| {
             Stderr.write!("usage: rocci-ops check zed\n")?
             Err(Exit(2))
         }
-        CheckDeps => not_impl!("check deps")
-        CheckDocs(_) => not_impl!("check docs")
+        CheckDeps => run_check_deps!({})
+        CheckDocs(rest) => {
+            if List.len(rest) == 0 {
+                run_check_docs!({})
+            } else {
+                Stderr.write!("usage: rocci-ops check docs\n")?
+                Err(Exit(2))
+            }
+        }
         CheckZed => not_impl!("check zed")
         NotImpl(name) => not_impl!(name)
     }
 }
-
-expect
-    match decode_metadata(subset_json) {
-        Ok(meta) => List.len(meta.pkgs) == 2 and List.len(meta.workspace_members) == 2
-        Err(_) => Bool.False
-    }
-
-expect
-    match decode_metadata(subset_json) {
-        Ok(meta) => {
-            match List.get(meta.pkgs, 0) {
-                Ok(pkg) => pkg.name == "alpha" and List.len(pkg.dependencies) == 2
-                Err(_) => Bool.False
-            }
-        }
-        Err(_) => Bool.False
-    }
-
-expect
-    match decode_metadata("{\"workspace_members\":[],\"packages\":[],\"version\":1}") {
-        Ok(meta) => List.len(meta.pkgs) == 0 and List.len(meta.workspace_members) == 0
-        Err(_) => Bool.False
-    }
-
-expect
-    match decode_metadata("{\"workspace_members\":[\"alpha 0.1.0 (path+file:///tmp/ws/alpha)\"],\"packages\":[{\"name\":\"alpha\",\"id\":\"alpha 0.1.0 (path+file:///tmp/ws/alpha)\",\"version\":\"0.1.0\",\"source\":null,\"dependencies\":[{\"name\":\"beta\",\"source\":null}]}]}") {
-        Ok(meta) => {
-            match List.get(meta.pkgs, 0) {
-                Ok(pkg) => pkg.name == "alpha" and List.len(pkg.dependencies) == 1
-                Err(_) => Bool.False
-            }
-        }
-        Err(_) => Bool.False
-    }

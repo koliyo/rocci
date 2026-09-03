@@ -1,0 +1,8 @@
+schema_version = 1
+product = "rocci"
+
+[[session]]
+id = "roc-first-20990101"
+entry = "roc-first"
+date = "2099-01-01"
+success = false
