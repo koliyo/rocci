@@ -4,7 +4,7 @@ title: A Roc port of rocci-ops is a parallel exercise
 description: "Exploratory: rewrite rocci-ops in ordinary Roc on a parallel branch to test parity and basic-cli viability. Python plus uv stays the operator CLI until a later human cutover. Not shipped."
 tags: [domain/ops, domain/rocci, integration/roc, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T11:25:00Z }
+generated: { by: process:cursor, at: 2026-09-03T11:35:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -129,6 +129,11 @@ sources:
     title: Lane, health URL, compose argv, origin_publish_cmd
     author: process:cursor
     last_modified: 2026-09-03
+  - id: parity-sh
+    resource: ../../../roc/rocci-ops/parity.sh
+    title: Phase 7 Python vs Roc stdout/stderr/exit diffs
+    author: process:cursor
+    last_modified: 2026-09-03
   - id: pin-fixture
     resource: ../../../roc/rocci-ops/fixtures/cargo-metadata-subset.json
     title: cargo-metadata subset for Encoding.Json.parse
@@ -155,8 +160,10 @@ applies: a second implementation lives on a named branch; the production
 surface stays where it is until a human accepts parity and
 viability.[^template-plan][^plan][^postmortem]
 
-Phase 0 of the plan is recorded below on branch `rocci-ops-roc`. Python
-still wins. Do not treat the spike as a cutover.[^pin-app][^plan]
+Phase 0 of the plan is recorded below on branch `rocci-ops-roc`. Phase 7
+records a go / no-go table: the four-command harness matches Python;
+origin x64musl is viable; CI uv replacement and cutover are no-go.
+Python still wins. Do not treat the spike as a cutover.[^pin-app][^plan][^parity-sh]
 
 ## Recommendation
 
@@ -276,6 +283,26 @@ prints `usage: rocci-ops origin [-h] {publish,up,backup} ...` (exit 0).
 stay Python until a later cutover copies a binary instead of
 `uv run`.[^origin][^deploy][^pin-app]
 
+## Phase 7 go / no-go
+
+`./roc/rocci-ops/parity.sh` diffs Python `uv run --no-dev rocci-ops`
+against `roc roc/rocci-ops/app.roc --` for `-h`, `check -h`, `ci --list`,
+and `check deps` (stdout, stderr, exit). On this revision the harness
+exits 0.[^parity-sh][^cli][^ci][^deps]
+
+| Question | Verdict | Evidence |
+| --- | --- | --- |
+| Cmd mapping | **Go** | `exec_exit_code!` returns `Ok(0)`/`Ok(1)`; sequential `Env.set_cwd!`; capture-then-write for `stdout_path`[^pin-app][^basic-cli-cmd] |
+| JSON (`cargo metadata`) | **Go** | `Encoding.Json.parse` after rewriting reserved `packages` to `pkgs`[^pin-fixture][^encoding-json] |
+| TOML subset | **Go** | Hand-rolled `[[feature]]` / query / session tables; live `check docs` matches Python[^docs] |
+| Origin Linux binary | **Go** | `roc build --target=x64musl`; Debian amd64, no Roc, prints `origin --help`[^pin-app][^origin-roc] |
+| CI toolchain cost | **No-go** for replacing uv | Lint/test jobs would need the nightly or a checked-in binary on every runner that today only has uv. Extra `roc test` on this branch is acceptable; swapping `uv run --no-dev rocci-ops ci` is a later plan.[^ci][^python-research] |
+| Product cutover | **No-go** | Workflows, origin `uv run`, and README stay Python. Many commands remain `not implemented` (mutating origin/deploy, `check zed`, archive package/publish, non-dry-run release). Python still wins. A cutover is a **new** plan.[^cli][^deploy][^pyproject] |
+
+Parity on the four harness surfaces plus origin-binary viability is not
+a cutover. Dual `CLASSES` copies must not drift while both CLIs
+exist.[^deps]
+
 ## Origin delivery is the hard viability question
 
 Today bootstrap copies Compose, Caddy, `uv.lock`, and the **Python
@@ -383,4 +410,5 @@ Those are out of bound for the Roc rewrite.
 [^pin-app]: Phase 0 `roc/rocci-ops/app.roc`; Phase 6 x64musl `roc build`.
 [^pin-fixture]: Subset JSON with `workspace_members` and `packages`.
 [^origin-roc]: `Origin.roc` lane/health/compose/`origin_publish_cmd`.
+[^parity-sh]: `roc/rocci-ops/parity.sh` vs `uv run --no-dev rocci-ops`.
 [^author]: Helpers are `.roc`; widgets are `.rocci`.

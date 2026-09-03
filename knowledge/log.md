@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-03
 
+- Revised [A Roc port of rocci-ops is a parallel exercise](research/ops/rocci-ops-roc.md) Phase 7 on branch `rocci-ops-roc`: `parity.sh` matches Python on `-h` / `check -h` / `ci --list` / `check deps`; Cmd, JSON, TOML subset, and x64musl origin binary are go; replacing uv on CI and a product cutover are no-go. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Revised [A Roc port of rocci-ops is a parallel exercise](research/ops/rocci-ops-roc.md) Phase 6 on branch `rocci-ops-roc`: health probes are curl argv (5s, noproxy, Host header), not `Http.get_utf8!`; `roc build --target=x64musl` from macOS arm64 emits a static ELF x86-64 that prints `origin --help` in `debian:bookworm-slim` linux/amd64 with no Roc. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Revised [A Roc port of rocci-ops is a parallel exercise](research/ops/rocci-ops-roc.md) Phase 0 pin on branch `rocci-ops-roc`: `main!` argv is `UnixBytes` on macOS; `exec_exit_code!` returns `Ok(0)`/`Ok(1)` for `true`/`false`; `Encoding.Json.parse` of a cargo-metadata subset works after renaming reserved `packages` to `pkgs`; extra JSON fields including `null` are ignored; `Env.set_cwd!` then `Cmd` works. Exploratory; do not log complete until CI and Knowledge succeed.

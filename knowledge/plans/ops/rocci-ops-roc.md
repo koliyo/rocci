@@ -4,7 +4,7 @@ title: Roc rewrite of rocci-ops on a parallel branch
 description: "Phased exercise: ordinary Roc under roc/rocci-ops/ matching the Python CLI names. uv rocci-ops stays the operator surface until parity and viability are recorded. Not a replacement or workflow cutover. Exploratory; do not start a phase until asked."
 tags: [domain/ops, domain/rocci, integration/roc, concern/ci, concern/tooling, concern/publication]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T11:25:00Z }
+generated: { by: process:cursor, at: 2026-09-03T11:35:00Z }
 stale_after: 2026-12-02
 authority: exploratory
 owners: [human:nils]
@@ -342,6 +342,11 @@ Still do not switch workflows.
 marked complete until CI and Knowledge workflows succeed on the revision
 that contains the Roc sources. A later cutover is a **new** plan.
 
+**Recorded table:** `roc/rocci-ops/parity.sh` matches Python on `-h`,
+`check -h`, `ci --list`, and `check deps`. Cmd / JSON / TOML subset /
+origin x64musl binary are **go**. Replacing uv on CI jobs and a product
+cutover are **no-go**. Details: [research Phase 7](/research/ops/rocci-ops-roc.md).
+
 ## Tests (whole plan)
 
 ```sh
@@ -351,6 +356,7 @@ roc roc/rocci-ops/app.roc -- ci --list
 uv run --no-dev rocci-ops -h
 uv run --no-dev rocci-ops ci --list
 uv run --no-dev rocci-ops check deps
+./roc/rocci-ops/parity.sh
 uv run --directory rocci-ops --group dev pytest
 okmate check knowledge --profile base --format terminal
 ```
