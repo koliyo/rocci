@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-03
 
+- Revised [A Roc port of rocci-ops is a parallel exercise](research/ops/rocci-ops-roc.md) Phase 0 pin on branch `rocci-ops-roc`: `main!` argv is `UnixBytes` on macOS; `exec_exit_code!` returns `Ok(0)`/`Ok(1)` for `true`/`false`; `Encoding.Json.parse` of a cargo-metadata subset works after renaming reserved `packages` to `pkgs`; extra JSON fields including `null` are ignored; `Env.set_cwd!` then `Cmd` works. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Revised [Rocci-as-platform post-mortem](audits/rocci/rocci-as-roc-platform-postmortem.md): `pf.Html` is stock basic-webserver `Html` (including `Html.div`); compiler `fragment` / `empty` / `attribute` live on that module; no `InternalHtml`. Attribution is `roc-lang/basic-webserver` `50e064c`. Descriptive; do not log complete until CI and Knowledge succeed.
 
 ## 2026-09-02

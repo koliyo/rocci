@@ -1,0 +1,21 @@
+{
+  "workspace_members": [
+    "alpha 0.1.0 (path+file:///tmp/ws/alpha)",
+    "beta 0.1.0 (path+file:///tmp/ws/beta)"
+  ],
+  "packages": [
+    {
+      "name": "alpha",
+      "id": "alpha 0.1.0 (path+file:///tmp/ws/alpha)",
+      "dependencies": [
+        { "name": "beta" },
+        { "name": "serde" }
+      ]
+    },
+    {
+      "name": "beta",
+      "id": "beta 0.1.0 (path+file:///tmp/ws/beta)",
+      "dependencies": []
+    }
+  ]
+}
