@@ -45,11 +45,11 @@ This repository incorporates third-party Tree-sitter grammars and query definiti
 
 - **Purpose:** Native HTTP/SSE/SQLite Roc platform used as `pf` by generated and custom Rocci apps.
 - **Public origin:** [https://github.com/roc-lang/basic-webserver](https://github.com/roc-lang/basic-webserver)
-- **Snapshot copied from:** [https://github.com/koliyo/roc-basic-webserver](https://github.com/koliyo/roc-basic-webserver) at `241061577473444a11777abc2f9376cc224e0e5f` (0.16 line)
+- **Snapshot:** `50e064cdd1c4562c293598c61f6ce7a895d99bcf` (0.16 line)
 - **Copyright:** © 2023 Richard Feldman and subsequent Roc authors
 - **License:** Universal Permissive License 1.0
 - **License location:** [`crates/rocci-platform/LICENSE-UPL`](crates/rocci-platform/LICENSE-UPL)
-- **Rocci-original (Apache-2.0):** `platform/Datastar.roc` and wrapper `platform/Html.roc`. Remaining host Rust and `platform/` Roc in that crate is the UPL snapshot, adapted for `platform "rocci"` and workspace crate versions.
+- **Rocci-original (Apache-2.0):** `platform/Datastar.roc` and compiler helpers on `platform/Html.roc` (`attribute`, `boolean_attribute`, `empty`, `fragment`). Remaining host Rust and `platform/` Roc in that crate is the UPL snapshot, adapted for `platform "rocci"` and workspace crate versions.
 
 ---
 

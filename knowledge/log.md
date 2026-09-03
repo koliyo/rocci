@@ -6,8 +6,13 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-03
+
+- Revised [Rocci-as-platform post-mortem](audits/rocci/rocci-as-roc-platform-postmortem.md): `pf.Html` is stock basic-webserver `Html` (including `Html.div`); compiler `fragment` / `empty` / `attribute` live on that module; no `InternalHtml`. Attribution is `roc-lang/basic-webserver` `50e064c`. Descriptive; do not log complete until CI and Knowledge succeed.
+
 ## 2026-09-02
 
+- Filed draft [expose the Rust template parser to Roc via hosted glue](research/rocci/template-parser-roc-glue.md) and paired [hosted glue plan](plans/rocci/template-parser-roc-glue.md): keep `crates/rocci-template`; Roc calls it through platform `hosted` (not a package). Payloads compile! / parse! / apply! on a stdio template-host. Distinct from the native rewrite. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 - Clarified [Roc-native template compiler](research/rocci/roc-native-template-compiler.md) motivating vision: consume pure `.rocci` templates in a normal Roc app with no rocci CLI; `import Hello.rocci` still does not exist. Revised [platform post-mortem](audits/rocci/rocci-as-roc-platform-postmortem.md): rocci `pf.Html` is not that path (one platform per app). Exploratory; do not log complete until CI and Knowledge succeed.
 - Noted on [Rocci-as-platform post-mortem](audits/rocci/rocci-as-roc-platform-postmortem.md): Html/Datastar on `pf` is option value if a later [Roc-native template compiler](plans/rocci/roc-native-template-compiler.md) vision check typechecks generated modules without CLI staging. That plan stays an unstarted parity POC; Rust stays the product compiler. Exploratory; do not log complete until CI and Knowledge succeed.
 - Filed draft [Rocci-as-platform post-mortem](audits/rocci/rocci-as-roc-platform-postmortem.md): first-cut payoff is `pf` ownership of Datastar/Html, not a new Snake API. Snake changed pin plus `import pf.Html`; `respond!` stayed. Pointed the [research](research/rocci/rocci-as-roc-platform.md) / [plan](plans/rocci/rocci-as-roc-platform.md) pair and [method-role packaging split](research/rocci/method-role-handlers-as-roc-library.md). Descriptive; do not log complete until CI and Knowledge succeed.

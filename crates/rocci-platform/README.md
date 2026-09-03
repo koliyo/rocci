@@ -5,22 +5,27 @@ basic-webserver plus a Rocci package. Generated `rocci run` / `rocci build`
 apps and the custom datastar/snake examples use this pin. `--http-module`
 and wasm apply (`crates/rocci-roc-host`) are **not** this platform.
 
-The platform exposes `Datastar` and a wrapper `Html` (`import pf.Datastar`
-/ `import pf.Html`). Constructors live in unexposed `InternalHtml`.
+The platform exposes `Datastar` and `Html` (`import pf.Datastar` /
+`import pf.Html`). `Html` is the basic-webserver module, including tag
+helpers such as `Html.div`. Rocci compiler helpers live on the same
+module: `element` / `void_element` / `attribute` / `boolean_attribute` /
+`fragment` (sibling nodes as one `Node`) / `empty`.
+`Html.render_fragment` remains the nominal rendered-string type.
+`0.16.0` pins still get staged wrapper copies.
 
 ## Host origin
 
 The Rust host and most `platform/` Roc modules are a vendored snapshot of
 [roc-lang/basic-webserver](https://github.com/roc-lang/basic-webserver)
-(UPL-1.0), copied from sibling
-[`roc-basic-webserver`](https://github.com/koliyo/roc-basic-webserver) at
-`241061577473444a11777abc2f9376cc224e0e5f` (0.16 line). Copyright
+at `50e064cdd1c4562c293598c61f6ce7a895d99bcf` (0.16 line). Copyright
 © 2023 Richard Feldman and subsequent Roc authors. The full UPL text is
-`LICENSE-UPL`. This is not a git submodule.
+`LICENSE-UPL`. This is not a git submodule. Musl libc/crt/unwind and the
+macOS `libSystem.tbd` under `platform/targets/` are stored with Git LFS.
+`libhost.a` is rebuilt by `build.sh` and is not committed.
 
 Rocci-original modules in this crate (`platform/Datastar.roc` and the
-wrapper `platform/Html.roc`) are Apache-2.0, same as the rest of Rocci.
-Crate SPDX is `Apache-2.0 AND UPL-1.0`.
+compiler helpers on `platform/Html.roc`) are Apache-2.0, same as the rest
+of Rocci. Crate SPDX is `Apache-2.0 AND UPL-1.0`.
 
 Host crate versions are workspace-compatible (not the upstream `=` pins)
 so one Cargo.lock can resolve; `libsqlite3-sys` stays on the `0.30` line

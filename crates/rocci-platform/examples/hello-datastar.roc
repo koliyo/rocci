@@ -18,7 +18,7 @@ init! = || Ok({ config: Server.default_config, context: {} })
 
 respond! : Server.Request, Context => Try(Server.Outcome, [ServerErr(Str), ..])
 respond! = |_request, _context| {
-    event = Datastar.patch_elements(Html.element("p", [], [Html.text("hello-datastar")]))
+    event = Datastar.patch_elements(Html.p([], [Html.text("hello-datastar")]))
     Ok(
         Server.stream(
             Sse.unfold!(0, |state|

@@ -4,7 +4,7 @@ title: Rocci-as-platform post-mortem
 description: "First-cut platform cutover bought ownership of Datastar/Html as pf, not a new Snake authoring API. Authored apps changed pin plus imports; respond! stayed. Cost is a vendored host and leftover 0.16.0 paths."
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T20:35:00Z }
+generated: { by: process:cursor, at: 2026-09-03T07:00:00Z }
 stale_after: 2026-12-02
 authority: descriptive
 owners: [human:nils]
@@ -32,6 +32,11 @@ sources:
   - id: native-research
     resource: ../../research/rocci/roc-native-template-compiler.md
     title: A Roc-native template parser and lowerer
+    author: process:cursor
+    last_modified: 2026-09-02
+  - id: glue-research
+    resource: ../../research/rocci/template-parser-roc-glue.md
+    title: Expose the Rust template parser to Roc via hosted glue
     author: process:cursor
     last_modified: 2026-09-02
   - id: snake
@@ -68,7 +73,12 @@ sources:
     resource: ../../../crates/rocci-platform/platform/main.roc
     title: platform rocci requires and exposes
     author: process:git
-    last_modified: 2026-09-02
+    last_modified: 2026-09-03
+  - id: html-roc
+    resource: ../../../crates/rocci-platform/platform/Html.roc
+    title: Stock Html plus compiler helpers
+    author: process:git
+    last_modified: 2026-09-03
   - id: build-sh
     resource: ../../../crates/rocci-platform/build.sh
     title: Native libhost.a copy
@@ -114,7 +124,7 @@ cutover. Role constructors remain a follow-on.[^plan][^method-role][^research]
 | Generated apps pin basic-webserver 0.16.0 and receive staged `Html.roc` / `Datastar.roc` | Generated apps pin `crates/rocci-platform`; `import pf.Html` / `import pf.Datastar`; no sibling copies on that pin[^dispatch][^runtime-assets] |
 | Custom snake/datastar pin the 0.16.0 URL and `import Html` (CLI-staged) | Path pin plus `import pf.Html` (snake) or `pf.Html` / `pf.Datastar` (gallery). `respond!` unchanged[^snake][^datastar-main] |
 | Counter `.rocci` authors `import Html` | Still `import Html` in the template. CLI rewrites to `import pf.Html` when wrapping. Authors of `.rocci` do not change[^counter][^dispatch] |
-| Runtime bug inbox is "bws + staged files + CLI" | One `pf` for HTTP, SQLite, SSE, Datastar helpers, and the Html wrapper. Host changes (timeouts, `hosted_*`) can land without a second package[^research][^platform-main] |
+| Runtime bug inbox is "bws + staged files + CLI" | One `pf` for HTTP, SQLite, SSE, Datastar helpers, and `Html` (stock tag helpers plus compiler `fragment` / `empty` / `attribute`). Host changes (timeouts, `hosted_*`) can land without a second package[^research][^platform-main][^html-roc] |
 | Release pin is an upstream GitHub tarball | Dev pin is an in-tree path. `bundle.sh` can emit a local `.tar.zst`. No GitHub release URL yet[^bundle-sh][^plan] |
 
 Richard's test was one app dependency besides builtins: the platform.
@@ -202,6 +212,12 @@ If the POC is resumed later:
 - Handler / `main.roc` lowering stays out of that POC Bound. A native
   compiler would not, by itself, shrink Snake `respond!`.[^native-plan][^method-role]
 
+If the parser stays in Rust, Roc can still call it through **hosted
+glue** on a stdio template-host (not a package, not rocci-cli). That
+is [template-parser-roc-glue](/research/rocci/template-parser-roc-glue.md),
+not this HTTP platform cutover. Copying the same `hosted_*` onto
+rocci-platform is a follow-on.[^glue-research]
+
 ## Follow-ons that would change Snake
 
 Those are other plans:
@@ -217,6 +233,7 @@ Those are other plans:
 [^method-role]: Platform vs package for the handler matrix; constructors are a later Bound.
 [^native-plan]: Parallel-branch emit-parity POC; Rust stays product compiler; handlers and HTTP out of Bound.
 [^native-research]: Motivating vision: consume pure templates in a normal Roc app, no rocci CLI; Html is a package or local module on a foreign platform.
+[^glue-research]: Hosted compile/parse/apply over crates/rocci-template; not a rewrite.
 [^snake]: Pin path and `import pf.Html` only.
 [^datastar-main]: Pin path plus `pf.Datastar` / `pf.Html`.
 [^notes]: Still 0.16.0 URL and sibling imports.
@@ -224,6 +241,7 @@ Those are other plans:
 [^runtime-assets]: 0.16.0 path still stages copies.
 [^http-module]: WASI compile still forces the 0.16.0 URL then the fork.
 [^platform-main]: `platform "rocci"`; exposes include Datastar and Html.
+[^html-roc]: Stock `Html.div` plus compiler `fragment` / `empty` / `attribute` on the same module.
 [^build-sh]: Native libhost copy; `--all` exits 1.
 [^bundle-sh]: `roc bundle` of platform Roc plus native libhost.
 [^ops-cli]: No platform-host subcommand.

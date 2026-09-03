@@ -126,7 +126,6 @@ import Env
 import File
 import Host
 import Attribute
-import InternalHtml
 import Html
 import Datastar
 import Http
