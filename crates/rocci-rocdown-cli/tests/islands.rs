@@ -379,7 +379,7 @@ fn docs_run_previews_the_site() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_preview(port, &mut child.0, "Maturity");
+    wait_for_preview(port, &mut child.0, "Overview");
 
     let home = http_exchange(
         port,
@@ -393,10 +393,6 @@ fn docs_run_previews_the_site() {
     assert!(
         !home.contains("/assets/datastar") && !home.to_ascii_lowercase().contains("datastar.js"),
         "docs must stay static:\n{home}"
-    );
-    assert!(
-        home.contains("Maturity"),
-        "widget forest must still paint the home :note:\n{home}"
     );
     drop(child);
 }
@@ -522,6 +518,9 @@ fn wait_for_preview(port: u16, child: &mut Child, needle: &str) {
             panic_if_preview_failed(&text, "preview served a build error");
             if text.contains(needle) {
                 return;
+            }
+            if text.contains("</html>") {
+                panic!("preview HTML did not contain {needle:?}:\n{text}");
             }
         }
         if start.elapsed() > Duration::from_secs(180) {

@@ -390,7 +390,7 @@ impl BuildReport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::build::tests::{ROC_LOCK, skip_without_roc};
+    use crate::build::tests::{lock_roc, skip_without_roc};
     use crate::build::unique_temp;
 
     fn write_page(dir: &Path, name: &str, body: &str) {
@@ -402,7 +402,7 @@ mod tests {
         if skip_without_roc() {
             return;
         }
-        let _lock = ROC_LOCK.lock().unwrap();
+        let _lock = lock_roc();
         let root = unique_temp("pkg-static-src").unwrap();
         write_page(
             &root,
@@ -495,7 +495,7 @@ mod tests {
         if skip_without_roc() {
             return;
         }
-        let _lock = ROC_LOCK.lock().unwrap();
+        let _lock = lock_roc();
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .unwrap()

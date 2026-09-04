@@ -1,6 +1,6 @@
 use super::theme::roc_fn_name;
 use super::*;
-use crate::build::tests::{ROC_LOCK, skip_without_roc};
+use crate::build::tests::{lock_roc, skip_without_roc};
 use crate::site::{InspectKind, inspect, load_site, resolve_loaded};
 use std::{env, fs, path::PathBuf, process::Command};
 
@@ -36,7 +36,7 @@ fn missing_nav_group_children_names_the_field() {
     if skip_without_roc() {
         return;
     }
-    let _lock = ROC_LOCK.lock().unwrap();
+    let _lock = lock_roc();
     let dir = env::temp_dir().join(format!("rocdown-nav-group-missing-{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
