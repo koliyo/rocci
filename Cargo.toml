@@ -41,7 +41,7 @@ rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
 rocci-core = { path = "crates/rocci-core" }
 rocci-docs = { path = "crates/rocci-docs" }
 rocci-desktop = { path = "crates/rocci-desktop" }
-h35-desktop = { git = "https://github.com/koliyo/h35-desktop" }
+h35-desktop = { git = "https://github.com/koliyo/h35-desktop", rev = "248c741f26ea377f7da5aa100216ac23ed06006e" }
 rocci-cli = { path = "crates/rocci-cli" }
 rocci-template = { path = "crates/rocci-template", default-features = false }
 rocci-ungram = { path = "crates/rocci-ungram" }

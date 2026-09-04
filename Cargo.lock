@@ -1877,7 +1877,7 @@ dependencies = [
 [[package]]
 name = "h35-desktop"
 version = "0.1.0"
-source = "git+https://github.com/koliyo/h35-desktop#8e2b1d7a98cb9fa2834e7f8335bd0c267d7bd038"
+source = "git+https://github.com/koliyo/h35-desktop?rev=248c741f26ea377f7da5aa100216ac23ed06006e#248c741f26ea377f7da5aa100216ac23ed06006e"
 dependencies = [
  "libc",
  "muda",
@@ -1892,7 +1892,6 @@ dependencies = [
  "thiserror 2.0.20",
  "tokio",
  "tracing",
- "url",
  "uuid",
  "wry",
 ]
