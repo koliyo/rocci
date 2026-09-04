@@ -2,6 +2,7 @@
 
 CI, hosting, python-uv, Tangled, and Cursor My Machines.
 
+* [No GitHub release URL for rocci-platform](rocci-platform-github-release.md) - `release.yml` published CLI archives only; Phase 6 skipped a Roc pin URL. Implementation: [platform GitHub release](/plans/ops/rocci-platform-github-release.md). Exploratory.
 * [Cursor My Machines worker on a personal Mac mini](cursor-my-machines-mac-mini.md) - Personal `agent worker start` so Cloud Agents from the iPhone app execute tool calls on a Mac mini; local `target/` and Cargo caches persist; not Enterprise Self-Hosted Pool. Exploratory.
 * [Dependabot security updates for Rocci lockfiles](dependabot-security-updates.md) - Close GitHub alerts with in-range pins; `glib` 0.18 stays until wry/tao GTK4 and is dismissed `tolerable_risk`. Agent procedure: `.agents/skills/rocci-dependabot`. Exploratory.
 

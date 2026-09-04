@@ -332,6 +332,7 @@ remain documented as **not** this platform.
 
 ## Follow-ons (not this plan)
 
+- GitHub release URL for the `.tar.zst` ([platform GitHub release](/plans/ops/rocci-platform-github-release.md))
 - Role constructors inside the platform (`Rocci.view` et al.) and
   shrinking generated `respond!`[^method-role]
 - Re-pin `--http-module` once the native platform is default

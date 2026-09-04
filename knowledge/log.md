@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-04
+
+- Implemented [publish rocci-platform as a GitHub release asset](plans/ops/rocci-platform-github-release.md) Phases 1–4 on branch `rocci-platform-github-release`: hosted `build.sh`, Linux `bundle.sh` CI artifact, attach `rocci-platform.tar.zst` on tag publish, merge `arm64mac`+`x64musl` libhosts into one `roc bundle`. Phase 5 (released pin fallback) is a human decision gate. Exploratory; do not log complete until CI and Knowledge succeed.
+
 ## 2026-09-03
 
 - Filed draft [Roc rocci-ops post-mortem](research/ops/rocci-ops-roc-postmortem.md): CLI pin and x64musl origin binary on `nightly-2026-08-23-fb208ba` worked; unexpected cost was reserved `packages`/`expect`, `Ok`/`Err` union merge, and one `LocalReq`. Python uv stays the operator CLI. Exploratory; do not log Phases 0–7 complete until CI and Knowledge succeed.
