@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-04
 
+- Filed draft [hosted Roc-gated crate tests exceed ten minutes](audits/ops/roc-gated-ci-duration.md): run 33865097789 was 16 minutes because `islands` waited 120–180s after Roc rejected an absolute `rocci-platform` pin; `rocci-cli` smokes were 56s. Descriptive; do not log complete until CI and Knowledge succeed.
+
 - Knowledge CI installs the pinned released Linux `okmate` binary (`.github/okmate-version`) instead of compiling a `koliyo/okmate` checkout. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Implemented [publish rocci-platform as a GitHub release asset](plans/ops/rocci-platform-github-release.md) Phase 5 on branch `rocci-platform-github-release`: PATH `rocci` falls back to the same-tag GitHub `rocci-platform.tar.zst` URL when in-tree `main.roc` is missing; checkout generated apps still pin the path. Exploratory; do not log complete until CI and Knowledge succeed.

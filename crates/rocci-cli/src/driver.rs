@@ -388,8 +388,15 @@ pub(crate) fn stage_app_workspace(
         )
         .with_context(|| format!("failed to write {}.roc", module.type_name))?;
     }
-    fs::write(workspace.path.join("main.roc"), plan.main_roc())
-        .context("failed to write generated main.roc")?;
+    let pin = match plan.platform.as_deref() {
+        Some(pin) => crate::dispatch::roc_legal_fs_pin(pin, &workspace.path),
+        None => crate::dispatch::platform_pin_for_app_dir(&workspace.path),
+    };
+    fs::write(
+        workspace.path.join("main.roc"),
+        plan.main_roc_with_platform(&pin),
+    )
+    .context("failed to write generated main.roc")?;
     Ok(workspace)
 }
 

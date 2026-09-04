@@ -7,7 +7,9 @@ Command-line interface and development driver for `.rocci` templates, Roc applic
 Executable name: `rocci`
 
 Generated `main.roc` pins `crates/rocci-platform/platform/main.roc` when that
-file exists (a workspace checkout; no GitHub fetch). A released PATH `rocci`
+file exists (a workspace checkout; no GitHub fetch). Roc does not allow
+absolute platform paths; staged run/build workspaces get a `../`-relative
+pin from the temp app directory instead. A released PATH `rocci`
 falls back to
 `https://github.com/koliyo/rocci/releases/download/<tag>/rocci-platform.tar.zst`
 with `<tag>` `dev` or `v*` matching that binary (`ROCCI_RELEASE_TAG` at

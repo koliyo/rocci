@@ -175,6 +175,10 @@ fn default_pin_uses_path_when_main_roc_exists() {
     let pin = resolve_default_platform_pin(&path, "https://example.invalid/skip.tar.zst".into());
     assert!(pin.ends_with("main.roc"), "{pin}");
     assert!(!pin.starts_with("https://"), "{pin}");
+    assert!(
+        !std::path::Path::new(&pin).is_absolute(),
+        "Roc rejects absolute platform specs: {pin}"
+    );
     fs::remove_dir_all(&dir).ok();
 }
 
@@ -184,6 +188,31 @@ fn default_pin_falls_back_to_url_when_path_missing() {
     let fallback = "https://github.com/koliyo/rocci/releases/download/dev/rocci-platform.tar.zst";
     let pin = resolve_default_platform_pin(&missing, fallback.into());
     assert_eq!(pin, fallback);
+}
+
+#[test]
+fn default_in_tree_pin_is_not_absolute() {
+    let pin = default_platform_pin();
+    assert!(
+        !std::path::Path::new(&pin).is_absolute(),
+        "Roc rejects absolute platform specs: {pin}"
+    );
+    assert!(
+        pin == IN_TREE_PLATFORM_PIN || pin.starts_with("https://"),
+        "{pin}"
+    );
+}
+
+#[test]
+fn staged_workspace_pin_is_relative_to_the_app_dir() {
+    let workspace = crate::driver::TempDir::create("pin-rel").expect("workspace");
+    let pin = platform_pin_for_app_dir(&workspace.path);
+    assert!(
+        !std::path::Path::new(&pin).is_absolute(),
+        "Roc rejects absolute platform specs: {pin}"
+    );
+    assert!(pin.starts_with("../"), "{pin}");
+    assert!(pin.ends_with("rocci-platform/platform/main.roc"), "{pin}");
 }
 
 #[test]
@@ -707,7 +736,7 @@ fn json_encoder_probe_compiles_through_rocci_platform() {
     fs::create_dir_all(workspace.path.join("assets")).expect("create assets");
     fs::write(
         workspace.path.join("main.roc"),
-        json_encoder_probe_main_roc(),
+        crate::dispatch::json_encoder_probe_main_roc_for_app(&workspace.path),
     )
     .expect("write probe main.roc");
     let output = workspace.path.join("server");

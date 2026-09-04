@@ -1,5 +1,7 @@
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::env;
+use std::fs;
+use std::path::{Component, Path, PathBuf};
 
 use rocci_template::{InitInfo, LiveInfo, RespondKind, RouteInfo};
 
@@ -10,6 +12,7 @@ pub const BASIC_WEBSERVER_0_16_URL: &str = "https://github.com/roc-lang/basic-we
 pub const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 pub const ROCCI_PLATFORM_NAME: &str = "rocci";
 pub const GITHUB_PLATFORM_ARCHIVE: &str = "rocci-platform.tar.zst";
+pub const IN_TREE_PLATFORM_PIN: &str = "crates/rocci-platform/platform/main.roc";
 
 pub fn rocci_platform_main_roc() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../rocci-platform/platform/main.roc")
@@ -31,15 +34,82 @@ pub fn default_platform_pin() -> String {
     resolve_default_platform_pin(&rocci_platform_main_roc(), github_platform_pin())
 }
 
-fn resolve_default_platform_pin(path: &Path, fallback_url: String) -> String {
-    if path.is_file() {
-        path.canonicalize()
-            .unwrap_or_else(|_| path.to_path_buf())
-            .to_string_lossy()
-            .into_owned()
-    } else {
-        fallback_url
+pub fn platform_pin_for_app_dir(app_dir: &Path) -> String {
+    let platform = rocci_platform_main_roc();
+    if !platform.is_file() {
+        return github_platform_pin();
     }
+    relative_roc_platform_spec(app_dir, &platform).unwrap_or_else(github_platform_pin)
+}
+
+pub fn roc_legal_fs_pin(pin: &str, app_dir: &Path) -> String {
+    if pin.starts_with("https://") {
+        return pin.to_string();
+    }
+    let path = Path::new(pin);
+    if path.is_file() {
+        if let Some(rel) = relative_roc_platform_spec(app_dir, path) {
+            return rel;
+        }
+    }
+    if is_rocci_platform_path(pin) {
+        return platform_pin_for_app_dir(app_dir);
+    }
+    pin.to_string()
+}
+
+fn resolve_default_platform_pin(path: &Path, fallback_url: String) -> String {
+    if !path.is_file() {
+        return fallback_url;
+    }
+    let in_tree = rocci_platform_main_roc();
+    if fs::canonicalize(path).ok() == fs::canonicalize(&in_tree).ok() {
+        return IN_TREE_PLATFORM_PIN.to_string();
+    }
+    env::current_dir()
+        .ok()
+        .and_then(|cwd| relative_roc_platform_spec(&cwd, path))
+        .unwrap_or(fallback_url)
+}
+
+fn relative_roc_platform_spec(from_dir: &Path, to_file: &Path) -> Option<String> {
+    let from = fs::canonicalize(from_dir).ok()?;
+    let to = fs::canonicalize(to_file).ok()?;
+    let rel = path_relative_from(&to, &from)?;
+    let mut spec = rel.to_str()?.replace('\\', "/");
+    if spec.starts_with('/') || Path::new(&spec).is_absolute() {
+        return None;
+    }
+    if !spec.starts_with("../") && !spec.starts_with("./") {
+        spec = format!("./{spec}");
+    }
+    Some(spec)
+}
+
+fn path_relative_from(to: &Path, from: &Path) -> Option<PathBuf> {
+    let to_comps: Vec<_> = to.components().collect();
+    let from_comps: Vec<_> = from.components().collect();
+    let mut shared = 0;
+    while shared < to_comps.len()
+        && shared < from_comps.len()
+        && to_comps[shared] == from_comps[shared]
+    {
+        shared += 1;
+    }
+    if shared == 0 {
+        return None;
+    }
+    let mut rel = PathBuf::new();
+    for _ in shared..from_comps.len() {
+        rel.push(Component::ParentDir);
+    }
+    for component in &to_comps[shared..] {
+        rel.push(component.as_os_str());
+    }
+    if rel.as_os_str().is_empty() {
+        rel.push(Component::CurDir);
+    }
+    Some(rel)
 }
 
 pub fn uses_rocci_platform(platform: Option<&str>) -> bool {
@@ -477,7 +547,16 @@ datastar_request = |request|
 
 #[cfg(test)]
 pub fn json_encoder_probe_main_roc() -> String {
-    let platform = default_platform_pin();
+    json_encoder_probe_main_roc_with_pin(&default_platform_pin())
+}
+
+#[cfg(test)]
+pub fn json_encoder_probe_main_roc_for_app(app_dir: &Path) -> String {
+    json_encoder_probe_main_roc_with_pin(&platform_pin_for_app_dir(app_dir))
+}
+
+#[cfg(test)]
+fn json_encoder_probe_main_roc_with_pin(platform: &str) -> String {
     let mut out = format!(
         r#"app [Context, program] {{
     pf: platform "{platform}",

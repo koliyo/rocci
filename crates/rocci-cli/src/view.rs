@@ -116,7 +116,12 @@ pub fn view(
     .with_context(|| format!("failed to write {type_name}.roc"))?;
     fs::write(
         workspace.path.join("main.roc"),
-        generate_main_roc(&type_name, &call, wrap_in_shell),
+        generate_main_roc(
+            &type_name,
+            &call,
+            wrap_in_shell,
+            &crate::dispatch::platform_pin_for_app_dir(&workspace.path),
+        ),
     )
     .context("failed to write main.roc")?;
 
@@ -362,8 +367,12 @@ pub(crate) fn build_component_call(
     format!("{type_name}.{}({})", component.name, call_args.join(", "))
 }
 
-pub(crate) fn generate_main_roc(type_name: &str, call: &str, wrap_in_shell: bool) -> String {
-    let platform = crate::dispatch::default_platform_pin();
+pub(crate) fn generate_main_roc(
+    type_name: &str,
+    call: &str,
+    wrap_in_shell: bool,
+    platform: &str,
+) -> String {
     let render = if wrap_in_shell {
         format!(
             "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci view\")]),\n                            Html.element(\"script\", [Html.attribute(\"type\", \"module\"), Html.attribute(\"src\", \"/assets/datastar.js\")], []),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
@@ -620,7 +629,12 @@ mod tests {
 
     #[test]
     fn generate_main_roc_renders_call_and_assets() {
-        let main = generate_main_roc("Foo", "Foo.hello({ name: \"bart\" })", true);
+        let main = generate_main_roc(
+            "Foo",
+            "Foo.hello({ name: \"bart\" })",
+            true,
+            crate::dispatch::IN_TREE_PLATFORM_PIN,
+        );
         assert!(main.contains("import Foo"));
         assert!(main.contains("Html.render("));
         assert!(main.contains("Foo.hello({ name: \"bart\" })"));
@@ -642,7 +656,12 @@ mod tests {
         );
         assert!(main.contains("import pf.Html"), "{main}");
 
-        let page = generate_main_roc("Counter", "Counter.counterPage({ count: 0 })", false);
+        let page = generate_main_roc(
+            "Counter",
+            "Counter.counterPage({ count: 0 })",
+            false,
+            crate::dispatch::IN_TREE_PLATFORM_PIN,
+        );
         assert!(page.contains("import pf.Path"));
         assert!(page.contains("Server.static_mount"));
         assert!(page.contains("Html.render(Counter.counterPage({ count: 0 }))"));

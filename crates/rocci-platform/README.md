@@ -39,8 +39,11 @@ app [Context, program] {
 }
 ```
 
-Use an absolute path from staged `rocci` workspaces. `examples/hello-web.roc`
-pins `../platform/main.roc`. Default listen is `127.0.0.1:8000`
+Roc rejects absolute platform specs. Generated apps in a checkout use that
+repo-relative pin in docs and inspect output. Staged `rocci` workspaces
+rewrite it to a `../…/platform/main.roc` path from the temp app directory.
+`examples/hello-web.roc` pins `../platform/main.roc`. Default listen is
+`127.0.0.1:8000`
 (`Server.default_config`). `hello-web.roc` also honors
 `ROC_BASIC_WEBSERVER_PORT` and `ROC_BASIC_WEBSERVER_HOST`.
 

@@ -365,8 +365,7 @@ pub(crate) fn value_expr(param: &BrowseParam) -> String {
     }
 }
 
-pub(crate) fn generate_main_roc() -> String {
-    let platform = crate::dispatch::default_platform_pin();
+pub(crate) fn generate_main_roc_with_pin(platform: &str) -> String {
     let listed = [
         ListedRoute::new("GET", "/", "Browser.homePage"),
         ListedRoute::new("GET", "/c", "inspector"),

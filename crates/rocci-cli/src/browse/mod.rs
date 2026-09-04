@@ -98,8 +98,11 @@ pub fn browse(
     datastar_asset::stage_into(&assets, datastar_asset::DEFAULT_VERSION)?;
     datastar_asset::print_hint(datastar_asset::DEFAULT_VERSION);
 
-    fs::write(workspace.path.join("main.roc"), generate_main_roc())
-        .context("failed to write main.roc")?;
+    fs::write(
+        workspace.path.join("main.roc"),
+        generate_main_roc_with_pin(&crate::dispatch::platform_pin_for_app_dir(&workspace.path)),
+    )
+    .context("failed to write main.roc")?;
 
     let port = port.resolve()?;
     let url = format!("http://127.0.0.1:{port}/");
