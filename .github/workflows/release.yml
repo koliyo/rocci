@@ -78,6 +78,8 @@ jobs:
           retention-days: 7
 
       - name: Build release binaries
+        env:
+          ROCCI_RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'dev' }}
         run: cargo build --release -p rocci-cli -p rocci-rocdown-cli -p rocci-rocdown-lsp
 
       - name: Determine version

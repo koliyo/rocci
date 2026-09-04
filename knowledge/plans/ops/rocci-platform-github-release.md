@@ -4,7 +4,7 @@ title: Publish rocci-platform as a GitHub release asset
 description: "Add CI that builds native libhost, runs bundle.sh, and attaches a Roc-pinnable tar.zst to the existing tag release. Do not treat a missing v* tag as the gap. Do not switch the in-tree default pin until a macOS-capable archive exists."
 tags: [domain/ops, domain/rocci, concern/ci, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-09-04T12:00:00Z }
+generated: { by: process:cursor, at: 2026-09-04T12:15:00Z }
 stale_after: 2026-12-04
 authority: exploratory
 owners: [human:nils]
@@ -168,10 +168,11 @@ review before this becomes the default generated pin.
 
 ## Status
 
-Phases 1–4 implemented on branch `rocci-platform-github-release` (hosted
-`build.sh`, Linux CI artifact, tag publish, `arm64mac`+`x64musl` merge).
-Not logged complete until CI and Knowledge succeed. Phase 5 remains a
-human decision gate. Evidence:
+Phases 1–5 implemented on branch `rocci-platform-github-release`. Phase 5
+is the PATH-binary URL fallback only; checkout generated apps still pin
+the in-tree path. Not logged complete until CI and Knowledge succeed.
+Hosted proof of a Mac Counter link against the published URL is still
+open. Evidence:
 [no GitHub platform URL](/research/ops/rocci-platform-github-release.md).[^research]
 Follow-on to [package Rocci as a Roc platform](/plans/rocci/rocci-as-roc-platform.md)
 Phase 6.[^platform-plan]

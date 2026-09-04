@@ -6,6 +6,15 @@ Command-line interface and development driver for `.rocci` templates, Roc applic
 
 Executable name: `rocci`
 
+Generated `main.roc` pins `crates/rocci-platform/platform/main.roc` when that
+file exists (a workspace checkout; no GitHub fetch). A released PATH `rocci`
+falls back to
+`https://github.com/koliyo/rocci/releases/download/<tag>/rocci-platform.tar.zst`
+with `<tag>` `dev` or `v*` matching that binary (`ROCCI_RELEASE_TAG` at
+compile time). Hosts in that archive today: `arm64mac` and `x64musl`. This is
+not the default generated pin in a checkout. `--http-module` stays
+basic-webserver 0.16.0.
+
 ## Commands
 
 ```sh

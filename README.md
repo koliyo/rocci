@@ -41,8 +41,14 @@ preview: a working `/error-demo/` page plus a broken file that still opens in th
 `rocci run path/to/app` is a standalone app directory: resolve a unique
 entry, generate an HTTP dispatcher from `@context` / `@init` /
 `@method:role` routes, and start it. Generated apps pin the in-tree
-Rocci platform (`crates/rocci-platform`), not a basic-webserver release
-URL. `rocci run path/to/App.rocci` names the entry file and still loads
+Rocci platform path when `crates/rocci-platform/platform/main.roc` exists
+(a git checkout). A PATH `rocci` from a GitHub CLI archive falls back to
+
+`https://github.com/koliyo/rocci/releases/download/<tag>/rocci-platform.tar.zst`
+
+(`dev` or `v*`, same tag as that binary). That archive currently links
+Apple Silicon macOS and x64 Linux only. It is not the default pin for
+developer checkouts. `rocci run path/to/App.rocci` names the entry file and still loads
 sibling modules. At most one process `@init` is allowed. `rocci run` on
 a directory that contains `main.roc` compiles sibling `.rocci` modules
 and starts the authored Roc app. Datastar JS is staged under `assets/`

@@ -9,17 +9,37 @@ use crate::serve;
 pub const BASIC_WEBSERVER_0_16_URL: &str = "https://github.com/roc-lang/basic-webserver/releases/download/0.16.0/42jC1JT3auhHSmv2Ah8mW5F2MXiAakq1UQQ4NQceQjXw.tar.zst";
 pub const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst";
 pub const ROCCI_PLATFORM_NAME: &str = "rocci";
+pub const GITHUB_PLATFORM_ARCHIVE: &str = "rocci-platform.tar.zst";
 
 pub fn rocci_platform_main_roc() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../rocci-platform/platform/main.roc")
 }
 
+pub fn github_platform_release_tag() -> &'static str {
+    option_env!("ROCCI_RELEASE_TAG").unwrap_or("dev")
+}
+
+pub fn github_platform_pin() -> String {
+    format!(
+        "https://github.com/koliyo/rocci/releases/download/{}/{}",
+        github_platform_release_tag(),
+        GITHUB_PLATFORM_ARCHIVE
+    )
+}
+
 pub fn default_platform_pin() -> String {
-    let path = rocci_platform_main_roc();
-    path.canonicalize()
-        .unwrap_or(path)
-        .to_string_lossy()
-        .into_owned()
+    resolve_default_platform_pin(&rocci_platform_main_roc(), github_platform_pin())
+}
+
+fn resolve_default_platform_pin(path: &Path, fallback_url: String) -> String {
+    if path.is_file() {
+        path.canonicalize()
+            .unwrap_or_else(|_| path.to_path_buf())
+            .to_string_lossy()
+            .into_owned()
+    } else {
+        fallback_url
+    }
 }
 
 pub fn uses_rocci_platform(platform: Option<&str>) -> bool {
@@ -30,7 +50,16 @@ pub fn uses_rocci_platform(platform: Option<&str>) -> bool {
     is_rocci_platform_path(&pin)
 }
 
+fn is_github_rocci_platform_pin(pin: &str) -> bool {
+    let pin = pin.trim();
+    pin.starts_with("https://github.com/koliyo/rocci/releases/download/")
+        && pin.ends_with("/rocci-platform.tar.zst")
+}
+
 fn is_rocci_platform_path(pin: &str) -> bool {
+    if is_github_rocci_platform_pin(pin) {
+        return true;
+    }
     let rocci = rocci_platform_main_roc();
     Path::new(pin) == rocci
         || pin.contains("crates/rocci-platform/platform/main.roc")
@@ -68,21 +97,7 @@ fn rewrite_runtime_imports_to_pf(src: &str) -> String {
 pub fn resolve_platform_pin(spec: Option<&str>) -> Result<Option<String>, String> {
     match spec.map(str::trim).filter(|value| !value.is_empty()) {
         None => Ok(None),
-        Some(ROCCI_PLATFORM_NAME) => {
-            let path = rocci_platform_main_roc();
-            if !path.is_file() {
-                return Err(format!(
-                    "in-tree Rocci platform missing at {}",
-                    path.display()
-                ));
-            }
-            let pin = path
-                .canonicalize()
-                .unwrap_or(path)
-                .to_string_lossy()
-                .into_owned();
-            Ok(Some(pin))
-        }
+        Some(ROCCI_PLATFORM_NAME) => Ok(Some(default_platform_pin())),
         Some(other) => Err(format!(
             "unknown --platform `{other}`; use `{ROCCI_PLATFORM_NAME}` for the in-tree Rocci platform"
         )),

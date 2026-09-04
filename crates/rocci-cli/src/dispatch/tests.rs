@@ -167,6 +167,57 @@ fn rocci_platform_pin_writes_in_tree_path() {
 }
 
 #[test]
+fn default_pin_uses_path_when_main_roc_exists() {
+    let dir = env::temp_dir().join(format!("rocci-pin-{}", std::process::id()));
+    fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("main.roc");
+    fs::write(&path, "platform \"rocci\"\n").unwrap();
+    let pin = resolve_default_platform_pin(&path, "https://example.invalid/skip.tar.zst".into());
+    assert!(pin.ends_with("main.roc"), "{pin}");
+    assert!(!pin.starts_with("https://"), "{pin}");
+    fs::remove_dir_all(&dir).ok();
+}
+
+#[test]
+fn default_pin_falls_back_to_url_when_path_missing() {
+    let missing = env::temp_dir().join("rocci-no-platform/main.roc");
+    let fallback = "https://github.com/koliyo/rocci/releases/download/dev/rocci-platform.tar.zst";
+    let pin = resolve_default_platform_pin(&missing, fallback.into());
+    assert_eq!(pin, fallback);
+}
+
+#[test]
+fn github_platform_url_is_the_rocci_platform() {
+    let url = github_platform_pin();
+    assert!(
+        url.starts_with("https://github.com/koliyo/rocci/releases/download/"),
+        "{url}"
+    );
+    assert!(url.ends_with("/rocci-platform.tar.zst"), "{url}");
+    assert!(uses_rocci_platform(Some(&url)), "{url}");
+    let older = "https://github.com/koliyo/rocci/releases/download/v0.1.0/rocci-platform.tar.zst";
+    assert!(uses_rocci_platform(Some(older)), "{older}");
+    assert!(!uses_rocci_platform(Some(BASIC_WEBSERVER_0_16_URL)));
+    let src = "import Html\nimport Datastar\n";
+    let rewritten = rewrite_runtime_imports_for_pin(src, Some(&url));
+    assert!(rewritten.contains("import pf.Html\n"), "{rewritten}");
+    let main = generate_bound_main_roc(
+        "App",
+        None,
+        None,
+        &[],
+        &[],
+        DispatchOptions {
+            platform: Some(url.clone()),
+            ..DispatchOptions::default()
+        },
+    );
+    assert!(main.contains(&format!("pf: platform \"{url}\"")), "{main}");
+    assert!(main.contains("import pf.Datastar"), "{main}");
+    assert!(!main.contains(BASIC_WEBSERVER_0_16_URL), "{main}");
+}
+
+#[test]
 fn rocci_pin_rewrites_sibling_html_import() {
     let src = "import Html\nimport Datastar\nhello = 1\n";
     let rewritten = rewrite_runtime_imports_for_pin(src, None);

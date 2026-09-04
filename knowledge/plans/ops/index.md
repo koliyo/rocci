@@ -2,7 +2,7 @@
 
 CI, hosting, python-uv, and Tangled.
 
-* [Publish rocci-platform as a GitHub release asset](rocci-platform-github-release.md) - Attach a Roc-pinnable `.tar.zst` to existing tag releases. Phases 1–4 implemented on this branch; Phase 5 is a decision gate. Not CI-complete. Research: [no GitHub platform URL](/research/ops/rocci-platform-github-release.md). Exploratory.
+* [Publish rocci-platform as a GitHub release asset](rocci-platform-github-release.md) - Attach a Roc-pinnable `.tar.zst` to existing tag releases. Phases 1–5 implemented on this branch (PATH URL fallback; checkout keeps the path pin). Not CI-complete. Research: [no GitHub platform URL](/research/ops/rocci-platform-github-release.md). Exploratory.
 * [Fast default suite and hosted Roc smokes](workspace-test-suite.md) - Opt-in `ROCCI_REQUIRE_ROC=1`, shrink default fuzz and `cli_e2e`, drop kitchen-sink and CI overlap, hosted Linux Roc job, `rocci-ops` pytest on `lint`. Audit: [workspace test-suite review](/audits/ops/workspace-test-suite.md). Exploratory; no phase started.
 * [Public-repo CI security and Dependabot](public-ci-security.md) - Hosted `/ci`/`/CI` on review comments, `koliyo`-only `/ci-local` self-hosted (`/cl-local` alias), automatic hosted CI on `main`/`staging`/`production`, environment-secret isolation, Dependabot. Audit: [public CI security](/audits/ops/public-ci-security.md). Exploratory; YAML phases are in tree; UI residuals remain.
 * [rocci-ops DX alignment](rocci-ops.md) - Okmate-style command tree, `release patch|minor|major|v*|dev`, hosted Cut release, `promote` for staging/production only. Exploratory; Phases 1–4 implemented in this revision; not CI-complete.

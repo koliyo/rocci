@@ -44,6 +44,7 @@ def test_release_push_includes_version_and_dev_tags() -> None:
     assert "archive package-platform" in text
     assert "archive merge-libhosts" in text
     assert "libhost-${{ runner.os }}" in text
+    assert "ROCCI_RELEASE_TAG" in text
 
 
 def test_workflows_do_not_call_hosted_release_helpers_as_release() -> None:

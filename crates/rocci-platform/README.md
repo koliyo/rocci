@@ -50,10 +50,11 @@ releases (`dev` and `v*`) attach the same files:
 
 `https://github.com/koliyo/rocci/releases/download/<tag>/rocci-platform.tar.zst`
 
-The release archive includes `arm64mac` and `x64musl` `libhost.a`. It is
-**available** for authored `main.roc` pins. It is **not** the default
-`rocci` generated-app pin. Apps in a checkout still pin the path (or a
-local `.tar.zst` from `bundle.sh`).
+The release archive includes `arm64mac` and `x64musl` `libhost.a`. A PATH
+`rocci` that cannot see in-tree `platform/main.roc` pins this URL when
+generating apps. Checkout `rocci` still pins the path. Apple Silicon macOS
+and x64 Linux only until more triples ship. Do not treat the URL as the
+default pin while a git checkout exists.
 
 ## Build the native host
 
