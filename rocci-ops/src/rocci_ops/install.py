@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 from pathlib import Path
 
@@ -31,7 +32,9 @@ def install_cli(*, dest: Path | None = None) -> int:
         if not src.is_file():
             raise SystemExit(f"  Error: expected binary not found at '{src}'")
         shutil.copy2(src, dest / binary)
-        (dest / binary).chmod(0o755)
+        installed = dest / binary
+        installed.chmod(0o755)
+        resign_copied_cli(installed)
     print("\nInstalled:")
     for _, binary in CLI_CRATES:
         print(f"  {dest / binary}")
@@ -39,6 +42,21 @@ def install_cli(*, dest: Path | None = None) -> int:
     if str(dest) not in path.split(os.pathsep):
         print(f"\n  Note: '{dest}' is not on your PATH.")
     return 0
+
+
+def resign_copied_cli(path: Path) -> None:
+    if platform.system() != "Darwin":
+        return
+    run(
+        [
+            "/usr/bin/codesign",
+            "--sign",
+            "-",
+            "--force",
+            "--timestamp=none",
+            str(path),
+        ]
+    )
 
 
 def latest_vsix(root: Path | None = None) -> Path:

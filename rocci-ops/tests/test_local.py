@@ -33,6 +33,29 @@ def test_cli_crates() -> None:
     assert {binary for _, binary in CLI_CRATES} == {"rocci", "rocdown"}
 
 
+def test_install_cli_resigns_copied_binaries_on_darwin(monkeypatch, tmp_path) -> None:
+    dest = tmp_path / "bin"
+    dest.mkdir()
+    release = tmp_path / "target" / "release"
+    release.mkdir(parents=True)
+    for _, binary in CLI_CRATES:
+        (release / binary).write_bytes(b"\x00")
+    calls: list[list[str]] = []
+    monkeypatch.setattr("rocci_ops.install.repo_root", lambda: tmp_path)
+    monkeypatch.setattr(
+        "rocci_ops.install.run", lambda argv, cwd=None, env=None: calls.append(list(argv))
+    )
+    monkeypatch.setattr("rocci_ops.install.platform.system", lambda: "Darwin")
+    from rocci_ops.install import install_cli
+
+    assert install_cli(dest=dest) == 0
+    assert ["cargo", "build", "--release", "-p", "rocci-cli"] in calls
+    signed = [argv for argv in calls if argv and argv[0] == "/usr/bin/codesign"]
+    assert len(signed) == 2
+    assert signed[0][1:4] == ["--sign", "-", "--force"]
+    assert signed[0][-1] == str(dest / "rocci")
+
+
 def test_install_usage() -> None:
     try:
         install_command([])
