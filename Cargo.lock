@@ -3659,6 +3659,7 @@ dependencies = [
  "clap",
  "rocci-cli",
  "rocci-desktop",
+ "rocci-docs",
  "rocci-playground",
  "rocci-rocdown",
  "serde",

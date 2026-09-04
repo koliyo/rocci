@@ -194,7 +194,7 @@ pytest.[^ci-py][^ci-yml][^python-uv-plan]
    runners only. `JOB_NAMES` and `test_ci.py` change in the same
    commit as the job list.[^ci-py][^test-ci][^public-ci]
 5. **Pinned nightly.** Hosted Roc uses `docker/install-roc.sh`
-   (`nightly-2026-08-23-fb208ba`). Do not float `roc` from the runner
+   (`nightly-2026-08-26-b29bef3`). Do not float `roc` from the runner
    image.[^install-roc]
 6. **HTTP smokes reap children.** A generated server must not outlive
    the test process. Phase 6 fails if the leftover-server hang from the

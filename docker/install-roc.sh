@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Pinned to the basic-webserver 0.16.0 platform night (see examples/rocci/standalone/counter).
-ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE:-2026-08-23}"
-ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA:-fb208ba}"
+ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE:-2026-08-26}"
+ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA:-b29bef3}"
 ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG:-nightly-${ROC_NIGHTLY_DATE}-${ROC_NIGHTLY_SHA}}"
 TARGETARCH="${TARGETARCH:-amd64}"
 

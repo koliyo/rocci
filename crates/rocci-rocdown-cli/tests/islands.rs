@@ -50,6 +50,15 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
+fn stage_example_docs() {
+    let root = repo_root();
+    rocci_docs::generate(
+        &root.join("examples/rocci/apps.toml"),
+        &root.join("dist/example-docs"),
+    )
+    .expect("stage dist/example-docs for docs [[peer]] routes");
+}
+
 fn temp_dir(name: &str) -> PathBuf {
     let path = env::temp_dir().join(format!("rocdown-islands-{}-{name}", std::process::id()));
     let _ = fs::remove_dir_all(&path);
@@ -279,7 +288,7 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
         let mut command = Command::new(&bin);
         command
             .args([
-                "run",
+                "view",
                 root.to_str().unwrap(),
                 "--no-window",
                 "--port",
@@ -351,6 +360,7 @@ fn docs_run_previews_the_site() {
         return;
     }
     let _lock = ROC_LOCK.lock().unwrap_or_else(|err| err.into_inner());
+    stage_example_docs();
     let root = repo_root().join("docs");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
@@ -358,7 +368,7 @@ fn docs_run_previews_the_site() {
         let mut command = Command::new(&bin);
         command
             .args([
-                "run",
+                "view",
                 root.to_str().unwrap(),
                 "--no-window",
                 "--port",
@@ -404,7 +414,7 @@ fn counter_run_proxies_actions_on_one_origin() {
         let mut command = Command::new(&bin);
         command
             .args([
-                "run",
+                "view",
                 root.to_str().unwrap(),
                 "--no-window",
                 "--port",
@@ -477,7 +487,7 @@ fn all_syntax_run_serves_the_kitchen_sink() {
         let mut command = Command::new(&bin);
         command
             .args([
-                "run",
+                "view",
                 fixture.to_str().unwrap(),
                 "--no-window",
                 "--port",

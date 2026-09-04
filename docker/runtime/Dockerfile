@@ -10,9 +10,9 @@ ARG UBUNTU_IMAGE=ubuntu:24.04
 
 FROM ${UBUNTU_IMAGE} AS builder
 ARG TARGETARCH
-ARG ROC_NIGHTLY_DATE=2026-08-23
-ARG ROC_NIGHTLY_SHA=fb208ba
-ARG ROC_NIGHTLY_TAG=nightly-2026-08-23-fb208ba
+ARG ROC_NIGHTLY_DATE=2026-08-26
+ARG ROC_NIGHTLY_SHA=b29bef3
+ARG ROC_NIGHTLY_TAG=nightly-2026-08-26-b29bef3
 ENV DEBIAN_FRONTEND=noninteractive \
     CARGO_HOME=/usr/local/cargo \
     RUSTUP_HOME=/usr/local/rustup \
@@ -41,9 +41,9 @@ RUN cargo build --release -p rocci-cli -p rocci-rocdown-cli \
 
 FROM ${UBUNTU_IMAGE} AS runtime
 ARG TARGETARCH
-ARG ROC_NIGHTLY_DATE=2026-08-23
-ARG ROC_NIGHTLY_SHA=fb208ba
-ARG ROC_NIGHTLY_TAG=nightly-2026-08-23-fb208ba
+ARG ROC_NIGHTLY_DATE=2026-08-26
+ARG ROC_NIGHTLY_SHA=b29bef3
+ARG ROC_NIGHTLY_TAG=nightly-2026-08-26-b29bef3
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/bin:/opt/roc:${PATH}" \
     ROCCI_CACHE=/var/cache/rocci \

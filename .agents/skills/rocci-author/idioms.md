@@ -169,7 +169,7 @@ Typed integers: `3.I64`.
 
 ## Types on the pinned nightly
 
-Product Roc is `nightly-2026-08-23-fb208ba` (`docs/inventory.toml`,
+Product Roc is `nightly-2026-08-26-b29bef3` (`docs/inventory.toml`,
 `docker/install-roc.sh`). Write types the way that compiler parses them,
 not the way older Roc or Elm juxtaposition looked.
 

@@ -64,7 +64,7 @@ path until island splicing lands.
      `site/rocdown/article-blocks.rocdown`, `docs/tutorials/first-app.rocdown`
 4. Treat `test/AllSyntax.rocci` as a compiler fixture, not as a style guide.
    Prefer `examples/`, `site/theme/`, `crates/rocci-rocdown/runtime/Views.roc`,
-   and the pinned Roc nightly (`nightly-2026-08-23-fb208ba`): snake_case
+   and the pinned Roc nightly (`nightly-2026-08-26-b29bef3`): snake_case
    (`List.is_empty`, `to_str()`, `split_on`) and parenthesized type
    applications (`List(Str)`, `Page(_)`, `Some(Str)`).
 
