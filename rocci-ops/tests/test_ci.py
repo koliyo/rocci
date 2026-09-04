@@ -25,6 +25,26 @@ def test_parse_subset() -> None:
     assert args.keep_going is False
 
 
+def test_knowledge_prefers_okmate_env(monkeypatch) -> None:
+    monkeypatch.setenv("OKMATE", "/opt/okmate")
+    monkeypatch.delenv("OKMATE_DIR", raising=False)
+    steps = steps_for("knowledge", repo_root())
+    argv_lists = [s.argv for s in steps]
+    assert any(argv[:2] == ("/opt/okmate", "check") for argv in argv_lists)
+    assert all(argv[:2] != ("cargo", "run") for argv in argv_lists)
+
+
+def test_knowledge_falls_back_to_sibling_cargo(monkeypatch) -> None:
+    monkeypatch.delenv("OKMATE", raising=False)
+    monkeypatch.setattr("rocci_ops.ci.shutil.which", lambda _name: None)
+    steps = steps_for("knowledge", repo_root())
+    argv_lists = [s.argv for s in steps]
+    cargo = [argv for argv in argv_lists if argv[:2] == ("cargo", "run")]
+    assert cargo
+    assert cargo[0][3] == "--no-default-features"
+    assert "okmate" in cargo[0]
+
+
 def test_knowledge_redirects_validation_json() -> None:
     steps = steps_for("knowledge", repo_root())
     redirected = [s for s in steps if s.stdout_path]
@@ -33,7 +53,7 @@ def test_knowledge_redirects_validation_json() -> None:
     assert "target/knowledge-ci/graph.json" in paths
     assert "target/knowledge-ci/retrieval.json" in paths
     argv_lists = [s.argv for s in steps]
-    assert any("okmate" in argv for argv in argv_lists)
+    assert any(any("okmate" in part for part in argv) for argv in argv_lists)
     assert all("rocci-okf" not in argv for argv in argv_lists)
     assert all(
         argv[argv.index("--profile") + 1] == "base"

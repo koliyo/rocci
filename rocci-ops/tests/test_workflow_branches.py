@@ -12,6 +12,20 @@ def _on_push_branches(text: str) -> str:
     raise AssertionError("no push branches list found")
 
 
+def test_knowledge_workflow_installs_released_okmate() -> None:
+    text = (WORKFLOWS / "knowledge.yml").read_text(encoding="utf-8")
+    pin = (WORKFLOWS.parent / "okmate-version").read_text(encoding="utf-8").strip()
+    assert pin.startswith("v")
+    assert "gh release download" in text
+    assert "koliyo/okmate" in text
+    assert "okmate-x86_64-unknown-linux-gnu" in text
+    assert ".github/okmate-version" in text
+    assert "repository: koliyo/okmate" not in text
+    assert "rust-toolchain" not in text
+    assert "OKMATE_DIR" not in text
+    assert "rocci-ops ci knowledge" in text
+
+
 def test_ci_and_knowledge_push_include_production() -> None:
     for name in ("ci.yml", "knowledge.yml"):
         text = (WORKFLOWS / name).read_text(encoding="utf-8")

@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-04
 
+- Knowledge CI installs the pinned released Linux `okmate` binary (`.github/okmate-version`) instead of compiling a `koliyo/okmate` checkout. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Implemented [publish rocci-platform as a GitHub release asset](plans/ops/rocci-platform-github-release.md) Phase 5 on branch `rocci-platform-github-release`: PATH `rocci` falls back to the same-tag GitHub `rocci-platform.tar.zst` URL when in-tree `main.roc` is missing; checkout generated apps still pin the path. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Implemented [publish rocci-platform as a GitHub release asset](plans/ops/rocci-platform-github-release.md) Phases 1–4 on branch `rocci-platform-github-release`: hosted `build.sh`, Linux `bundle.sh` CI artifact, attach `rocci-platform.tar.zst` on tag publish, merge `arm64mac`+`x64musl` libhosts into one `roc bundle`. Phase 5 (released pin fallback) is a human decision gate. Exploratory; do not log complete until CI and Knowledge succeed.

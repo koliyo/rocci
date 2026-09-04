@@ -36,17 +36,27 @@ def okmate_dir(root: Path) -> Path:
 
 
 def okmate_argv(root: Path, *args: str) -> tuple[str, ...]:
-    return (
-        "cargo",
-        "run",
-        "-q",
-        "--no-default-features",
-        "--manifest-path",
-        str(okmate_dir(root) / "Cargo.toml"),
-        "-p",
-        "okmate",
-        "--",
-        *args,
+    if env := os.environ.get("OKMATE"):
+        return (env, *args)
+    found = shutil.which("okmate")
+    if found:
+        return (found, *args)
+    manifest = okmate_dir(root) / "Cargo.toml"
+    if manifest.is_file():
+        return (
+            "cargo",
+            "run",
+            "-q",
+            "--no-default-features",
+            "--manifest-path",
+            str(manifest),
+            "-p",
+            "okmate",
+            "--",
+            *args,
+        )
+    raise SystemExit(
+        "okmate not found: install a released binary, set OKMATE, or use a sibling ../okmate checkout"
     )
 
 

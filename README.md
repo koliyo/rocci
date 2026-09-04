@@ -144,9 +144,9 @@ okmate build knowledge --output dist/knowledge
 ```
 
 From a sibling checkout, `cargo run -q --no-default-features --manifest-path
-../okmate/Cargo.toml -p okmate --` is the same CLI. Knowledge CI checks out
-`koliyo/okmate` and runs those bundle commands; engine tests run in the okmate
-repo.
+../okmate/Cargo.toml -p okmate --` is the same CLI. Knowledge CI downloads the
+pinned GitHub Release Linux binary (`.github/okmate-version`) and runs those
+bundle commands; engine tests run in the okmate repo.
 
 Retrieval questions are measured by `okmate benchmark`; the command reports hit
 rate and mean reciprocal rank and fails when the checked-in threshold is missed.
