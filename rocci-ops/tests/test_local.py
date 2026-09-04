@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -124,8 +125,8 @@ def test_latest_vsix_picks_newest(tmp_path) -> None:
     newer = vscode / "rocci-0.2.0.vsix"
     older.write_bytes(b"old")
     newer.write_bytes(b"new")
-    older.touch()
-    newer.touch()
+    os.utime(older, (1_000_000, 1_000_000))
+    os.utime(newer, (2_000_000, 2_000_000))
     assert latest_vsix(tmp_path) == newer
 
 

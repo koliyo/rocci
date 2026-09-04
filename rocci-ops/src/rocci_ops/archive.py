@@ -132,14 +132,24 @@ def merge_libhost_artifacts(
     required: frozenset[str] = REQUIRED_LIBHOST_TRIPLES,
 ) -> list[str]:
     dest_targets.mkdir(parents=True, exist_ok=True)
+    dest_resolved = dest_targets.resolve()
+    libs = [
+        lib
+        for lib in download_root.rglob("libhost.a")
+        if dest_resolved not in lib.resolve().parents
+    ]
     triples: set[str] = set()
-    for lib in download_root.rglob("libhost.a"):
+    for lib in libs:
         triple = lib.parent.name
         if triple in {"targets", "libhosts", ""}:
             raise SystemExit(f"cannot infer libhost triple from {lib}")
         target_dir = dest_targets / triple
         target_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(lib, target_dir / "libhost.a")
+        dest = target_dir / "libhost.a"
+        if lib.resolve() == dest.resolve():
+            triples.add(triple)
+            continue
+        shutil.copy2(lib, dest)
         triples.add(triple)
     missing = required - triples
     if missing:
