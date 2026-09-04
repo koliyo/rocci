@@ -74,3 +74,16 @@ def test_roc_job_installs_nightly_and_requires_roc() -> None:
         for argv in argv_lists
     )
     assert all("--workspace" not in argv for argv in argv_lists)
+
+
+def test_roc_job_runs_build_sh_before_gated_cargo_test() -> None:
+    argv_lists = [s.argv for s in steps_for("roc", repo_root())]
+    joined = [" ".join(argv) for argv in argv_lists]
+    build_idx = next(i for i, line in enumerate(joined) if "rocci-platform/build.sh" in line)
+    test_idx = next(
+        i
+        for i, argv in enumerate(argv_lists)
+        if argv[:3] == ("cargo", "test", "-p") and "rocci-cli" in argv
+    )
+    install_idx = next(i for i, line in enumerate(joined) if "install-roc.sh" in line)
+    assert install_idx < build_idx < test_idx

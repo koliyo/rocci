@@ -26,6 +26,7 @@ builder_pkgs=(
     librsvg2-dev
     patchelf
     libsqlite3-dev
+    musl-tools
 )
 
 case "$mode" in

@@ -193,22 +193,34 @@ def steps_for(job: str, root: Path) -> list[Step]:
             ),
         ]
     if job == "roc":
-        return [
-            Step(("sudo", "./docker/install-roc.sh")),
-            Step(
-                (
-                    "cargo",
-                    "test",
-                    "-p",
-                    "rocci-cli",
-                    "-p",
-                    "rocci-rocdown",
-                    "-p",
-                    "rocci-rocdown-cli",
+        steps = [Step(("sudo", "./docker/install-roc.sh"))]
+        build_env: tuple[tuple[str, str], ...] = ()
+        if sys.platform.startswith("linux"):
+            steps.append(
+                Step(("rustup", "target", "add", "x86_64-unknown-linux-musl"))
+            )
+            build_env = (
+                ("CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER", "musl-gcc"),
+            )
+        steps.extend(
+            [
+                Step(("./crates/rocci-platform/build.sh",), extra_env=build_env),
+                Step(
+                    (
+                        "cargo",
+                        "test",
+                        "-p",
+                        "rocci-cli",
+                        "-p",
+                        "rocci-rocdown",
+                        "-p",
+                        "rocci-rocdown-cli",
+                    ),
+                    extra_env=(("ROCCI_REQUIRE_ROC", "1"),),
                 ),
-                extra_env=(("ROCCI_REQUIRE_ROC", "1"),),
-            ),
-        ]
+            ]
+        )
+        return steps
     raise ValueError(f"unknown job: {job}")
 
 
