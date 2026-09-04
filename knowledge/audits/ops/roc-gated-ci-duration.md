@@ -169,10 +169,11 @@ job.[^run-sep1][^ci-yml]
 The 16-minute wall is mostly **serialized 2–3 minute timeouts** after a
 deterministic Roc error (absolute `pf` path), not a slow successful
 `roc build` of every fixture. A relative pin (or URL) should make
-islands fail in seconds or pass like September 1. Independently, fail
-fast when `/health` never returns `ok` instead of waiting 120–180s, and
-pass `--skip-build` to `bundle.sh` after `build.sh`. This record does
-not choose among those.
+islands fail in seconds or pass like September 1. Island waits now
+panic as soon as `/` or `/health` returns the build-error overlay
+(`rocci-build-error`), so the same Roc rejection should not consume
+the 120–180s timeouts. Passing `--skip-build` to `bundle.sh` after
+`build.sh` is still open.
 
 [^ci-yml]: Hosted `roc` job in `.github/workflows/ci.yml`.
 [^ci-py]: `rocci-ops` `ci roc` step list.

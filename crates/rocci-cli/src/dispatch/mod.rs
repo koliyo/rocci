@@ -47,10 +47,10 @@ pub fn roc_legal_fs_pin(pin: &str, app_dir: &Path) -> String {
         return pin.to_string();
     }
     let path = Path::new(pin);
-    if path.is_file() {
-        if let Some(rel) = relative_roc_platform_spec(app_dir, path) {
-            return rel;
-        }
+    if path.is_file()
+        && let Some(rel) = relative_roc_platform_spec(app_dir, path)
+    {
+        return rel;
     }
     if is_rocci_platform_path(pin) {
         return platform_pin_for_app_dir(app_dir);

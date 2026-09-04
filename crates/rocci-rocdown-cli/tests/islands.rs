@@ -89,24 +89,43 @@ fn http_exchange(port: u16, request: &str) -> String {
     String::from_utf8_lossy(&body).into_owned()
 }
 
+fn http_get(port: u16, path: &str) -> Option<String> {
+    let mut stream = TcpStream::connect(("127.0.0.1", port)).ok()?;
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+    let req = format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
+    stream.write_all(req.as_bytes()).ok()?;
+    let mut body = Vec::new();
+    let _ = stream.read_to_end(&mut body);
+    Some(String::from_utf8_lossy(&body).into_owned())
+}
+
+fn panic_if_preview_failed(body: &str, context: &str) {
+    if body.contains("rocci-build-error")
+        || body.contains("island service failed")
+        || body.contains("absolute platform path")
+        || body.contains("ROC CRASHED")
+        || body.contains("<title>Build error</title>")
+    {
+        panic!("{context}:\n{body}");
+    }
+}
+
 fn wait_for_health(port: u16, child: &mut Child) {
     let start = Instant::now();
     loop {
         if let Ok(Some(status)) = child.try_wait() {
             panic!("island service exited before /health ({status})");
         }
-        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
-            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-            let req = format!(
-                "GET /health HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+        if let Some(home) = http_get(port, "/") {
+            panic_if_preview_failed(
+                &home,
+                "preview served a build error while waiting for /health",
             );
-            if stream.write_all(req.as_bytes()).is_ok() {
-                let mut body = Vec::new();
-                let _ = stream.read_to_end(&mut body);
-                let text = String::from_utf8_lossy(&body);
-                if text.contains("ok") || text.contains("200") {
-                    return;
-                }
+        }
+        if let Some(text) = http_get(port, "/health") {
+            panic_if_preview_failed(&text, "GET /health served a build error");
+            if text.contains("ok") && !text.contains("<html") {
+                return;
             }
         }
         if start.elapsed() > Duration::from_secs(120) {
@@ -469,7 +488,7 @@ fn all_syntax_run_serves_the_kitchen_sink() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_preview_or_roc_error(port, &mut child.0, "Don't do this.");
+    wait_for_preview(port, &mut child.0, "Don't do this.");
 
     let home = http_exchange(
         port,
@@ -483,56 +502,16 @@ fn all_syntax_run_serves_the_kitchen_sink() {
     drop(child);
 }
 
-fn wait_for_preview_or_roc_error(port: u16, child: &mut Child, needle: &str) {
-    let start = Instant::now();
-    loop {
-        if let Ok(Some(status)) = child.try_wait() {
-            panic!("preview server exited before ready ({status})");
-        }
-        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
-            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-            let req =
-                format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
-            if stream.write_all(req.as_bytes()).is_ok() {
-                let mut body = Vec::new();
-                let _ = stream.read_to_end(&mut body);
-                let text = String::from_utf8_lossy(&body);
-                if text.contains(needle) {
-                    return;
-                }
-                if text.contains("does not exist")
-                    || text.contains("too many args")
-                    || text.contains("ROC CRASHED")
-                    || text.contains("runtime error")
-                {
-                    panic!("AllSyntax failed to compile with Roc:\n{text}");
-                }
-            }
-        }
-        if start.elapsed() > Duration::from_secs(180) {
-            panic!("timed out waiting for AllSyntax preview on port {port}");
-        }
-        thread::sleep(Duration::from_millis(200));
-    }
-}
-
 fn wait_for_preview(port: u16, child: &mut Child, needle: &str) {
     let start = Instant::now();
     loop {
         if let Ok(Some(status)) = child.try_wait() {
             panic!("preview server exited before ready ({status})");
         }
-        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
-            let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-            let req =
-                format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
-            if stream.write_all(req.as_bytes()).is_ok() {
-                let mut body = Vec::new();
-                let _ = stream.read_to_end(&mut body);
-                let text = String::from_utf8_lossy(&body);
-                if text.contains(needle) {
-                    return;
-                }
+        if let Some(text) = http_get(port, "/") {
+            panic_if_preview_failed(&text, "preview served a build error");
+            if text.contains(needle) {
+                return;
             }
         }
         if start.elapsed() > Duration::from_secs(180) {
