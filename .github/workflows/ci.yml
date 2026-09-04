@@ -98,6 +98,15 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Run Roc-gated tests
         run: uv run --no-dev rocci-ops ci roc
+      - name: Upload rocci-platform bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: rocci-platform
+          path: |
+            crates/rocci-platform/rocci-platform.tar.zst
+            crates/rocci-platform/rocci-platform.tar.zst.sha256
+          if-no-files-found: error
+          retention-days: 7
 
   test:
     name: Test Workspace (${{ matrix.os }})

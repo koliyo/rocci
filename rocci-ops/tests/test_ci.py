@@ -87,3 +87,20 @@ def test_roc_job_runs_build_sh_before_gated_cargo_test() -> None:
     )
     install_idx = next(i for i, line in enumerate(joined) if "install-roc.sh" in line)
     assert install_idx < build_idx < test_idx
+
+
+def test_roc_job_bundles_platform_after_gated_tests() -> None:
+    argv_lists = [s.argv for s in steps_for("roc", repo_root())]
+    joined = [" ".join(argv) for argv in argv_lists]
+    test_idx = next(
+        i
+        for i, argv in enumerate(argv_lists)
+        if argv[:3] == ("cargo", "test", "-p") and "rocci-cli" in argv
+    )
+    bundle_idx = next(i for i, line in enumerate(joined) if "rocci-platform/bundle.sh" in line)
+    package_idx = next(
+        i
+        for i, argv in enumerate(argv_lists)
+        if argv[-2:] == ("archive", "package-platform")
+    )
+    assert test_idx < bundle_idx < package_idx

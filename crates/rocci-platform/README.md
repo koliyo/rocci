@@ -44,8 +44,11 @@ pins `../platform/main.roc`. Default listen is `127.0.0.1:8000`
 (`Server.default_config`). `hello-web.roc` also honors
 `ROC_BASIC_WEBSERVER_PORT` and `ROC_BASIC_WEBSERVER_HOST`.
 
-There is no GitHub release URL in this crate. Apps pin the path (or a
-local `.tar.zst` from `bundle.sh`).
+Hosted CI uploads an Actions artifact named `rocci-platform` containing
+`rocci-platform.tar.zst` (Linux native `libhost.a` only) plus
+`rocci-platform.tar.zst.sha256`. That archive is **not** the default
+`rocci` generated-app pin. Apps in a checkout still pin the path (or a
+local `.tar.zst` from `bundle.sh`). There is not yet a GitHub release URL.
 
 ## Build the native host
 
@@ -63,9 +66,11 @@ not proven. Missing triples: `x64mac`, `x64musl`, `arm64musl`, `x64win`,
 crates/rocci-platform/bundle.sh
 ```
 
-Writes a `.tar.zst` next to this README: `platform/*.roc` plus the native
-`libhost.a`. Pin that archive as `pf` when you want a package instead of
-a path.
+Writes a hashed `.tar.zst` next to this README (`platform/*.roc` plus the
+native `libhost.a`). CI copies it to the stable name
+`rocci-platform.tar.zst`. Pin a local archive as `pf` when you want a
+package instead of a path; do not treat the CI artifact as the default
+`rocci` pin.
 
 ## Regenerating glue
 

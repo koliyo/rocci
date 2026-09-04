@@ -1,4 +1,11 @@
-from rocci_ops.archive import archive_stem, release_params, version_from_ref
+from hashlib import sha256
+
+from rocci_ops.archive import (
+    archive_stem,
+    package_platform_bundle,
+    release_params,
+    version_from_ref,
+)
 from rocci_ops.ghutil import DEFAULT_CHECKS, parse_check_line, wait_for_check
 
 
@@ -69,3 +76,38 @@ def test_wait_for_check_success() -> None:
     )
     assert sleeps == [30]
     assert calls["n"] == 2
+
+
+def test_package_platform_bundle_copies_and_checksums(tmp_path) -> None:
+    crate = tmp_path / "crates" / "rocci-platform"
+    crate.mkdir(parents=True)
+    hashed = crate / "rocci-hash.tar.zst"
+    hashed.write_bytes(b"platform-bytes")
+    dest = package_platform_bundle(tmp_path)
+    assert dest.name == "rocci-platform.tar.zst"
+    assert dest.read_bytes() == b"platform-bytes"
+    checksum = dest.with_name(dest.name + ".sha256")
+    digest = checksum.read_text(encoding="utf-8").split()[0]
+    assert digest == sha256(b"platform-bytes").hexdigest()
+
+
+def test_package_platform_bundle_fails_without_archive(tmp_path) -> None:
+    (tmp_path / "crates" / "rocci-platform").mkdir(parents=True)
+    try:
+        package_platform_bundle(tmp_path)
+    except SystemExit as exc:
+        assert "bundle.sh" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_package_platform_bundle_rejects_empty_archive(tmp_path) -> None:
+    crate = tmp_path / "crates" / "rocci-platform"
+    crate.mkdir(parents=True)
+    (crate / "empty.tar.zst").write_bytes(b"")
+    try:
+        package_platform_bundle(tmp_path)
+    except SystemExit as exc:
+        assert "empty" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")

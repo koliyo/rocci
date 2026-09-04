@@ -93,6 +93,36 @@ def cmd_package(ns: argparse.Namespace) -> int:
     return 0
 
 
+PLATFORM_BUNDLE_NAME = "rocci-platform.tar.zst"
+
+
+def package_platform_bundle(root: Path, dest_name: str = PLATFORM_BUNDLE_NAME) -> Path:
+    crate = root / "crates" / "rocci-platform"
+    archives = list(crate.glob("*.tar.zst"))
+    if not archives:
+        raise SystemExit(
+            f"no platform *.tar.zst in {crate} (bundle.sh did not emit an archive)"
+        )
+    src = max(archives, key=lambda path: path.stat().st_mtime)
+    dest = crate / dest_name
+    if src.resolve() != dest.resolve():
+        shutil.copy2(src, dest)
+    if dest.stat().st_size == 0:
+        raise SystemExit(f"empty platform bundle: {dest}")
+    checksum = dest.with_name(dest.name + ".sha256")
+    checksum.write_text(f"{sha256_file(dest)}  {dest.name}\n", encoding="utf-8")
+    return dest
+
+
+def cmd_package_platform(ns: argparse.Namespace) -> int:
+    archive = package_platform_bundle(repo_root())
+    write_github_output(
+        {"archive": archive.name, "path": str(archive)},
+        os.environ.get("GITHUB_OUTPUT"),
+    )
+    return 0
+
+
 def cmd_params(ns: argparse.Namespace) -> int:
     tag, name, prerelease = release_params(
         os.environ.get("GITHUB_REF_TYPE", ""),
@@ -170,6 +200,7 @@ def main(argv: list[str]) -> int:
     pkg = sub.add_parser("package")
     pkg.add_argument("--version", required=True)
     pkg.add_argument("--target", required=True)
+    sub.add_parser("package-platform")
     sub.add_parser("params")
     wait = sub.add_parser("wait-ci")
     wait.add_argument("--repo")
@@ -186,6 +217,8 @@ def main(argv: list[str]) -> int:
         return cmd_version(ns)
     if ns.command == "package":
         return cmd_package(ns)
+    if ns.command == "package-platform":
+        return cmd_package_platform(ns)
     if ns.command == "params":
         return cmd_params(ns)
     if ns.command == "wait-ci":

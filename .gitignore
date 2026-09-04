@@ -32,6 +32,7 @@ Datastar.roc
 crates/rocci-platform/platform/targets/*/libhost.a
 crates/rocci-platform/platform/targets/*/host.lib
 crates/rocci-platform/*.tar.zst
+crates/rocci-platform/*.tar.zst.sha256
 crates/rocci-platform/examples/hello-web
 crates/rocci-platform/examples/hello-datastar
 /hello-web

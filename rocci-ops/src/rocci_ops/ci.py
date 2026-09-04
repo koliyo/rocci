@@ -218,6 +218,17 @@ def steps_for(job: str, root: Path) -> list[Step]:
                     ),
                     extra_env=(("ROCCI_REQUIRE_ROC", "1"),),
                 ),
+                Step(("./crates/rocci-platform/bundle.sh",), extra_env=build_env),
+                Step(
+                    (
+                        "uv",
+                        "run",
+                        "--no-dev",
+                        "rocci-ops",
+                        "archive",
+                        "package-platform",
+                    )
+                ),
             ]
         )
         return steps
