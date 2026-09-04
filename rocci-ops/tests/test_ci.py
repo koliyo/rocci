@@ -34,9 +34,11 @@ def test_knowledge_prefers_okmate_env(monkeypatch) -> None:
     assert all(argv[:2] != ("cargo", "run") for argv in argv_lists)
 
 
-def test_knowledge_falls_back_to_sibling_cargo(monkeypatch) -> None:
+def test_knowledge_falls_back_to_okmate_dir_cargo(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv("OKMATE", raising=False)
     monkeypatch.setattr("rocci_ops.ci.shutil.which", lambda _name: None)
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = \"okmate\"\n", encoding="utf-8")
+    monkeypatch.setenv("OKMATE_DIR", str(tmp_path))
     steps = steps_for("knowledge", repo_root())
     argv_lists = [s.argv for s in steps]
     cargo = [argv for argv in argv_lists if argv[:2] == ("cargo", "run")]
@@ -45,7 +47,8 @@ def test_knowledge_falls_back_to_sibling_cargo(monkeypatch) -> None:
     assert "okmate" in cargo[0]
 
 
-def test_knowledge_redirects_validation_json() -> None:
+def test_knowledge_redirects_validation_json(monkeypatch) -> None:
+    monkeypatch.setenv("OKMATE", "/opt/okmate")
     steps = steps_for("knowledge", repo_root())
     redirected = [s for s in steps if s.stdout_path]
     paths = {s.stdout_path for s in redirected}

@@ -39,6 +39,8 @@ def test_ci_roc_job_installs_linux_musl_target() -> None:
     text = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
     roc_job = text.split("  roc:\n", 1)[1].split("\n  test:\n", 1)[0]
     assert "x86_64-unknown-linux-musl" in roc_job
+    assert "lfs: true" in roc_job
+    assert "git lfs pull" in roc_job
     assert "rocci-ops ci roc" in roc_job
     assert "rocci-platform.tar.zst" in roc_job
     assert "upload-artifact" in roc_job
