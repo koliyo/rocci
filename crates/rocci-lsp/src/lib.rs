@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use lsp_server::{ErrorCode, Notification, Request, Response};
 use lsp_types::notification::{
@@ -82,10 +83,13 @@ pub struct LanguageServer {
     roc: Mutex<RocState>,
 }
 
+static ROC_DIR_SEQ: AtomicU64 = AtomicU64::new(0);
+
 fn new_roc_state() -> RocState {
+    let seq = ROC_DIR_SEQ.fetch_add(1, Ordering::Relaxed);
     RocState {
         backend: Box::new(NullRocBackend),
-        dir: std::env::temp_dir().join(format!("rocci-lsp-roc-{}", std::process::id())),
+        dir: std::env::temp_dir().join(format!("rocci-lsp-roc-{}-{seq}", std::process::id())),
         files: HashMap::new(),
     }
 }

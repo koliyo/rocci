@@ -38,7 +38,7 @@ pub fn source_dir(uri: &Uri, source_name: &str) -> Option<PathBuf> {
         Path::new(raw)
     };
     let parent = path.parent()?;
-    if parent.as_os_str().is_empty() || parent == Path::new("/") {
+    if parent.as_os_str().is_empty() || parent == Path::new("/") || parent.parent().is_none() {
         return None;
     }
     parent.is_dir().then(|| parent.to_path_buf())
@@ -94,7 +94,14 @@ mod tests {
 
     #[test]
     fn stages_platform_app_and_keeps_existing_html() {
-        let dir = std::env::temp_dir().join(format!("rocci-lsp-workspace-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!(
+            "rocci-lsp-workspace-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("Html.roc"), "custom html\n").unwrap();
