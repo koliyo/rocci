@@ -82,8 +82,46 @@ impl Drop for KillOnDrop {
     }
 }
 
-fn spawn_kill_on_drop(mut command: Command) -> KillOnDrop {
-    KillOnDrop(command.spawn().unwrap())
+struct Spawned {
+    child: KillOnDrop,
+    roc_log: std::sync::Arc<Mutex<String>>,
+}
+
+fn spawn_kill_on_drop(mut command: Command) -> Spawned {
+    command.stderr(Stdio::piped());
+    let mut child = command.spawn().unwrap();
+    let mut stderr = child.stderr.take().expect("piped stderr");
+    let roc_log = std::sync::Arc::new(Mutex::new(String::new()));
+    let captured = roc_log.clone();
+    thread::spawn(move || {
+        let mut buf = [0u8; 8192];
+        loop {
+            match stderr.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let chunk = String::from_utf8_lossy(&buf[..n]);
+                    eprint!("{chunk}");
+                    captured
+                        .lock()
+                        .unwrap_or_else(|err| err.into_inner())
+                        .push_str(&chunk);
+                }
+                Err(_) => break,
+            }
+        }
+    });
+    Spawned {
+        child: KillOnDrop(child),
+        roc_log,
+    }
+}
+
+fn assert_no_roc_errors(log: &Mutex<String>) {
+    thread::sleep(Duration::from_millis(50));
+    let text = log.lock().unwrap_or_else(|err| err.into_inner()).clone();
+    if text.contains("── ✗") {
+        panic!("Roc reported an error while the preview stayed up:\n{text}");
+    }
 }
 
 fn http_exchange(port: u16, request: &str) -> String {
@@ -213,7 +251,7 @@ fn hybrid_cdn_html_and_island_post_morph() {
     let _ = fs::remove_dir_all(&output);
 
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = spawn_kill_on_drop({
+    let mut spawned = spawn_kill_on_drop({
         let mut command = Command::new(&bin);
         command
             .args([
@@ -228,7 +266,8 @@ fn hybrid_cdn_html_and_island_post_morph() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_health(port, &mut child.0);
+    wait_for_health(port, &mut spawned.child.0);
+    assert_no_roc_errors(&spawned.roc_log);
 
     let response = http_exchange(
         port,
@@ -272,7 +311,7 @@ fn hybrid_cdn_html_and_island_post_morph() {
         !beta.contains("slot-alpha"),
         "beta patch must not include slot-alpha:\n{beta}"
     );
-    drop(child);
+    drop(spawned.child);
 }
 
 #[test]
@@ -284,7 +323,7 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
     let root = repo_root().join("examples/rocdown/hybrid");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = spawn_kill_on_drop({
+    let mut spawned = spawn_kill_on_drop({
         let mut command = Command::new(&bin);
         command
             .args([
@@ -299,7 +338,8 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_preview(port, &mut child.0, "Show tip");
+    wait_for_preview(port, &mut spawned.child.0, "Show tip");
+    assert_no_roc_errors(&spawned.roc_log);
 
     let home = http_exchange(
         port,
@@ -351,7 +391,7 @@ fn hybrid_run_serves_cdn_and_islands_on_one_origin() {
         alpha.contains("slot-alpha") && !alpha.contains("slot-beta"),
         "{alpha}"
     );
-    drop(child);
+    drop(spawned.child);
 }
 
 #[test]
@@ -364,7 +404,7 @@ fn docs_run_previews_the_site() {
     let root = repo_root().join("docs");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = spawn_kill_on_drop({
+    let mut spawned = spawn_kill_on_drop({
         let mut command = Command::new(&bin);
         command
             .args([
@@ -379,7 +419,8 @@ fn docs_run_previews_the_site() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_preview(port, &mut child.0, "Overview");
+    wait_for_preview(port, &mut spawned.child.0, "Overview");
+    assert_no_roc_errors(&spawned.roc_log);
 
     let home = http_exchange(
         port,
@@ -394,7 +435,7 @@ fn docs_run_previews_the_site() {
         !home.contains("/assets/datastar") && !home.to_ascii_lowercase().contains("datastar.js"),
         "docs must stay static:\n{home}"
     );
-    drop(child);
+    drop(spawned.child);
 }
 
 #[test]
@@ -406,7 +447,7 @@ fn counter_run_proxies_actions_on_one_origin() {
     let root = repo_root().join("examples/rocdown/counter");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = spawn_kill_on_drop({
+    let mut spawned = spawn_kill_on_drop({
         let mut command = Command::new(&bin);
         command
             .args([
@@ -421,7 +462,8 @@ fn counter_run_proxies_actions_on_one_origin() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_preview(port, &mut child.0, "Shared count");
+    wait_for_preview(port, &mut spawned.child.0, "Shared count");
+    assert_no_roc_errors(&spawned.roc_log);
 
     let home = http_exchange(
         port,
@@ -467,7 +509,7 @@ fn counter_run_proxies_actions_on_one_origin() {
             && !datastar_increment.contains("datastar-patch-elements"),
         "representation-free command from Datastar returns an empty SSE response:\n{datastar_increment}"
     );
-    drop(child);
+    drop(spawned.child);
 }
 
 #[test]
@@ -479,7 +521,7 @@ fn all_syntax_run_serves_the_kitchen_sink() {
     let fixture = repo_root().join("test/AllSyntax.rocdown");
     let bin = rocdown_bin();
     let port = rocci_cli::serve::free_port().unwrap();
-    let mut child = spawn_kill_on_drop({
+    let mut spawned = spawn_kill_on_drop({
         let mut command = Command::new(&bin);
         command
             .args([
@@ -494,7 +536,8 @@ fn all_syntax_run_serves_the_kitchen_sink() {
             .stderr(Stdio::inherit());
         command
     });
-    wait_for_preview(port, &mut child.0, "Don't do this.");
+    wait_for_preview(port, &mut spawned.child.0, "Don't do this.");
+    assert_no_roc_errors(&spawned.roc_log);
 
     let home = http_exchange(
         port,
@@ -505,7 +548,7 @@ fn all_syntax_run_serves_the_kitchen_sink() {
         home.contains("Hello, render") || home.contains("Hello, island"),
         "{home}"
     );
-    drop(child);
+    drop(spawned.child);
 }
 
 fn wait_for_preview(port: u16, child: &mut Child, needle: &str) {
