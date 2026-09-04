@@ -40,11 +40,42 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
 
+      - name: Add Linux musl target
+        if: runner.os == 'Linux'
+        run: rustup target add x86_64-unknown-linux-musl
+
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: release-${{ matrix.target }}
 
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+
+      - name: Build native libhost
+        env:
+          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
+        run: ./crates/rocci-platform/build.sh
+
+      - name: Stage libhost artifact
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          hosts=(crates/rocci-platform/platform/targets/*/libhost.a)
+          if [[ ${#hosts[@]} -ne 1 ]]; then
+            echo "expected one native libhost.a, found ${#hosts[@]}" >&2
+            printf '%s\n' "${hosts[@]}" >&2
+            exit 1
+          fi
+          triple="$(basename "$(dirname "${hosts[0]}")")"
+          mkdir -p "staged-libhost/${triple}"
+          cp "${hosts[0]}" "staged-libhost/${triple}/libhost.a"
+
+      - name: Upload libhost
+        uses: actions/upload-artifact@v7
+        with:
+          name: libhost-${{ runner.os }}
+          path: staged-libhost
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Build release binaries
         run: cargo build --release -p rocci-cli -p rocci-rocdown-cli -p rocci-rocdown-lsp
@@ -71,6 +102,7 @@ jobs:
 
   platform:
     name: Bundle rocci-platform
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -79,23 +111,27 @@ jobs:
         run: sudo ./docker/install-linux-deps.sh builder
 
       - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
-        with:
-          targets: x86_64-unknown-linux-musl
 
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
       - name: Install Roc
         run: sudo ./docker/install-roc.sh
 
-      - name: Build native libhost
-        env:
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-        run: ./crates/rocci-platform/build.sh
+      - name: Download libhost artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: libhost-*
+          path: libhosts
+          merge-multiple: false
+
+      - name: Merge libhosts into platform targets
+        run: >
+          uv run --no-dev rocci-ops archive merge-libhosts
+          --from libhosts
+          --dest crates/rocci-platform/platform/targets
 
       - name: Bundle platform
-        env:
-          CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: musl-gcc
-        run: ./crates/rocci-platform/bundle.sh
+        run: ./crates/rocci-platform/bundle.sh --skip-build
 
       - name: Package platform archive
         run: uv run --no-dev rocci-ops archive package-platform

@@ -8,7 +8,7 @@ def test_top_level_usage_lists_grouped_commands() -> None:
     assert "package       macos, vscode, zed, site, icons" in USAGE
     assert "promote       staging | production" in USAGE
     assert "release       patch, minor, major, v*, or dev" in USAGE
-    assert "archive       version, package, package-platform, params, wait-ci, publish" in USAGE
+    assert "archive       version, package, package-platform, merge-libhosts, params, wait-ci, publish" in USAGE
     assert "promote       staging | production | tag" not in USAGE
     assert "build-playground" not in USAGE
     assert "render-brand-icons" not in USAGE

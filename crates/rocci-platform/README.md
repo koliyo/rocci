@@ -45,16 +45,15 @@ pins `../platform/main.roc`. Default listen is `127.0.0.1:8000`
 `ROC_BASIC_WEBSERVER_PORT` and `ROC_BASIC_WEBSERVER_HOST`.
 
 Hosted CI uploads an Actions artifact named `rocci-platform` containing
-`rocci-platform.tar.zst` (Linux native `libhost.a` only) plus
-`rocci-platform.tar.zst.sha256`. Tag releases (`dev` and `v*`) attach the
-same files to the GitHub release:
+`rocci-platform.tar.zst` plus `rocci-platform.tar.zst.sha256`. Tag
+releases (`dev` and `v*`) attach the same files:
 
 `https://github.com/koliyo/rocci/releases/download/<tag>/rocci-platform.tar.zst`
 
-That URL is **available** for authored `main.roc` pins. It is **not** the
-default `rocci` generated-app pin. Apps in a checkout still pin the path
-(or a local `.tar.zst` from `bundle.sh`). The archive is Linux-only until
-a later phase copies a macOS `libhost.a` into the same bundle.
+The release archive includes `arm64mac` and `x64musl` `libhost.a`. It is
+**available** for authored `main.roc` pins. It is **not** the default
+`rocci` generated-app pin. Apps in a checkout still pin the path (or a
+local `.tar.zst` from `bundle.sh`).
 
 ## Build the native host
 
@@ -63,8 +62,9 @@ crates/rocci-platform/build.sh
 ```
 
 That writes `platform/targets/<native>/libhost.a`. `build.sh --all` is
-not proven. Missing triples: `x64mac`, `x64musl`, `arm64musl`, `x64win`,
-`arm64win`. wasm32 is out of bound (apply stays `rocci-roc-host`).
+not proven. Release bundles currently include `arm64mac` and `x64musl`.
+Missing triples: `x64mac`, `arm64musl`, `x64win`, `arm64win`. wasm32 is
+out of bound (apply stays `rocci-roc-host`).
 
 ## Bundle
 
@@ -72,11 +72,12 @@ not proven. Missing triples: `x64mac`, `x64musl`, `arm64musl`, `x64win`,
 crates/rocci-platform/bundle.sh
 ```
 
-Writes a hashed `.tar.zst` next to this README (`platform/*.roc` plus the
-native `libhost.a`). CI copies it to the stable name
-`rocci-platform.tar.zst`. Pin a local archive as `pf` when you want a
-package instead of a path; do not treat the CI artifact as the default
-`rocci` pin.
+Writes a hashed `.tar.zst` next to this README (`platform/*.roc` plus
+whatever `libhost.a` files exist under `platform/targets/`).
+`--skip-build` bundles already-staged triples without calling
+`build.sh`. CI copies the result to `rocci-platform.tar.zst`. Pin a
+local archive as `pf` when you want a package instead of a path; do not
+treat the GitHub URL as the default `rocci` pin.
 
 ## Regenerating glue
 

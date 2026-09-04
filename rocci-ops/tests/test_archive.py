@@ -3,6 +3,7 @@ from hashlib import sha256
 from rocci_ops.archive import (
     archive_stem,
     collect_release_artifacts,
+    merge_libhost_artifacts,
     package_platform_bundle,
     release_params,
     version_from_ref,
@@ -132,5 +133,31 @@ def test_collect_release_artifacts_requires_platform_tar_zst(tmp_path) -> None:
         collect_release_artifacts(tmp_path)
     except SystemExit as exc:
         assert "tar.zst" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_merge_libhost_artifacts_requires_mac_and_linux(tmp_path) -> None:
+    linux = tmp_path / "libhost-Linux" / "targets" / "x64musl"
+    mac = tmp_path / "libhost-macOS" / "targets" / "arm64mac"
+    linux.mkdir(parents=True)
+    mac.mkdir(parents=True)
+    (linux / "libhost.a").write_bytes(b"linux-host")
+    (mac / "libhost.a").write_bytes(b"mac-host")
+    dest = tmp_path / "targets"
+    triples = merge_libhost_artifacts(tmp_path, dest)
+    assert triples == ["arm64mac", "x64musl"]
+    assert (dest / "arm64mac" / "libhost.a").read_bytes() == b"mac-host"
+    assert (dest / "x64musl" / "libhost.a").read_bytes() == b"linux-host"
+
+
+def test_merge_libhost_artifacts_fails_when_mac_missing(tmp_path) -> None:
+    linux = tmp_path / "libhost-Linux" / "x64musl"
+    linux.mkdir(parents=True)
+    (linux / "libhost.a").write_bytes(b"linux-host")
+    try:
+        merge_libhost_artifacts(tmp_path, tmp_path / "targets")
+    except SystemExit as exc:
+        assert "arm64mac" in str(exc)
     else:
         raise AssertionError("expected SystemExit")

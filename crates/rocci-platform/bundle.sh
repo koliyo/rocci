@@ -2,7 +2,9 @@
 set -euo pipefail
 
 CRATE_DIR="$(cd "$(dirname "$0")" && pwd)"
-"$CRATE_DIR/build.sh"
+if [[ "${1:-}" != "--skip-build" ]]; then
+    "$CRATE_DIR/build.sh"
+fi
 
 cd "$CRATE_DIR/platform"
 shopt -s nullglob

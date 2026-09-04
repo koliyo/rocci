@@ -35,7 +35,7 @@ commands:
   pr-checkout   list open PRs, or checkout one here as pr/<branch>
   promote       staging | production
   release       patch, minor, major, v*, or dev
-  archive       version, package, package-platform, params, wait-ci, publish
+  archive       version, package, package-platform, merge-libhosts, params, wait-ci, publish
 """
 
 

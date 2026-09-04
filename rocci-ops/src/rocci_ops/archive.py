@@ -123,6 +123,38 @@ def cmd_package_platform(ns: argparse.Namespace) -> int:
     return 0
 
 
+REQUIRED_LIBHOST_TRIPLES = frozenset({"arm64mac", "x64musl"})
+
+
+def merge_libhost_artifacts(
+    download_root: Path,
+    dest_targets: Path,
+    required: frozenset[str] = REQUIRED_LIBHOST_TRIPLES,
+) -> list[str]:
+    dest_targets.mkdir(parents=True, exist_ok=True)
+    triples: set[str] = set()
+    for lib in download_root.rglob("libhost.a"):
+        triple = lib.parent.name
+        if triple in {"targets", "libhosts", ""}:
+            raise SystemExit(f"cannot infer libhost triple from {lib}")
+        target_dir = dest_targets / triple
+        target_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(lib, target_dir / "libhost.a")
+        triples.add(triple)
+    missing = required - triples
+    if missing:
+        raise SystemExit(
+            f"missing libhost triples {sorted(missing)}; found {sorted(triples)}"
+        )
+    return sorted(triples)
+
+
+def cmd_merge_libhosts(ns: argparse.Namespace) -> int:
+    triples = merge_libhost_artifacts(Path(ns.source), Path(ns.dest))
+    print(" ".join(triples), flush=True)
+    return 0
+
+
 def cmd_params(ns: argparse.Namespace) -> int:
     tag, name, prerelease = release_params(
         os.environ.get("GITHUB_REF_TYPE", ""),
@@ -210,6 +242,9 @@ def main(argv: list[str]) -> int:
     pkg.add_argument("--version", required=True)
     pkg.add_argument("--target", required=True)
     sub.add_parser("package-platform")
+    merge_hosts = sub.add_parser("merge-libhosts")
+    merge_hosts.add_argument("--from", dest="source", required=True)
+    merge_hosts.add_argument("--dest", required=True)
     sub.add_parser("params")
     wait = sub.add_parser("wait-ci")
     wait.add_argument("--repo")
@@ -228,6 +263,8 @@ def main(argv: list[str]) -> int:
         return cmd_package(ns)
     if ns.command == "package-platform":
         return cmd_package_platform(ns)
+    if ns.command == "merge-libhosts":
+        return cmd_merge_libhosts(ns)
     if ns.command == "params":
         return cmd_params(ns)
     if ns.command == "wait-ci":
