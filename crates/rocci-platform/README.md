@@ -46,9 +46,15 @@ pins `../platform/main.roc`. Default listen is `127.0.0.1:8000`
 
 Hosted CI uploads an Actions artifact named `rocci-platform` containing
 `rocci-platform.tar.zst` (Linux native `libhost.a` only) plus
-`rocci-platform.tar.zst.sha256`. That archive is **not** the default
-`rocci` generated-app pin. Apps in a checkout still pin the path (or a
-local `.tar.zst` from `bundle.sh`). There is not yet a GitHub release URL.
+`rocci-platform.tar.zst.sha256`. Tag releases (`dev` and `v*`) attach the
+same files to the GitHub release:
+
+`https://github.com/koliyo/rocci/releases/download/<tag>/rocci-platform.tar.zst`
+
+That URL is **available** for authored `main.roc` pins. It is **not** the
+default `rocci` generated-app pin. Apps in a checkout still pin the path
+(or a local `.tar.zst` from `bundle.sh`). The archive is Linux-only until
+a later phase copies a macOS `libhost.a` into the same bundle.
 
 ## Build the native host
 

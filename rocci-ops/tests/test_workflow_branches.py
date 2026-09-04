@@ -39,6 +39,9 @@ def test_release_push_includes_version_and_dev_tags() -> None:
     assert "rocci-ops archive wait-ci" in text
     assert "rocci-ops archive params" in text
     assert "rocci-ops archive publish" in text
+    assert "rocci-platform.tar.zst" in text
+    assert "bundle.sh" in text
+    assert "archive package-platform" in text
 
 
 def test_workflows_do_not_call_hosted_release_helpers_as_release() -> None:

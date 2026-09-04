@@ -153,12 +153,21 @@ def cmd_wait_ci(ns: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_publish(ns: argparse.Namespace) -> int:
-    artifacts = sorted(Path(ns.artifact_dir).glob("*.tar.gz")) + sorted(
-        Path(ns.artifact_dir).glob("*.sha256")
+def collect_release_artifacts(artifact_dir: Path) -> list[Path]:
+    artifacts = (
+        sorted(artifact_dir.glob("*.tar.gz"))
+        + sorted(artifact_dir.glob("*.tar.zst"))
+        + sorted(artifact_dir.glob("*.sha256"))
     )
     if not artifacts:
-        raise SystemExit(f"no release artifacts in {ns.artifact_dir}")
+        raise SystemExit(f"no release artifacts in {artifact_dir}")
+    if not any(path.name.endswith(".tar.zst") for path in artifacts):
+        raise SystemExit(f"missing platform .tar.zst in {artifact_dir}")
+    return artifacts
+
+
+def cmd_publish(ns: argparse.Namespace) -> int:
+    artifacts = collect_release_artifacts(Path(ns.artifact_dir))
     if ns.prerelease:
         subprocess.run(
             ["gh", "release", "delete", ns.tag, "--yes", "--cleanup-tag"],

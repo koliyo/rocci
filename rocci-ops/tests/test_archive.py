@@ -2,6 +2,7 @@ from hashlib import sha256
 
 from rocci_ops.archive import (
     archive_stem,
+    collect_release_artifacts,
     package_platform_bundle,
     release_params,
     version_from_ref,
@@ -109,5 +110,27 @@ def test_package_platform_bundle_rejects_empty_archive(tmp_path) -> None:
         package_platform_bundle(tmp_path)
     except SystemExit as exc:
         assert "empty" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_collect_release_artifacts_includes_platform_tar_zst(tmp_path) -> None:
+    (tmp_path / "rocci-dev-linux.tar.gz").write_bytes(b"cli")
+    (tmp_path / "rocci-dev-linux.tar.gz.sha256").write_text("abc  rocci-dev-linux.tar.gz\n")
+    (tmp_path / "rocci-platform.tar.zst").write_bytes(b"pf")
+    (tmp_path / "rocci-platform.tar.zst.sha256").write_text("def  rocci-platform.tar.zst\n")
+    names = [path.name for path in collect_release_artifacts(tmp_path)]
+    assert "rocci-platform.tar.zst" in names
+    assert "rocci-dev-linux.tar.gz" in names
+    assert "rocci-platform.tar.zst.sha256" in names
+
+
+def test_collect_release_artifacts_requires_platform_tar_zst(tmp_path) -> None:
+    (tmp_path / "rocci-dev-linux.tar.gz").write_bytes(b"cli")
+    (tmp_path / "rocci-dev-linux.tar.gz.sha256").write_text("abc  rocci-dev-linux.tar.gz\n")
+    try:
+        collect_release_artifacts(tmp_path)
+    except SystemExit as exc:
+        assert "tar.zst" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
