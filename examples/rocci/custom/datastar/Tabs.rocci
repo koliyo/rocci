@@ -1,5 +1,3 @@
-import Html
-
 @component
 Demo = |{ tabs, panel }|
     <div id="tabs" class="panel">

@@ -1,5 +1,4 @@
 import Game
-import Html
 
 started = Game.start(1)
 

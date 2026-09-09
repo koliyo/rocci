@@ -11,8 +11,6 @@
 ```rocci
 module Example exposing [hello]
 
-import Html
-
 Tone : [Neutral, Positive]
 
 @component Hello = |{ name }|
@@ -21,7 +19,8 @@ Tone : [Neutral, Positive]
 
 A `.rocci` file may mix a module header, imports, types, helpers, and any
 number of recognized declarations. Everything outside an `@` declaration is
-copied into generated Roc unchanged.
+copied into generated Roc unchanged. Markup lowering injects `import Html`;
+do not write it in the template.
 
 Recognized **only** at the start of a top-level definition: `@component`,
 `@fixture`, `@test`, `@css`, `@context`, `@init`, and `@method:role` routes.

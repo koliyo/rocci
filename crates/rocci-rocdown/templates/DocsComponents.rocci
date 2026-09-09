@@ -1,5 +1,3 @@
-import Html
-
 @css {
     :scope.rd-docs-block,
     .rd-docs-block { margin: 1.25rem 0; }

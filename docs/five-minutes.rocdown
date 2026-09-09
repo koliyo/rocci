@@ -20,8 +20,6 @@ Until an installed `rocci` exists, prefix each `rocci` command with
 From the clone, create `Hello.rocci` with this complete module:
 
 ```rocci
-import Html
-
 @component
 Hello = |{ name }|
     <p>Hello, <strong>{name}</strong></p>

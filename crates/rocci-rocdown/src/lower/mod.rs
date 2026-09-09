@@ -24,6 +24,59 @@ const CONTENT_NAME: &str = "rocci_content";
 const PAGE_NAME: &str = "rocci_page";
 const ISLANDS_NAME: &str = "rocci_islands";
 
+struct PeeledRuntimeImports {
+    roc: String,
+    has_datastar: bool,
+    prefix_len: usize,
+}
+
+fn peel_injected_runtime_imports(roc: &str) -> PeeledRuntimeImports {
+    let mut pos = 0usize;
+    let mut has_datastar = false;
+    loop {
+        let rest = &roc[pos..];
+        if let Some(next) = rest.strip_prefix("import Html\n") {
+            pos += rest.len() - next.len();
+            continue;
+        }
+        if let Some(next) = rest.strip_prefix("import Datastar\n") {
+            pos += rest.len() - next.len();
+            has_datastar = true;
+            continue;
+        }
+        break;
+    }
+    while roc.as_bytes().get(pos) == Some(&b'\n') {
+        pos += 1;
+    }
+    PeeledRuntimeImports {
+        roc: roc[pos..].to_string(),
+        has_datastar,
+        prefix_len: pos,
+    }
+}
+
+fn shift_template_segments(
+    segments: &[Segment],
+    template_start: usize,
+    origin_off: usize,
+) -> Vec<Segment> {
+    segments
+        .iter()
+        .filter_map(|segment| {
+            if (segment.generated.end as usize) <= origin_off {
+                return None;
+            }
+            let mut segment = segment.clone();
+            segment.generated.start =
+                template_start as u32 + segment.generated.start.saturating_sub(origin_off as u32);
+            segment.generated.end =
+                template_start as u32 + segment.generated.end.saturating_sub(origin_off as u32);
+            Some(segment)
+        })
+        .collect()
+}
+
 pub(crate) fn is_site_chrome_layout(layout: &str) -> bool {
     matches!(
         layout,
@@ -219,16 +272,9 @@ pub fn lower(
     if injected_html {
         emitter.emit("import Html\n");
     }
-    let mut template_roc = lowered_rocci.roc;
-    let mut has_datastar = false;
-    if template_roc.starts_with("import Datastar\n") {
-        has_datastar = true;
-        template_roc = template_roc
-            .strip_prefix("import Datastar\n")
-            .unwrap_or(&template_roc)
-            .trim_start_matches('\n')
-            .to_string();
-    }
+    let peeled = peel_injected_runtime_imports(&lowered_rocci.roc);
+    let template_roc = peeled.roc;
+    let mut has_datastar = peeled.has_datastar;
     if used_modules.iter().any(|module| module.has_datastar) {
         has_datastar = true;
     }
@@ -259,17 +305,19 @@ pub fn lower(
         emitter.emit("\n");
     }
     if !template_roc.trim().is_empty() {
+        let trimmed = template_roc.trim_start();
+        let origin_off = peeled.prefix_len + (template_roc.len() - trimmed.len());
         let template_start = emitter.roc.len();
-        emitter.emit(template_roc.trim_start());
+        emitter.emit(trimmed);
         if !emitter.roc.ends_with('\n') {
             emitter.emit("\n");
         }
         emitter.emit("\n");
-        for mut segment in lowered_rocci.segments {
-            segment.generated.start += template_start as u32;
-            segment.generated.end += template_start as u32;
-            emitter.segments.push(segment);
-        }
+        emitter.segments.extend(shift_template_segments(
+            &lowered_rocci.segments,
+            template_start,
+            origin_off,
+        ));
     }
     for module in &used_modules {
         if module.roc.trim().is_empty() {
@@ -519,16 +567,9 @@ pub fn lower_islands(
     if injected_html {
         emitter.emit("import Html\n");
     }
-    let mut template_roc = lowered_rocci.roc;
-    let mut has_datastar = false;
-    if template_roc.starts_with("import Datastar\n") {
-        has_datastar = true;
-        template_roc = template_roc
-            .strip_prefix("import Datastar\n")
-            .unwrap_or(&template_roc)
-            .trim_start_matches('\n')
-            .to_string();
-    }
+    let peeled = peel_injected_runtime_imports(&lowered_rocci.roc);
+    let template_roc = peeled.roc;
+    let has_datastar = peeled.has_datastar;
     if has_datastar || page_datastar {
         emitter.emit("import Datastar\n");
     }
@@ -556,17 +597,19 @@ pub fn lower_islands(
         emitter.emit("\n");
     }
     if !template_roc.trim().is_empty() {
+        let trimmed = template_roc.trim_start();
+        let origin_off = peeled.prefix_len + (template_roc.len() - trimmed.len());
         let template_start = emitter.roc.len();
-        emitter.emit(template_roc.trim_start());
+        emitter.emit(trimmed);
         if !emitter.roc.ends_with('\n') {
             emitter.emit("\n");
         }
         emitter.emit("\n");
-        for mut segment in lowered_rocci.segments {
-            segment.generated.start += template_start as u32;
-            segment.generated.end += template_start as u32;
-            emitter.segments.push(segment);
-        }
+        emitter.segments.extend(shift_template_segments(
+            &lowered_rocci.segments,
+            template_start,
+            origin_off,
+        ));
     }
 
     emitter.emit(ISLANDS_NAME);

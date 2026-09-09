@@ -259,18 +259,35 @@ pub(crate) fn attrs_have_action(attrs: &[Attr]) -> bool {
         .any(|attr| matches!(attr.value, AttrValue::Action { .. }))
 }
 
+pub(crate) fn document_imports_html(src: &str, document: &Document) -> bool {
+    document_imports_module(src, document, line_imports_html)
+}
+
 pub(crate) fn document_imports_datastar(src: &str, document: &Document) -> bool {
+    document_imports_module(src, document, line_imports_datastar)
+}
+
+fn document_imports_module(src: &str, document: &Document, line_imports: fn(&str) -> bool) -> bool {
     document.items.iter().any(|item| match item {
-        ModuleItem::Roc { span } => span.of(src).lines().any(line_imports_datastar),
+        ModuleItem::Roc { span } => span.of(src).lines().any(line_imports),
         _ => false,
     })
 }
 
+pub(crate) fn line_imports_html(line: &str) -> bool {
+    line_imports_named(line, "Html") || line_imports_named(line, "pf.Html")
+}
+
 pub(crate) fn line_imports_datastar(line: &str) -> bool {
+    line_imports_named(line, "Datastar") || line_imports_named(line, "pf.Datastar")
+}
+
+fn line_imports_named(line: &str, module: &str) -> bool {
     let trimmed = line.trim();
-    trimmed == "import Datastar"
-        || trimmed.starts_with("import Datastar ")
-        || trimmed.starts_with("import Datastar.")
+    let import = format!("import {module}");
+    trimmed == import
+        || trimmed.starts_with(&format!("{import} "))
+        || trimmed.starts_with(&format!("{import}."))
 }
 
 pub(crate) fn import_insert_offset(text: &str) -> usize {
@@ -484,10 +501,17 @@ impl<'a> Emitter<'a> {
 }
 
 impl<'a> Emitter<'a> {
-    pub(crate) fn emit_roc_with_datastar_import(&mut self, span: Span) {
+    pub(crate) fn emit_runtime_imports(&mut self, imports: &[&str]) {
+        for import in imports {
+            self.emit(import);
+            self.emit("\n");
+        }
+    }
+
+    pub(crate) fn emit_roc_with_runtime_imports(&mut self, span: Span, imports: &[&str]) {
         let text = span.of(self.src);
         if text.is_empty() {
-            self.emit("import Datastar\n");
+            self.emit_runtime_imports(imports);
             return;
         }
         let insert_at = import_insert_offset(text);
@@ -499,7 +523,7 @@ impl<'a> Emitter<'a> {
         if needs_nl {
             self.emit("\n");
         }
-        self.emit("import Datastar\n");
+        self.emit_runtime_imports(imports);
         if insert_at < text.len() {
             self.emit_source(
                 Span::new(start + insert_at, span.end as usize),

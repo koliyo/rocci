@@ -71,7 +71,8 @@ path until island splicing lands.
 ## Rocci essentials
 
 - Ordinary Roc stays Roc. Recognized top-level forms: `@component`, `@fixture`,
-  `@test`, `@css`, `@context`, `@init`, and `@method:role` routes.
+  `@test`, `@css`, `@context`, `@init`, and `@method:role` routes. Do not write
+  `import Html`; lowering injects it. Write other imports as usual.
 - Component names are PascalCase (`StatusCard`). Lowering emits camelCase Roc
   (`statusCard`). Handlers and `exposing` lists use the lowered name.
 - One root tag needs no braces. Directives, `@let`, `@css`, or multiple roots

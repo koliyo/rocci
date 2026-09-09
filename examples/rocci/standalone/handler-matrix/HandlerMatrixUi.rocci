@@ -1,5 +1,3 @@
-import Html
-
 Event : { kind : Str, method : Str, path : Str, message : Str, ago : Str, ts : Str }
 
 empty_events : List(Event)

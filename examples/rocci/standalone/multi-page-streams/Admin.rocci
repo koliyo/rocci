@@ -1,5 +1,3 @@
-import Html
-
 authorize_admin! = |request| {
     token =
         List.fold(request.headers(), "", |found, header|

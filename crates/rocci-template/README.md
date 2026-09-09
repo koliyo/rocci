@@ -32,7 +32,6 @@ components:
 ```rocci
 module CounterPage exposing [hello]
 
-import pf.Html
 import Design
 
 Tone : [Neutral, Positive]
@@ -49,7 +48,8 @@ badgeClass = |tone| {
 ```
 
 Everything outside an `@component` body is copied into the generated Roc
-module unchanged. `@component`, `@fixture`, `@test`, `@css`, `@context`, `@init`, and
+module unchanged. Lowering injects `import Html` when the module does not
+already import it. `@component`, `@fixture`, `@test`, `@css`, `@context`, `@init`, and
 `@method:role` routes are recognized only at the start of a top-level definition.
 
 ## Components
@@ -343,8 +343,8 @@ write `@post("/x")`, or quote a literal Datastar expression:
 
 Quoted `"@post('...')"` stays an opaque client string. Custom actions such as
 `@peek` stay quoted. Using an action injects `import Datastar` when the module
-does not already import it. The `Datastar` helpers return the HTML attribute
-string, including JS quoting of the URI.
+does not already import it, next to the implicit `import Html`. The `Datastar`
+helpers return the HTML attribute string, including JS quoting of the URI.
 
 A second argument is a `List` of option tags (`OpenWhenHidden`, `ContentType`,
 `Header`, `Retry`, `RequestCancellation`) and lowers to `Datastar.get_with`.

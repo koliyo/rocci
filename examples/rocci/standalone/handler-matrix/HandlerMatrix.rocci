@@ -2,7 +2,6 @@ import pf.Env
 import pf.Path
 import pf.Sqlite
 import pf.Stderr
-import Html
 import HandlerMatrixUi
 
 ## SQLite handle opened in `@init`. Shared with fragments, commands, and live.

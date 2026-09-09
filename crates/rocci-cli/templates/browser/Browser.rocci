@@ -1,5 +1,3 @@
-import Html
-
 @component
 HomePage = |{ groups }|
     <html lang="en">

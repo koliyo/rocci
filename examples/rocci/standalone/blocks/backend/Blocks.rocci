@@ -3,7 +3,6 @@ import pf.Path
 import pf.Sqlite
 import pf.UnixTime
 import Game
-import Html
 import BlocksUi
 
 ## SQLite handle opened in `@init`. Shared with `@get:live` and commands.

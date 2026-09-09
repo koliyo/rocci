@@ -1,5 +1,3 @@
-import Html
-
 @component Breadcrumbs = |{ breadcrumbs, route }| {
     <nav class="breadcrumbs" aria-label="Breadcrumb">
         <ol>

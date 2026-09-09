@@ -215,7 +215,8 @@ Without `@page.route`, the synthesized GET path is `/`.
 ### `@roc`
 
 There may be several blocks. Import lines are collected into the generated
-header (and `import Html` is added if missing). Remaining statements are
+header (and `import Html` is added if missing; Rocci regions also inject it
+during template lowering). Remaining statements are
 emitted in source order. Names `rocci_meta`, `rocci_content`, and `rocci_page`
 are reserved.
 

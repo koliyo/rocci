@@ -1,5 +1,3 @@
-import Html
-
 ## Dashboard page: its page stream and the shared notifications stream are explicit.
 @get:view("/") = |_| {
     dashboardPage({})

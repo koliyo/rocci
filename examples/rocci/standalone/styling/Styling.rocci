@@ -1,5 +1,3 @@
-import Html
-
 ## GET the styling document. `count` comes from this handler, not a database.
 @get:view("/") {
     stylePage({ count: 3.I64 })

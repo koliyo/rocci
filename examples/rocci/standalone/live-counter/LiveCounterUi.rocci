@@ -1,4 +1,3 @@
-import Html
 import Origin
 
 Click : { flag : Str, place : Str, ago : Str, ts : Str, chosen : Bool }

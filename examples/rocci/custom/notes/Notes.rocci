@@ -1,5 +1,3 @@
-import Html
-
 @component
 NotesBoard = |{ notes }| {
     <section id="notes" class="board">

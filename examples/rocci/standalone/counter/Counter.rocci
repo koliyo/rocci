@@ -2,7 +2,6 @@ import pf.Env
 import pf.Path
 import pf.Sqlite
 import pf.Stderr
-import Html
 
 ## SQLite handle opened in `@init`.
 @context { db : Sqlite.Db }

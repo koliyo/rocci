@@ -16,8 +16,8 @@ pub use emitter::file_scope_id;
 pub use routes::route_fn_name;
 
 use emitter::{
-    Emitter, ValueCtx, document_has_action, document_imports_datastar, file_stem,
-    items_have_action, scope_css,
+    Emitter, ValueCtx, document_has_action, document_imports_datastar, document_imports_html,
+    file_stem, items_have_action, scope_css,
 };
 
 #[derive(Clone, Debug)]
@@ -351,18 +351,28 @@ pub fn lower(source: SourceFile<'_>, document: &Document, options: &LowerOptions
         stylesheet_href: options.stylesheet_href.clone(),
         inject_live_path,
     };
-    let inject_datastar = (document_has_action(document) || emitter.inject_live_path.is_some())
-        && !document_imports_datastar(source.src, document);
+    let mut runtime_imports = Vec::new();
+    if !document_imports_html(source.src, document) {
+        runtime_imports.push("import Html");
+    }
+    if (document_has_action(document) || emitter.inject_live_path.is_some())
+        && !document_imports_datastar(source.src, document)
+    {
+        runtime_imports.push("import Datastar");
+    }
     let mut injected = false;
-    if inject_datastar && !matches!(document.items.first(), Some(ModuleItem::Roc { .. })) {
-        emitter.emit("import Datastar\n\n");
+    if !runtime_imports.is_empty()
+        && !matches!(document.items.first(), Some(ModuleItem::Roc { .. }))
+    {
+        emitter.emit_runtime_imports(&runtime_imports);
+        emitter.emit("\n");
         injected = true;
     }
     for item in &document.items {
         match item {
             ModuleItem::Roc { span } => {
-                if inject_datastar && !injected {
-                    emitter.emit_roc_with_datastar_import(*span);
+                if !runtime_imports.is_empty() && !injected {
+                    emitter.emit_roc_with_runtime_imports(*span, &runtime_imports);
                     injected = true;
                 } else {
                     emitter.emit_source(*span, OriginKind::OrdinaryRoc);

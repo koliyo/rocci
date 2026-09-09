@@ -1,5 +1,3 @@
-import Html
-
 @css {
     .rd-callout {
         margin: 1.25rem 0;

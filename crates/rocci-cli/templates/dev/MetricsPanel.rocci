@@ -1,5 +1,3 @@
-import Html
-
 MetricsSpan : {
     name : Str,
     duration_ms : U64,

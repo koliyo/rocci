@@ -1,4 +1,3 @@
-
 covers_route = |group, route| {
     on_self = group.href == route
     on_items = List.any(group.items, |item| item.href == route)

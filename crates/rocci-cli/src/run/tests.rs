@@ -873,7 +873,7 @@ fn compile_writes_wrapped_type_module() {
     let dir = temp_app("compile");
     fs::write(
         dir.join("Hello.rocci"),
-        "import Html\n\n@component Hello = |{ name }| {\n    <p>{name}</p>\n}\n",
+        "@component Hello = |{ name }| {\n    <p>{name}</p>\n}\n",
     )
     .unwrap();
     compile_rocci_modules(&dir).unwrap();

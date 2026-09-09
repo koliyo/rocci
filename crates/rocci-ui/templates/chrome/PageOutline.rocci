@@ -1,5 +1,3 @@
-import Html
-
 @component PageOutline = |{ outline }| {
     <aside class="outline" aria-label="On this page">
         <p class="outline-label">On this page</p>

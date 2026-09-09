@@ -949,6 +949,64 @@ fn rejects_fixture_inside_component_body() {
 }
 
 #[test]
+fn injects_html_import_when_missing() {
+    let src = r#"
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.starts_with("import Html\n"), "{}", out.roc);
+    assert_eq!(out.roc.matches("import Html").count(), 1);
+}
+
+#[test]
+fn keeps_existing_html_import() {
+    let src = r#"
+import Html
+
+@component Hello = |{ name }| {
+    <p>{name}</p>
+}
+"#;
+    let out = compile_ok(src);
+    assert_eq!(out.roc.matches("import Html").count(), 1);
+}
+
+#[test]
+fn html_import_does_not_split_docs_from_assignment() {
+    let src = r#"module [hello]
+
+## Documented greeting.
+@component Hello = |{ name }|
+    <p>{name}</p>
+"#;
+    let out = compile_ok(src);
+    assert!(out.roc.contains("import Html"));
+    let docs = out.roc.find("## Documented greeting.\n").expect("docs");
+    let assign = out.roc.find("hello = ").expect("assignment");
+    assert_eq!(&out.roc[docs..assign], "## Documented greeting.\n");
+    let import = out.roc.find("import Html").expect("import");
+    assert!(
+        import < docs,
+        "Html import must come before attached docs, not between docs and assignment"
+    );
+}
+
+#[test]
+fn injects_html_before_datastar() {
+    let src = r#"
+@component Page = |{}| {
+    <button data-on:click=@post("/x")>Go</button>
+}
+"#;
+    let out = compile_ok(src);
+    let html = out.roc.find("import Html").expect("html");
+    let datastar = out.roc.find("import Datastar").expect("datastar");
+    assert!(html < datastar, "{}", out.roc);
+}
+
+#[test]
 fn lowers_datastar_action_to_helper_call() {
     let src = r#"
 @component Page = |{}| {
@@ -1509,7 +1567,6 @@ fn rejects_css_after_markup_and_inside_if() {
 fn lowers_context_init_and_handlers() {
     let src = r#"
 import pf.Sqlite
-import Html
 
 @context { db : Sqlite.Db }
 

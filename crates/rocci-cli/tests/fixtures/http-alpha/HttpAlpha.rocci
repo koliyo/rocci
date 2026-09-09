@@ -1,5 +1,3 @@
-import Html
-
 @get:view("/") {
     mark({ label: "http-alpha" })
 }

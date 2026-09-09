@@ -1,7 +1,7 @@
 module CounterPage exposing [counterPage]
 
-import pf.Html
 import Design
+import Html
 import Datastar
 
 Tone : [Neutral, Positive]
