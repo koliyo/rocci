@@ -6,6 +6,14 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-09
+
+- Filed draft [classify HTTP client disconnects](plans/rocci/http-client-disconnects.md): Phase 1 host diagnostic class in `rocci-platform`; Phases 2–3 standalone docs and author skill; Phase 4 quiet-log / upstream review gate. Pair: [research](research/rocci/http-client-disconnects.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
+- Filed draft [HTTP client disconnects](research/rocci/http-client-disconnects.md): incomplete-request CLI line is Hyper parse failure before Roc; body `ClientDisconnected` and SSE abort are later phases. Pointed [SSE and HTTP limits](research/rocci/basic-webserver-sse-http.md) and [known limitations](status/known-limitations.md). Exploratory; do not log complete until CI and Knowledge succeed.
+
+- Recorded [classify HTTP client disconnects](plans/rocci/http-client-disconnects.md) Phase 4 on `http-client-disconnects`: keep classified one-line eprintln; do not special-case leftover `Could not serve` in inspector stderr mapping; keep the classifier in `rocci-platform` and copy only on a later vendor snapshot. No `roc-lang` PR. Exploratory; do not log complete until CI and Knowledge succeed.
+
 ## 2026-09-04
 
 - Filed draft [hosted Roc-gated crate tests exceed ten minutes](audits/ops/roc-gated-ci-duration.md): run 33865097789 was 16 minutes because `islands` waited 120–180s after Roc rejected an absolute `rocci-platform` pin; `rocci-cli` smokes were 56s. Descriptive; do not log complete until CI and Knowledge succeed.

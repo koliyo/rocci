@@ -4,7 +4,7 @@ title: basic-webserver 0.16 SSE and HTTP limits for Rocci live streams
 description: "Pinned basic-webserver 0.16 fails silent SSE Wait after a 30s response idle timeout, logs hyper Body errors without the inner detail, and serves browsers on HTTP/1.1 for plaintext rocci run. Rocci workarounds keepalives and empty SSE commands; it does not fork the platform."
 tags: [domain/rocci, domain/runtime, integration/datastar, concern/architecture, concern/rendering]
 status: draft
-generated: { by: process:cursor, at: 2026-08-30T00:34:00Z }
+generated: { by: process:cursor, at: 2026-09-09T08:33:00Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -40,15 +40,20 @@ sources:
     title: Datastar SSE headers; Connection keep-alive is HTTP/1.1 only
     author: organization:star-federation
   - id: cqrs-research
-    resource: ../datastar-cqrs-action-responses.md
+    resource: datastar-cqrs-action-responses.md
     title: Generated CQRS empty SSE commands and live keepalives
     author: process:cursor
-    last_modified: 2026-08-21
+    last_modified: 2026-08-31
   - id: live-counter
     resource: ../../../examples/rocci/standalone/live-counter/LiveCounter.rocci
     title: Live counter @live plus @command
     author: process:git
     last_modified: 2026-08-21
+  - id: disconnects
+    resource: http-client-disconnects.md
+    title: Incomplete request vs body ClientDisconnected vs SSE abort
+    author: process:cursor
+    last_modified: 2026-09-09
 ---
 
 # basic-webserver 0.16 SSE and HTTP limits for Rocci live streams
@@ -130,6 +135,9 @@ Body error. Rocci cannot silence that without a platform change. Incomplete
 request heads already get a clearer message; incomplete **responses** do
 not.[^bws-http-server]
 
+Taxonomy and app handling (when Roc never ran versus `Body.ClientDisconnected`
+versus response abort): [HTTP client disconnects](http-client-disconnects.md).[^disconnects]
+
 ## Out of bound for Rocci
 
 - Forking or vendoring basic-webserver to change idle defaults or log text
@@ -149,3 +157,4 @@ diagnostic.
 [^cqrs-research]: Empty SSE commands and live keepalives as shipped CQRS policy.
 [^live-counter]: Live-counter `@live` plus `@command` against one SQLite handle.
 [^live-poll]: Two clocks; 30s idle is not a poll-rate keepalive.
+[^disconnects]: Incomplete HTTP/1.1 request log does not reach Roc; body and SSE abort are later phases.

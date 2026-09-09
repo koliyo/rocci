@@ -4,7 +4,7 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T08:15:00Z }
+generated: { by: process:cursor, at: 2026-09-09T09:09:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
@@ -55,7 +55,12 @@ sources:
     resource: ../research/rocci/basic-webserver-sse-http.md
     title: basic-webserver 0.16 SSE and HTTP limits
     author: process:cursor
-    last_modified: 2026-08-21
+    last_modified: 2026-09-09
+  - id: disconnects
+    resource: ../research/rocci/http-client-disconnects.md
+    title: Incomplete request vs body disconnect vs SSE abort
+    author: process:cursor
+    last_modified: 2026-09-09
 ---
 
 # Known Rocci limitations
@@ -76,7 +81,7 @@ Authored Roc apps can be wrapped with `rocci bundle` into a local, ad-hoc-signed
 
 The desktop host exposes the current window/webview boundary but not general native capabilities such as dialogs, filesystem access, or notifications. Multi-window application lifecycle is also not connected to authored Roc apps.[^status-doc]
 
-Pinned **basic-webserver 0.16** still logs opaque HTTP/1.1 Body-stream errors on client abort of an open SSE, and plaintext `rocci run` stays on HTTP/1.1 (browsers do not use cleartext HTTP/2). Generated `@get:live` keepalives and empty-SSE `@method:command` responses work around the 30s silent-`Wait` idle timeout and Safari 204 Preview noise; ordinary command callers receive 204 instead of JSON. Rocci does not fork the platform. Details: [basic-webserver SSE and HTTP](/research/rocci/basic-webserver-sse-http.md).[^bws-sse]
+Pinned **basic-webserver 0.16** still serves plaintext `rocci run` on HTTP/1.1 (browsers do not use cleartext HTTP/2). `rocci-platform` classifies incomplete HTTP/1.1 requests and client-aborted responses as beginner-facing disconnects; idle-timeout hung bodies stay a loud Hyper Body-stream failure. Generated `@get:live` keepalives and empty-SSE `@method:command` responses work around the 30s silent-`Wait` idle timeout and Safari 204 Preview noise; ordinary command callers receive 204 instead of JSON. Rocci does not fork the platform for logging. Details: [basic-webserver SSE and HTTP](/research/rocci/basic-webserver-sse-http.md), [HTTP client disconnects](/research/rocci/http-client-disconnects.md).[^bws-sse][^disconnects]
 
 ## Language and client behavior
 
@@ -94,4 +99,5 @@ Review this record when a cited source changes or on its `stale_after` date. The
 [^goto-js]: Shared Cmd/Ctrl-K palette and History-API HTML swap.
 [^fuzzy-plan]: Document navigation versus full-text search boundary.
 [^site-ref]: Pack-inferred custom kinds default to any children; helpers must not live in the pack.
-[^bws-sse]: Host idle timeout, HTTP/1.1 on plaintext run, and disconnect log noise; Rocci keepalives and empty SSE are workarounds.
+[^bws-sse]: Host idle timeout and HTTP/1.1 on plaintext run; Rocci keepalives and empty SSE are workarounds.
+[^disconnects]: Incomplete-request and client-abort eprintln are classified in `rocci-platform`; leftover `Could not serve` is idle timeout or unknown Hyper failure.
