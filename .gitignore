@@ -37,9 +37,12 @@ crates/rocci-platform/examples/hello-web
 crates/rocci-platform/examples/hello-datastar
 crates/rocci-platform/examples/hello-compile
 crates/rocci-platform/hello-compile
+crates/rocci-platform/examples/hello-parse
+crates/rocci-platform/hello-parse
 /hello-web
 /hello-datastar
 /hello-compile
+/hello-parse
 /server
 datastar.js
 

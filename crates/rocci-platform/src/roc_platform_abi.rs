@@ -1674,6 +1674,33 @@ const _: () = assert!(core::mem::size_of::<AnonStructEd04ec6f5fa64213>() == 24, 
 #[cfg(target_pointer_width = "32")]
 const _: () = assert!(core::mem::align_of::<AnonStructEd04ec6f5fa64213>() == 4, "AnonStructEd04ec6f5fa64213 alignment mismatch");
 
+/// Element type for __AnonStruct_a5946e1dcc5ef485
+#[cfg(target_pointer_width = "32")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AnonStructA5946e1dcc5ef485 {
+    pub ast: RocStr,
+    pub diagnostics: RocList<AnonStruct97000c40ff3fd7b3>,
+}
+
+/// Element type for __AnonStruct_a5946e1dcc5ef485
+#[cfg(not(target_pointer_width = "32"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct AnonStructA5946e1dcc5ef485 {
+    pub ast: RocStr,
+    pub diagnostics: RocList<AnonStruct97000c40ff3fd7b3>,
+}
+
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::size_of::<AnonStructA5946e1dcc5ef485>() == 48, "AnonStructA5946e1dcc5ef485 size mismatch");
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::align_of::<AnonStructA5946e1dcc5ef485>() == 8, "AnonStructA5946e1dcc5ef485 alignment mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(core::mem::size_of::<AnonStructA5946e1dcc5ef485>() == 24, "AnonStructA5946e1dcc5ef485 size mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(core::mem::align_of::<AnonStructA5946e1dcc5ef485>() == 4, "AnonStructA5946e1dcc5ef485 alignment mismatch");
+
 /// Element type for __AnonStruct_1f12a65955b54fe1
 #[cfg(target_pointer_width = "32")]
 #[repr(C)]
@@ -9016,6 +9043,35 @@ const _: () = assert!(core::mem::size_of::<HostRocciCompileRetRecord>() == 24, "
 #[cfg(target_pointer_width = "32")]
 const _: () = assert!(core::mem::align_of::<HostRocciCompileRetRecord>() == 4, "HostRocciCompileRetRecord alignment mismatch");
 
+/// Return type record for Host.rocci_parse!
+/// Fields ordered by compiler-emitted ABI offsets.
+#[cfg(target_pointer_width = "32")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HostRocciParseRetRecord {
+    pub ast: RocStr,
+    pub diagnostics: RocList<AnonStruct97000c40ff3fd7b3>,
+}
+
+/// Return type record for Host.rocci_parse!
+/// Fields ordered by compiler-emitted ABI offsets.
+#[cfg(not(target_pointer_width = "32"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HostRocciParseRetRecord {
+    pub ast: RocStr,
+    pub diagnostics: RocList<AnonStruct97000c40ff3fd7b3>,
+}
+
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::size_of::<HostRocciParseRetRecord>() == 48, "HostRocciParseRetRecord size mismatch");
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::align_of::<HostRocciParseRetRecord>() == 8, "HostRocciParseRetRecord alignment mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(core::mem::size_of::<HostRocciParseRetRecord>() == 24, "HostRocciParseRetRecord size mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(core::mem::align_of::<HostRocciParseRetRecord>() == 4, "HostRocciParseRetRecord alignment mismatch");
+
 /// Arguments for Host.cmd_exec_exit_code!
 /// Roc signature: { args : List([UnixBytes(List(U8)), Utf8(Str), WindowsU16s(List(U16))]), clear_envs : Bool, envs : List({ name : [UnixBytes(List(U8)), Utf8(Str), WindowsU16s(List(U16))], value : [UnixBytes(List(U8)), Utf8(Str), WindowsU16s(List(U16))] }), program : [UnixBytes(List(U8)), Utf8(Str), WindowsU16s(List(U16))], stderr_limit_bytes : U64, stdout_limit_bytes : U64, timeout_ms : U64 }, [Inherit, Set([UnixBytes(List(U8)), Utf8(Str), WindowsU16s(List(U16))])] => Try(I32, [FailedToGetExitCode(IOErr), Saturated, Timeout])
 /// Refcounted fields are owned by the hosted function.
@@ -10580,6 +10636,68 @@ unsafe impl RocRelease<HostRocciCompileArgs> for HostRocciCompileArgsRelease {
     }
 }
 
+/// Arguments for Host.rocci_parse!
+/// Roc signature: { name : Str, source : Str } => { ast : Str, diagnostics : List({ code : Str, end : U64, message : Str, start : U64 }) }
+/// Refcounted fields are owned by the hosted function.
+#[cfg(target_pointer_width = "32")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HostRocciParseArgs {
+    pub name: RocStr,
+    pub source: RocStr,
+}
+
+/// Arguments for Host.rocci_parse!
+/// Roc signature: { name : Str, source : Str } => { ast : Str, diagnostics : List({ code : Str, end : U64, message : Str, start : U64 }) }
+/// Refcounted fields are owned by the hosted function.
+#[cfg(not(target_pointer_width = "32"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HostRocciParseArgs {
+    pub name: RocStr,
+    pub source: RocStr,
+}
+
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::size_of::<HostRocciParseArgs>() == 48, "HostRocciParseArgs size mismatch");
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::align_of::<HostRocciParseArgs>() == 8, "HostRocciParseArgs alignment mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(core::mem::size_of::<HostRocciParseArgs>() == 24, "HostRocciParseArgs size mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(core::mem::align_of::<HostRocciParseArgs>() == 4, "HostRocciParseArgs alignment mismatch");
+
+impl HostRocciParseArgs {
+    /// Recursively decrement Roc-owned fields.
+    ///
+    /// # Safety
+    /// `self` must own one live Roc reference for each refcounted field.
+    pub unsafe fn decref(self, roc_host: &RocHost) {
+        let value = self;
+        unsafe { value.name.decref(roc_host); }
+        unsafe { value.source.decref(roc_host); }
+    }
+
+    /// Increment Roc-owned fields.
+    ///
+    /// # Safety
+    /// `self` must point at live Roc allocations. The retained references must
+    /// be balanced by later decrefs.
+    pub unsafe fn incref(self, amount: isize) {
+        let value = self;
+        unsafe { value.name.incref(amount); }
+        unsafe { value.source.incref(amount); }
+    }
+}
+
+pub struct HostRocciParseArgsRelease;
+
+unsafe impl RocRelease<HostRocciParseArgs> for HostRocciParseArgsRelease {
+    unsafe fn release(value: HostRocciParseArgs, roc_host: &RocHost) {
+        unsafe { value.decref(roc_host); }
+    }
+}
+
 // Platform Type Aliases
 
 pub type HostCmdExecExitCodeArg0 = AnonStructE09af2c5b0324fa8;
@@ -10776,6 +10894,9 @@ pub type CancelledOrCleanupFailedOrClientDisconnectedOrConcurrentReadOrDestinati
 pub type HostRocciCompileArg0 = AnonStructEd04ec6f5fa64213;
 pub type HostRocciCompile = AnonStruct28b0cdc6abc30f15;
 pub type HostRocciCompileDiagnostics = AnonStruct97000c40ff3fd7b3;
+pub type HostRocciParseArg0 = AnonStructEd04ec6f5fa64213;
+pub type HostRocciParse = AnonStructA5946e1dcc5ef485;
+pub type HostRocciParseDiagnostics = AnonStruct97000c40ff3fd7b3;
 pub type InitForHostOk = AnonStruct60bc4208e250c775;
 pub type InitForHostOkConfig = AnonStruct1ff4122d63c5f5fd;
 pub type InitForHostOkConfigFileRoots = AnonStruct3b01e35488cb00dc;
@@ -13891,6 +14012,37 @@ unsafe impl RocRelease<AnonStructEd04ec6f5fa64213> for AnonStructEd04ec6f5fa6421
     }
 }
 
+impl AnonStructA5946e1dcc5ef485 {
+    /// Recursively decrement Roc-owned fields.
+    ///
+    /// # Safety
+    /// `self` must own one live Roc reference for each refcounted field.
+    pub unsafe fn decref(self, roc_host: &RocHost) {
+        let value = self;
+        unsafe { value.ast.decref(roc_host); }
+        unsafe { decref_list_of_anon_struct97000c40ff3fd7b3(value.diagnostics, roc_host); }
+    }
+
+    /// Increment Roc-owned fields.
+    ///
+    /// # Safety
+    /// `self` must point at live Roc allocations. The retained references must
+    /// be balanced by later decrefs.
+    pub unsafe fn incref(self, amount: isize) {
+        let value = self;
+        unsafe { value.ast.incref(amount); }
+        unsafe { value.diagnostics.incref(amount); }
+    }
+}
+
+pub struct AnonStructA5946e1dcc5ef485Release;
+
+unsafe impl RocRelease<AnonStructA5946e1dcc5ef485> for AnonStructA5946e1dcc5ef485Release {
+    unsafe fn release(value: AnonStructA5946e1dcc5ef485, roc_host: &RocHost) {
+        unsafe { value.decref(roc_host); }
+    }
+}
+
 impl AnonStruct1f12a65955b54fe1 {
     /// Recursively decrement Roc-owned fields.
     ///
@@ -15191,6 +15343,14 @@ unsafe extern "C" {
     ///     unsafe { arg0.decref(roc_host); }
     /// The result is owned by Roc: return exactly one owned reference.
     pub fn hosted_rocci_compile(arg0: HostRocciCompileArgs) -> AnonStruct28b0cdc6abc30f15;
+
+    /// Hosted symbol for Host.rocci_parse!
+    /// Roc signature: { name : Str, source : Str } => { ast : Str, diagnostics : List({ code : Str, end : U64, message : Str, start : U64 }) }
+    /// Owned arguments. Release each exactly once before returning, unless it is
+    /// moved into storage or into the result:
+    ///     unsafe { arg0.decref(roc_host); }
+    /// The result is owned by Roc: return exactly one owned reference.
+    pub fn hosted_rocci_parse(arg0: HostRocciParseArgs) -> AnonStructA5946e1dcc5ef485;
 
 }
 

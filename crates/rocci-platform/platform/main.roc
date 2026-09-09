@@ -113,6 +113,7 @@ platform "rocci"
 		"hosted_readiness_set": Host.readiness_set!,
 		"hosted_request_body_write_file": Host.request_body_write_file!,
 		"hosted_rocci_compile": Host.rocci_compile!,
+		"hosted_rocci_parse": Host.rocci_parse!,
 	}
 	targets: {
 		inputs_dir: "targets/",

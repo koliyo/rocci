@@ -195,4 +195,8 @@ Host := [].{
 	RocciCompile : { roc : Str, diagnostics : List(Diagnostic) }
 
 	rocci_compile! : RocciSource => RocciCompile
+
+	RocciParse : { ast : Str, diagnostics : List(Diagnostic) }
+
+	rocci_parse! : RocciSource => RocciParse
 }
