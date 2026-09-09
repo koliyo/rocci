@@ -1,6 +1,6 @@
 use rocci_cli::playground::{
-    start_playground_server, PlaygroundMode, APP_JS, COMPILER_WASM, PLAYGROUND_CSP, STYLES_CSS,
-    WORKER_JS,
+    APP_JS, COMPILER_WASM, PLAYGROUND_CSP, PlaygroundMode, STYLES_CSS, WORKER_JS,
+    start_playground_server,
 };
 use rocci_cli::serve::free_port;
 use std::io::{self, ErrorKind, Read, Write};

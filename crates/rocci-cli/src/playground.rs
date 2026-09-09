@@ -4,15 +4,15 @@ use std::{
     net::{TcpListener, TcpStream},
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use anyhow::{bail, Context, Result};
-use rocci_desktop::{preview, PreviewOptions};
+use anyhow::{Context, Result, bail};
+use rocci_desktop::{PreviewOptions, preview};
 
 use crate::serve::ServeOptions;
 
