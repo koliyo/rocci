@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-09
 
+- Recorded [hosted glue for the Rust template parser](plans/rocci/template-parser-roc-glue.md) Phase 4 on `template-parser-roc-glue`: `pf.Rocci` README, glue regen path, vendor-keep `hosted_rocci_*`, and native-compiler research distinguished from hosted compile/parse. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Recorded [hosted glue for the Rust template parser](plans/rocci/template-parser-roc-glue.md) Phase 0 on `preview-watch-content-roots`: froze `pf.Rocci`, `hosted_rocci_compile`, Diagnostic/Source/CompileResult records, clap `cli` default with platform `default-features = false`, and `hello-compile.roc` fixtures. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Filed draft [expose parse and compile on rocci-platform](research/rocci/rocci-platform-template-api.md): hosted `pf.Rocci` over `crates/rocci-template`; Luke's rust template is glue/`build.sh` mechanics rocci-platform already has; render is not `Html.Node`. Retargeted [hosted glue plan](plans/rocci/template-parser-roc-glue.md) off a stdio template-host. Pair: [earlier glue research](research/rocci/template-parser-roc-glue.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.

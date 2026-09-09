@@ -5,13 +5,21 @@ basic-webserver plus a Rocci package. Generated `rocci run` / `rocci build`
 apps and the custom datastar/snake examples use this pin. `--http-module`
 and wasm apply (`crates/rocci-roc-host`) are **not** this platform.
 
-The platform exposes `Datastar` and `Html` (`import pf.Datastar` /
-`import pf.Html`). `Html` is the basic-webserver module, including tag
-helpers such as `Html.div`. Rocci compiler helpers live on the same
-module: `element` / `void_element` / `attribute` / `boolean_attribute` /
-`fragment` (sibling nodes as one `Node`) / `empty`.
+The platform exposes `Datastar`, `Html`, and `Rocci` (`import pf.Datastar` /
+`import pf.Html` / `import pf.Rocci`). `Html` is the basic-webserver module,
+including tag helpers such as `Html.div`. Rocci compiler helpers live on
+the same module: `element` / `void_element` / `attribute` /
+`boolean_attribute` / `fragment` (sibling nodes as one `Node`) / `empty`.
 `Html.render_fragment` remains the nominal rendered-string type.
 `0.16.0` pins still get staged wrapper copies.
+
+`pf.Rocci` is hosted glue onto `crates/rocci-template`: `compile!` returns
+generated Roc source plus diagnostics; `parse!` returns a `format_ast`
+S-expression plus diagnostics. File wrappers (`compile_file!` /
+`parse_file!`) use `Path.read_utf8!`. This is **not** `rocci run` / `rocci
+build`, **not** a Roc-native rewrite of the parser, and **not** apply or
+HTML render (interpolations stay compiled Roc). Proof apps:
+`examples/hello-compile.roc` and `examples/hello-parse.roc`.
 
 ## Host origin
 
@@ -26,9 +34,12 @@ at `50e064cdd1c4562c293598c61f6ce7a895d99bcf` (0.16 line). Copyright
 `*.tbd` are Git LFS. `libhost.a` is rebuilt by `build.sh` and is not
 committed.
 
-Rocci-original modules in this crate (`platform/Datastar.roc` and the
-compiler helpers on `platform/Html.roc`) are Apache-2.0, same as the rest
-of Rocci. Crate SPDX is `Apache-2.0 AND UPL-1.0`.
+Rocci-original modules in this crate (`platform/Datastar.roc`,
+`platform/Rocci.roc`, the compiler helpers on `platform/Html.roc`, and
+the `hosted_rocci_*` symbols) are Apache-2.0, same as the rest of Rocci.
+A later vendor snapshot of basic-webserver **must keep** those Rocci
+hosted symbols, `platform/Rocci.roc`, and the `rocci-template` Cargo
+dependency. Crate SPDX is `Apache-2.0 AND UPL-1.0`.
 
 Host crate versions are workspace-compatible (not the upstream `=` pins)
 so one Cargo.lock can resolve; `libsqlite3-sys` stays on the `0.30` line
@@ -88,11 +99,15 @@ treat the GitHub URL as the default `rocci` pin.
 
 ## Regenerating glue
 
-When hosted exports in `platform/main.roc` change:
+When hosted exports in `platform/main.roc` change, regenerate from
+`crates/rocci-platform` with a matching compiler and `RustGlue.roc`
+(Zig-compiler layout):
 
 ```sh
-roc glue /path/to/roc/crates/compiler/glue/src/RustGlue.roc ./src/ platform/main.roc
+roc glue --no-cache /path/to/roc/src/glue/src/RustGlue.roc ./src/ platform/main.roc
 ```
 
-That overwrites `src/roc_platform_abi.rs`. Needs a Roc compiler source
-checkout for `RustGlue.roc`.
+That overwrites `src/roc_platform_abi.rs`. Then alias new generated
+record types in `src/abi/mod.rs` (numbered `AnonStruct*` names shift).
+`--http-module` and wasm apply stay unchanged: they are not this
+platform.

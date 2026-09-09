@@ -4,7 +4,7 @@ title: A Roc-native template parser and lowerer
 description: "Exploratory proof of concept: a parallel Roc port of template parse and lower that aims at emit parity with crates/rocci-template. Rust stays the product compiler. Motivating vision is consuming pure .rocci templates in a normal Roc app with no rocci CLI; this record does not replace the Rust crate. Not shipped."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture, concern/language-design, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-09-03T07:20:00Z }
+generated: { by: process:cursor, at: 2026-09-09T20:10:00Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
@@ -159,6 +159,16 @@ sources:
     title: Expose the Rust template parser to Roc via hosted glue
     author: process:cursor
     last_modified: 2026-09-02
+  - id: platform-api
+    resource: rocci-platform-template-api.md
+    title: Parse and compile on rocci-platform via hosted glue
+    author: process:cursor
+    last_modified: 2026-09-09
+  - id: platform-readme
+    resource: ../../../crates/rocci-platform/README.md
+    title: pf.Rocci, glue regen, vendor-keep hosted_rocci_*
+    author: process:git
+    last_modified: 2026-09-09
 ---
 
 # A Roc-native template parser and lowerer
@@ -199,10 +209,16 @@ Related: [platform post-mortem](/audits/rocci/rocci-as-roc-platform-postmortem.m
 
 If the parser is never rewritten in Roc, the consume-in-Roc idea can
 still go through **hosted glue** to `crates/rocci-template` (a platform
-effect, not a package). That is a different pair:
-[glue research](template-parser-roc-glue.md) /
+effect, not a package). On rocci-platform that is `import pf.Rocci` /
+`compile!` / `parse!`. It is **not** this rewrite, **not** `rocci run`,
+and **not** apply/HTML render. Crate note:
+[rocci-platform README](../../../crates/rocci-platform/README.md).
+Placement:
+[rocci-platform template API](rocci-platform-template-api.md).
+Pair: [glue research](template-parser-roc-glue.md) /
 [glue plan](/plans/rocci/template-parser-roc-glue.md).
-Do not start either plan from the other.[^glue-research]
+Do not start the native-compiler phases from the glue plan, or glue
+phases from this rewrite.[^glue-research][^platform-api][^platform-readme]
 
 ## What "run from Roc without Rust" can mean
 
@@ -583,3 +599,5 @@ not restated here.[^postmortem]
 [^postmortem]: Open-union merge, `parse = do_parse`, Parse/Template isolation; not product behavior.
 [^platform-postmortem]: Platform Html on pf is for apps that pin rocci; pure-template hosts on another platform need a package or local Html.
 [^glue-research]: Alternative: hosted compile/parse/apply over the Rust crate; not a rewrite.
+[^platform-api]: Product pin is rocci-platform `pf.Rocci`; apply is follow-on.
+[^platform-readme]: Crate README: glue regen, not `rocci run`, keep `hosted_rocci_*` on vendor copy.
