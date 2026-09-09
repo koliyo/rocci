@@ -1,22 +1,27 @@
 use rocci_cli::playground::{
-    APP_JS, COMPILER_WASM, PLAYGROUND_CSP, PlaygroundMode, STYLES_CSS, WORKER_JS,
-    start_playground_server,
+    start_playground_server, PlaygroundMode, APP_JS, COMPILER_WASM, PLAYGROUND_CSP, STYLES_CSS,
+    WORKER_JS,
 };
 use rocci_cli::serve::free_port;
-use std::io::{Read, Write};
+use std::io::{self, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+const IO_TIMEOUT: Duration = Duration::from_secs(10);
+
 fn wait_for_get(port: u16, path: &str) -> (u16, String, Vec<u8>) {
     let mut last = (0, String::new(), Vec::new());
     for _ in 0..50 {
-        if TcpStream::connect(("127.0.0.1", port)).is_ok() {
-            last = send_raw_get(port, path);
-            if last.0 != 0 {
-                return last;
-            }
+        match exchange(
+            port,
+            &format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+            &[],
+        ) {
+            Ok(resp) if resp.0 != 0 => return resp,
+            Ok(resp) => last = resp,
+            Err(_) => {}
         }
         thread::sleep(Duration::from_millis(10));
     }
@@ -24,27 +29,101 @@ fn wait_for_get(port: u16, path: &str) -> (u16, String, Vec<u8>) {
 }
 
 fn send_raw_get(port: u16, path: &str) -> (u16, String, Vec<u8>) {
-    let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect to server");
-    let req = format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n");
-    stream.write_all(req.as_bytes()).expect("write request");
-
-    let mut resp = Vec::new();
-    stream.read_to_end(&mut resp).expect("read response");
-    split_http(&resp)
+    exchange(
+        port,
+        &format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"),
+        &[],
+    )
+    .expect("GET response")
 }
 
 fn send_raw_post(port: u16, path: &str, body: &[u8]) -> (u16, String, Vec<u8>) {
-    let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect to server");
-    let req = format!(
+    let headers = format!(
         "POST {path} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
     );
-    stream.write_all(req.as_bytes()).expect("write headers");
-    stream.write_all(body).expect("write body");
+    exchange(port, &headers, body).expect("POST response")
+}
 
-    let mut resp = Vec::new();
-    stream.read_to_end(&mut resp).expect("read response");
-    split_http(&resp)
+fn exchange(port: u16, headers: &str, body: &[u8]) -> io::Result<(u16, String, Vec<u8>)> {
+    let mut stream = TcpStream::connect(("127.0.0.1", port))?;
+    stream.set_read_timeout(Some(IO_TIMEOUT))?;
+    stream.set_write_timeout(Some(IO_TIMEOUT))?;
+    stream.write_all(headers.as_bytes())?;
+    if !body.is_empty() {
+        stream.write_all(body)?;
+    }
+    stream.flush()?;
+    read_http_response(&mut stream)
+}
+
+fn read_http_response(stream: &mut TcpStream) -> io::Result<(u16, String, Vec<u8>)> {
+    let mut buf = Vec::new();
+    let mut tmp = [0u8; 8192];
+    let header_end = loop {
+        let n = read_some(stream, &mut tmp)?;
+        if n == 0 {
+            return Ok(split_http(&buf));
+        }
+        buf.extend_from_slice(&tmp[..n]);
+        if let Some(idx) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
+            break idx;
+        }
+    };
+
+    let header_part = String::from_utf8_lossy(&buf[..header_end]).into_owned();
+    let status_code = header_part
+        .lines()
+        .next()
+        .unwrap_or("")
+        .split_whitespace()
+        .nth(1)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+
+    let mut body = buf[header_end + 4..].to_vec();
+    if let Some(len) = content_length(&header_part) {
+        while body.len() < len {
+            let n = read_some(stream, &mut tmp)?;
+            if n == 0 {
+                return Err(io::Error::new(
+                    ErrorKind::UnexpectedEof,
+                    "truncated HTTP body",
+                ));
+            }
+            body.extend_from_slice(&tmp[..n]);
+        }
+        body.truncate(len);
+    } else {
+        loop {
+            let n = read_some(stream, &mut tmp)?;
+            if n == 0 {
+                break;
+            }
+            body.extend_from_slice(&tmp[..n]);
+        }
+    }
+
+    Ok((status_code, header_part, body))
+}
+
+fn content_length(headers: &str) -> Option<usize> {
+    headers.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        name.eq_ignore_ascii_case("content-length")
+            .then(|| value.trim().parse().ok())
+            .flatten()
+    })
+}
+
+fn read_some(stream: &mut TcpStream, tmp: &mut [u8]) -> io::Result<usize> {
+    loop {
+        match stream.read(tmp) {
+            Ok(n) => return Ok(n),
+            Err(err) if err.kind() == ErrorKind::Interrupted => continue,
+            Err(err) => return Err(err),
+        }
+    }
 }
 
 fn split_http(resp: &[u8]) -> (u16, String, Vec<u8>) {
@@ -205,19 +284,15 @@ fn test_playground_local_mode_compile_hook() {
     let (status, _, _) = send_raw_get(port, "/api/compile");
     assert_eq!(status, 405);
 
-    let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect to server");
-    let req = format!(
-        "POST /api/compile HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        1_048_576 + 1
-    );
-    stream
-        .write_all(req.as_bytes())
-        .expect("write oversized content-length");
-    let mut resp = Vec::new();
-    stream
-        .read_to_end(&mut resp)
-        .expect("read oversized response");
-    let (status, _, _) = split_http(&resp);
+    let (status, _, _) = exchange(
+        port,
+        &format!(
+            "POST /api/compile HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            1_048_576 + 1
+        ),
+        &[],
+    )
+    .expect("oversized POST response");
     assert_eq!(status, 413);
 
     handle.stop();

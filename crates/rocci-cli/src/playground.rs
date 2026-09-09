@@ -4,15 +4,15 @@ use std::{
     net::{TcpListener, TcpStream},
     path::{Path, PathBuf},
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use anyhow::{Context, Result, bail};
-use rocci_desktop::{PreviewOptions, preview};
+use anyhow::{bail, Context, Result};
+use rocci_desktop::{preview, PreviewOptions};
 
 use crate::serve::ServeOptions;
 
@@ -188,6 +188,7 @@ fn handle_connection(
     session_bytes: &[u8],
     compile_hook: Option<&PlaygroundCompileHook>,
 ) {
+    let _ = stream.set_nonblocking(false);
     let Some(req) = read_http_request(&mut stream) else {
         return;
     };
@@ -342,7 +343,7 @@ struct HttpRequest {
 
 fn read_http_request(stream: &mut TcpStream) -> Option<HttpRequest> {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(3)));
-    let _ = stream.set_write_timeout(Some(Duration::from_secs(3)));
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
 
     let mut buf = Vec::new();
     let mut tmp = [0u8; 2048];
