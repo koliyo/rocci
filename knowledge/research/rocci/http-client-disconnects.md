@@ -41,7 +41,7 @@ sources:
     last_modified: 2026-09-04
   - id: counter
     resource: ../../../examples/rocci/standalone/counter/Counter.rocci
-    title: @post:fragment increment writes SQLite then returns a patch
+    title: "@post:fragment increment writes SQLite then returns a patch"
     author: process:git
     last_modified: 2026-08-25
   - id: bws-sse

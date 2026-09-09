@@ -4,16 +4,21 @@ title: Expose the Rust template parser to Roc via hosted glue
 description: "If the parser stays in crates/rocci-template, Roc can still call it through platform hosted functions. A package cannot FFI. Glue cannot interpret {expr}; consume means compile then apply. Distinct from rewriting the parser in Roc."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T20:45:00Z }
-stale_after: 2026-12-02
+generated: { by: process:cursor, at: 2026-09-09T19:40:00Z }
+stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: platform-api
+    resource: rocci-platform-template-api.md
+    title: "Placement update: parse and compile on rocci-platform"
+    author: process:cursor
+    last_modified: 2026-09-09
   - id: plan
     resource: ../../plans/rocci/template-parser-roc-glue.md
     title: Hosted glue for the Rust template parser
     author: process:cursor
-    last_modified: 2026-09-02
+    last_modified: 2026-09-09
   - id: native-research
     resource: roc-native-template-compiler.md
     title: A Roc-native template parser and lowerer
@@ -114,6 +119,13 @@ Paired plan:
 [hosted glue for the Rust template parser](/plans/rocci/template-parser-roc-glue.md).
 [^plan][^native-research]
 
+**Placement update (2026-09-09):** for callers that already pin
+Rocci, put `compile!` / `parse!` on **rocci-platform** (`pf.Rocci`),
+not a new stdio host. A second platform cannot be called from an app
+that pins this one. Apply/render stays a follow-on. Details:
+[expose parse and compile on rocci-platform](rocci-platform-template-api.md).
+[^platform-api]
+
 ## The idea
 
 The [native-compiler vision](roc-native-template-compiler.md) is to
@@ -204,14 +216,16 @@ Placement:
 | **rocci-platform** extras | HTTP apps that already pin Rocci | Smaller increment; does not help a basic-cli host |
 | Upstream basic-cli | Everyone on that pin | Out of bound unless roc-lang takes the crate |
 
-Recommend the **stdio template-host** as the first platform for this
-plan. Same `rocci-template` Rust calls can later be copied onto
-rocci-platform if HTTP apps want `apply!` too. Do not invent a second
-HTTP engine.[^as-platform][^platform-main]
+The 2026-09-02 cut recommended the **stdio template-host** first so a
+basic-cli-shaped app could consume templates without pinning HTTP
+Rocci. That still holds for a **non-HTTP** caller. For Rocci apps,
+stdio `hosted_*` are unreachable. Current placement:
+[rocci-platform extras](rocci-platform-template-api.md).
+Do not invent a second HTTP engine.[^as-platform][^platform-main][^platform-api]
 
-Classify a new workspace member `base-rocci` in the same change.
-`rocci-template` must not depend on the platform crate.
-[^workspace-deps]
+`rocci-template` must not depend on the platform crate. A new stdio
+host, if ever added, is `base-rocci` in the same change as the
+workspace member.[^workspace-deps]
 
 ## AST encoding
 
@@ -242,15 +256,15 @@ of hosted parse is a later hybrid, not this plan's first cut.
 
 ## Recommendation
 
-1. Treat glue as **hosted effects on a stdio template-host**, not a
-   Roc package and not a rocci-cli feature.
-2. First hosted API: **compile!** (`Str` in, generated Roc +
-   diagnostics out). Proves linking `rocci-template` and `roc glue`.
-3. Then **parse!** as `format_ast` + `RCxxxx` frames.
-4. Then **apply!** for one pure `@component` via rocci-roc-host cache;
-   return HTML `Str`. Needs `roc` on a cache miss.
-5. Do not interpret `{expr}` in Rust. Do not start the native-compiler
-   phases from this record.
+Superseded for product-platform callers by
+[expose parse and compile on rocci-platform](rocci-platform-template-api.md):
+hosted effects on **rocci-platform** as `pf.Rocci`; compile! then
+parse!; apply! later; no new stdio crate unless a non-HTTP caller
+appears.[^platform-api]
+
+The payloads and glue vocabulary in this record still hold. Do not
+interpret `{expr}` in Rust. Do not start the native-compiler phases
+from this record.
 
 Implementation:
 [hosted glue for the Rust template parser](/plans/rocci/template-parser-roc-glue.md).
@@ -259,14 +273,17 @@ Implementation:
 ## For a later agent
 
 - **Authority:** exploratory. Do not start phases unless asked.
-- Keep this pair distinct from
+- Placement for Rocci apps:
+  [rocci-platform template API](rocci-platform-template-api.md).
+  Keep this pair distinct from
   [roc-native-template-compiler](roc-native-template-compiler.md)
   (rewrite) and from [rocci-as-roc-platform](rocci-as-roc-platform.md)
-  (HTTP `pf`).
+  (HTTP `pf` packaging).
 - `roc glue` is ABI regen, not "wrap the parser crate as a package."
 - Apply is not parse. Parse cannot return `Html`.
 
-[^plan]: Phased Bound for compile!, parse!, apply! on a stdio template-host.
+[^platform-api]: Product pin is rocci-platform; stdio host only if a non-HTTP caller needs it.
+[^plan]: Phased Bound retargeted to rocci-platform compile! / parse!.
 [^native-research]: Vision is consume-in-Roc, no rocci CLI; rewrite is unstarted; D is non-goal.
 [^native-plan]: Parallel-branch emit parity; handlers and HTTP out of Bound.
 [^postmortem]: pf.Html is for apps that pin rocci; one platform per app.
