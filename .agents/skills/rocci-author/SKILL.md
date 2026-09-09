@@ -150,6 +150,15 @@ If the document `<body>` lives in a UI module that has no `@get:live`,
 auto-inject does not see the backend live route. Author
 `data-init=@get("/sse", [OpenWhenHidden(True)])` on that shell.
 
+## HTTP client disconnects
+
+Do not match incomplete-request CLI lines in handlers: Hyper never
+dispatched that request. When you read `request.body`, treat
+`ClientDisconnected` / `Cancelled` as stop, not a 500. Keep mutation
+routes idempotent. Put live `GET` streams on a different path than acting
+POSTs. Author-facing wording:
+[Standalone applications](../../../docs/applications/standalone.rocdown).
+
 ## Roc used from Rocci
 
 - Helpers and fields: `snake_case`. Types and tags: `PascalCase`.
