@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-09
 
+- Recorded [measure Html emit, then fuse or unify](plans/rocci/html-node-lowering.md) Phase 5 on `html-node-lowering`: `rocci-template` README states constructor emit and `Html.Node` vs `Str` as the linked runtime, not a second language. Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Recorded [measure Html emit, then fuse or unify](plans/rocci/html-node-lowering.md) Phase 1 on `html-node-lowering`: chose **E (status quo)** because NavList-scale compile and one-shot render are noise next to basic-cli `main` wrap. Phases 2–4 skipped. Pair: [research](research/rocci/html-node-lowering.md). Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Recorded [measure Html emit, then fuse or unify](plans/rocci/html-node-lowering.md) Phase 0 on `preview-watch-content-roots`: NavList-scale `roc check` / one-shot render sit on the basic-cli `main` wrap floor for both Html backends; fused Hello twin does not move compile. Pair: [research](research/rocci/html-node-lowering.md). Exploratory; do not log complete until CI and Knowledge succeed.

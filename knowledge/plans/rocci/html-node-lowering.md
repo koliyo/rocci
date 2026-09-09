@@ -4,7 +4,7 @@ title: Measure Html emit, then fuse static chunks or unify Html.roc
 description: "Phase 0 recorded: constructor-call compile and render are noise next to basic-cli main wrap. Phase 1 chose E (status quo). No fusion, no Html.roc unify, no debug/release emit. Closed after documenting why."
 tags: [domain/rocci, domain/rocdown, domain/runtime, integration/roc, concern/performance, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T10:25:00Z }
+generated: { by: process:cursor, at: 2026-09-09T10:30:00Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
@@ -190,6 +190,8 @@ Bound:
 
 **Exit:** existing inspector/inspect CLI tests if that surface changed; otherwise a README sentence. `okmate check knowledge --profile base` if knowledge or public docs changed.
 
+**Skipped:** fusion did not land, so generated Roc is still constructor trees. No inspector pretty-printer.
+
 ## Phase 5 — Public contract
 
 Bound:
@@ -198,6 +200,8 @@ Bound:
 - Do not copy this plan into `docs/` unless the public rendering model page already discusses generated Roc.
 
 **Exit:** `okmate check knowledge --profile base`.
+
+**Outcome (2026-09-09):** README Generated Roc section states constructor emit, `html_type` as a linked-runtime signature (`Html.Node` vs `Str`), and that static chunks are not fused. No `docs/` copy of this plan.
 
 ## Tests
 

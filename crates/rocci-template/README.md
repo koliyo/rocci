@@ -542,7 +542,14 @@ Lowering targets a small `Html` constructor set:
 | `<Hello name={x} />` | `hello({ name: x })` |
 
 Constructors are emitted on the `Html` module name (configurable via
-`LowerOptions::html_module`). Generated names and formatting are
+`LowerOptions::html_module`). Component signatures use
+`LowerOptions::html_type` (`Html.Node` on the product `rocci run` path,
+`Str` for theme painters, `rocci test`, and playground snapshots). That
+annotation selects which `Html.roc` is linked; it is not a second template
+emit. Adjacent static tags and text stay constructor calls, not fused
+markup literals.
+
+Generated names and formatting are
 deterministic for a given source. Segment maps record which generated
 ranges came from ordinary Roc, signatures, tags, interpolations, directives,
 or scaffolding.
