@@ -8,6 +8,12 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-09
 
+- Filed draft [rocci.dev is a catalog instance](research/rocdown/generic-catalog-site.md): `run_site_dev` is any catalog root; remaining coupling is closed layouts/news/playground, `rocci-docs` `/examples/` URLs, and first-party ops. Pair: [plan](plans/rocdown/generic-catalog-site.md). Exploratory; do not log complete until CI and Knowledge succeed.
+
+- Filed draft [treat rocci.dev as one Rocdown catalog instance](plans/rocdown/generic-catalog-site.md): optional rename; configurable stager; layout contract is a human gate; do not move `package site` into the engine. Pair: [research](research/rocdown/generic-catalog-site.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
+- Filed draft [Html.element lowering is the composition API](research/rocci/html-node-lowering.md) and paired [measure, then fuse or unify](plans/rocci/html-node-lowering.md): constructor emit vs node/string Html.roc; reject dual lowering modes until a human gate; Phase 0 is measurement. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 - Revised [known limitations](status/known-limitations.md): preview watch follows mounts and peers via `ContentRoots`; catalogs stay separate. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Revised [watch composed catalog trees](plans/rocdown/preview-watch-content-roots.md) and [mounted watch research](research/rocdown/preview-watch-content-roots.md): `[[peer]]` trees are watch roots (link graph / `RD2101`); they still do not emit. No strong skip: missing peer dirs appear later, apply-without-recompile covers peer-only rebuilds. Exploratory; do not log complete until CI and Knowledge succeed.
