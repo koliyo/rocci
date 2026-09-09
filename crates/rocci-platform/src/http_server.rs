@@ -52,6 +52,7 @@ use hyper::header::{CACHE_CONTROL, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper_util::rt::TokioExecutor;
 use hyper_util::rt::TokioIo;
 use std::convert::Infallible;
+use std::error::Error;
 use std::io;
 use std::mem::MaybeUninit;
 #[cfg(not(feature = "benchmark-simulation"))]
@@ -2635,6 +2636,11 @@ fn http1_connection_diagnostic(error: &hyper::Error, draining: bool) -> String {
             .to_owned();
     }
 
+    if !http1_error_is_idle_timeout(error) && http1_error_is_client_abort(error) {
+        return "Client disconnected before the HTTP response finished. This can happen when a browser cancels a navigation or closes a live stream."
+            .to_owned();
+    }
+
     if draining {
         format!(
             "Could not finish an HTTP/1.1 connection while the server was shutting down: {error}"
@@ -2642,6 +2648,44 @@ fn http1_connection_diagnostic(error: &hyper::Error, draining: bool) -> String {
     } else {
         format!("Could not serve an HTTP/1.1 connection: {error}")
     }
+}
+
+fn http1_error_is_idle_timeout(error: &(dyn Error + 'static)) -> bool {
+    if let Some(hyper_error) = error.downcast_ref::<hyper::Error>() {
+        if hyper_error.is_timeout() {
+            return true;
+        }
+    }
+    if let Some(io_error) = error.downcast_ref::<io::Error>() {
+        if io_error.kind() == io::ErrorKind::TimedOut {
+            return true;
+        }
+    }
+    error.source().is_some_and(http1_error_is_idle_timeout)
+}
+
+fn http1_error_is_client_abort(error: &(dyn Error + 'static)) -> bool {
+    if let Some(hyper_error) = error.downcast_ref::<hyper::Error>() {
+        if hyper_error.is_canceled()
+            || hyper_error.is_closed()
+            || hyper_error.is_incomplete_message()
+        {
+            return true;
+        }
+    }
+    if let Some(io_error) = error.downcast_ref::<io::Error>() {
+        if matches!(
+            io_error.kind(),
+            io::ErrorKind::BrokenPipe
+                | io::ErrorKind::ConnectionAborted
+                | io::ErrorKind::ConnectionReset
+                | io::ErrorKind::NotConnected
+                | io::ErrorKind::UnexpectedEof
+        ) {
+            return true;
+        }
+    }
+    error.source().is_some_and(http1_error_is_client_abort)
 }
 
 fn h2_request_body(mut body: h2::RecvStream) -> RequestBodyStream {
@@ -3128,7 +3172,7 @@ mod tests {
     use crate::response_body::{ResponseFramePool, SseBody, SseItemSource};
     use std::io::Read;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use tokio::io::AsyncWriteExt;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     fn initialize_test_host() {
         crate::abi::initialize_test_roc_host();
@@ -3605,6 +3649,91 @@ mod tests {
             http1_connection_diagnostic(&error, false),
             "Client disconnected before finishing an HTTP request. This can happen when a browser cancels a navigation. The incomplete request was not passed to the Roc application."
         );
+    }
+
+    async fn http1_error_from_failing_response_body(
+        kind: io::ErrorKind,
+        detail: &str,
+    ) -> hyper::Error {
+        let (mut client_io, server_io) = tokio::io::duplex(1024);
+        let detail = detail.to_owned();
+        let service = hyper::service::service_fn(move |_request| {
+            let detail = detail.clone();
+            async move {
+                let body =
+                    http_body_util::StreamBody::new(futures::stream::iter([
+                        Err::<Frame<Bytes>, _>(io::Error::new(kind, detail)),
+                    ]));
+                Ok::<_, Infallible>(hyper::Response::new(body))
+            }
+        });
+        let connection = hyper::server::conn::http1::Builder::new()
+            .serve_connection(TokioIo::new(server_io), service);
+
+        client_io
+            .write_all(b"GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            .await
+            .unwrap();
+        let drain_client = async {
+            let mut buf = [0u8; 1024];
+            loop {
+                match client_io.read(&mut buf).await {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => {}
+                }
+            }
+        };
+
+        let (result, ()) = tokio::join!(connection, drain_client);
+        result.expect_err("a failing response body should fail the HTTP/1.1 connection")
+    }
+
+    #[tokio::test]
+    async fn http1_client_abort_from_response_body_is_beginner_facing() {
+        for kind in [
+            io::ErrorKind::BrokenPipe,
+            io::ErrorKind::ConnectionReset,
+            io::ErrorKind::ConnectionAborted,
+        ] {
+            let error = http1_error_from_failing_response_body(kind, "client gone").await;
+            let diagnostic = http1_connection_diagnostic(&error, false);
+            assert!(
+                error.is_user(),
+                "{kind:?} should surface as Hyper's user Body error"
+            );
+            assert!(
+                !diagnostic.contains("Could not serve"),
+                "{kind:?}: {diagnostic}"
+            );
+            assert!(
+                !diagnostic.contains("not passed to the Roc application"),
+                "{kind:?}: {diagnostic}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn http1_non_disconnect_body_error_stays_loud() {
+        let error =
+            http1_error_from_failing_response_body(io::ErrorKind::Other, "encoder failed").await;
+        let diagnostic = http1_connection_diagnostic(&error, false);
+        assert!(diagnostic.contains("Could not serve an HTTP/1.1 connection"));
+        assert!(diagnostic.contains("error from user's Body stream"));
+    }
+
+    #[tokio::test]
+    async fn http1_idle_timeout_body_error_stays_loud() {
+        let error = http1_error_from_failing_response_body(
+            io::ErrorKind::TimedOut,
+            "response body made no progress before its deadline",
+        )
+        .await;
+        let diagnostic = http1_connection_diagnostic(&error, false);
+        assert!(
+            diagnostic.contains("Could not serve an HTTP/1.1 connection"),
+            "{diagnostic}"
+        );
+        assert!(!diagnostic.contains("cancels a navigation"), "{diagnostic}");
     }
 
     #[tokio::test]
