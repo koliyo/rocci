@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Html.element lowering is the composition API, not the performance bottleneck
-description: "Generated Roc already emits Html.element trees. Compile cost is that emit shape; runtime is whichever Html.roc is linked. Dual lowering modes are the expensive option. Measure, then fuse static chunks or unify the two Html backends."
+description: "Generated Roc already emits Html.element trees. Phase 0: at NavList scale, roc check and one-shot render are noise next to basic-cli main wrap on both Html backends. Dual lowering modes stay the expensive option."
 tags: [domain/rocci, domain/rocdown, domain/runtime, integration/roc, concern/performance, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T09:53:00Z }
+generated: { by: process:cursor, at: 2026-09-09T10:20:00Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
@@ -148,7 +148,7 @@ A component body becomes nested constructor calls. Adjacent static text is one `
 
 `LowerOptions.html_type` only changes **signatures** (`… -> Html.Node` versus `… -> Str`). Theme painters pass `Str`; standalone, islands, and `rocci run` pass `Html.Node`. The constructor calls stay the same.[^lower-mod][^lower-emitter][^theme-plan]
 
-AllSyntax source is about 3.7kB; the golden lowered Roc is about 10.7kB of `Html.element` trees. That ratio is the compile-time suspect, not the tagged union behind `Html.element`.[^golden]
+AllSyntax source is 3698 bytes; the golden lowered Roc is 10691 bytes (`Html.element` 19, `fragment` 12, `text` 16, `attribute` 15). That 2.9× ratio is verbose, but Phase 0 `roc check` does not track it at this scale.[^golden]
 
 ## Current runtimes
 
@@ -179,14 +179,49 @@ OKF already learned that baking page HTML into generated Roc makes compile scale
 | Inspect generated Roc | Constructor nesting | Readable tree | Readable tree | Markup soup unless pretty-printed |
 | Source maps | Per constructor / literal | Fine-grained `StaticMarkup` | Same | Coarser unless holes keep segments |
 
-Hypotheses, not measurements:
+Phase 0 measured those hypotheses (2026-09-09, macOS arm64, `roc` nightly-2026-08-26-b29bef3, basic-cli 0.22.0). Same generated Roc; string `Html.roc` from `rocci-ui` versus platform node `Html.roc` plus `Attribute.roc`. `roc check` is the median of three after one warmup; `roc build` once; render is the median of five after warmup and includes process start. The lowerer was not changed.[^plan][^ui-html][^platform-html]
 
-- **Compile time** tracks emit verbosity. AllSyntax-scale goldens and chrome such as `NavList` are the right suspects. Changing `Html.roc` alone will not move `roc check` much.
-- **Request runtime** for CSS-injected components is already “build then serialize” on the node path. String Html skips the tree. Neither is a rope; both join strings bottom-up.
-- **Live polls** pay render on every tick. `Datastar.patch_elements` then splits the serialized HTML to drop style tags. A fused emit can omit those siblings instead of stripping them later.[^datastar-roc][^sse-style]
-- Platform `escape_html_bytes` is a separate micro-cost (`fold` plus per-match `concat`). Worth fixing if a profile shows it; it is not the emit-shape decision.
+### Generated size
 
-No wall-clock comparison of the two `Html.roc` backends, or of fused emit, exists in this bundle. Phase 0 of the plan is that measurement.[^plan]
+| Fixture | Source B | Generated B | `element` | `fragment` | `text` | `attribute` | `void` | Calls |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| AllSyntax golden | 3698 | 10691 | 19 | 12 | 16 | 15 | 0 | 62 |
+| Hello (no CSS) | — | 212 | 1 | 0 | 2 | 0 | 0 | 3 |
+| Hello + file `@css` | — | 674 | 2 | 1 | 3 | 1 | 0 | 7 |
+| Fused Hello twin | — | 268 | 0 | 1 | 1 | 0 | 0 | 4 |
+| Counter.rocci (full) | 6309 | 16420 | 21 | 1 | 12 | 34 | 2 | 70 |
+| CounterCard only | — | 2088 | 4 | 1 | 3 | 5 | 0 | 13 |
+| NavList | 9040 | 24516 | 23 | 5 | 9 | 62 | 0 | 99 |
+
+AllSyntax is counts only: the golden still imports `Design` and calls undefined `Spinner` / `EmptyState` helpers, so it is not a `roc check` target. Full Counter includes handlers and `pf.Sqlite`; Html timings used CounterCard. The fused twin is `Html.fragment([Raw("<p>Hello, "), Html.text(name), Raw("</p>")])`, not a product emit.[^golden][^lower-html]
+
+### `roc check` / build / one-shot render (ms)
+
+| App | Backend | check | build | render | HTML B |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Empty `Stdout.line!("hi")` (no Html) | — | 70 | 136 | 4.0 | 3 |
+| `Html.render(Html.text("hi"))` | string | 77 | 164 | 4.3 | 3 |
+| `Html.render(Html.text("hi"))` | node | 83 | 158 | 3.2 | 18 |
+| Hello | string | 109 | 170 | 4.2 | 18 |
+| Hello | node | 75 | 150 | 3.6 | 33 |
+| Hello + CSS `fragment` | string | 86 | 147 | 5.0 | 173 |
+| Hello + CSS `fragment` | node | 79 | 152 | 4.5 | 178 |
+| Fused Hello | string | 80 | 154 | 3.6 | 18 |
+| Fused Hello | node | 86 | 167 | 3.8 | 33 |
+| CounterCard | string | 78 | 147 | 2.9 | 1040 |
+| CounterCard | node | 76 | 139 | 2.8 | 1045 |
+| NavList (`navListOpen`) | string | 78 | 144 | 2.7 | 8149 |
+| NavList (`navListOpen`) | node | 75 | 177 | 2.8 | 8137 |
+
+Hello string `roc check` median 109 ms is an outlier (samples 72 / 187 / 109). Every other check sits in a 75–86 ms band. Node `Html.render` prefixes `<!DOCTYPE html>`. String `Html.text` escaped quotes inside the CSS `<style>` body (`~=&quot;…&quot;`); node text escape did not. That is dual-runtime drift, not a timing gap.[^ui-html][^platform-html][^cli-html]
+
+### Suspected bottleneck
+
+**Roc process + basic-cli `main` wrap**, not constructor-call AST, not the node walk, not `fragment` serialize, not `escape_html_bytes`. Empty main is 70 ms check / 136 ms build / 4 ms run. NavList (99 constructors, 24 kB generated, 8 kB HTML) is within ~10 ms of that floor on both backends. Linking string versus node `Html.roc` (1098 B vs 9936 B) is also inside that noise. A fused Hello twin cannot beat the ~70 ms `roc check` floor.
+
+These timings are one-shot processes. A long-running `rocci run` server would amortize compile and process start; it would not make constructor emit appear on this fixture set. Revisit if generated chrome grows an order of magnitude beyond NavList, or if an in-process render profile of a live poll shows the walk.
+
+Phase 1 implication (not a recorded choice): the plan prefers **E** when both compile and render are noise next to `main` wrap. Do not choose **C**. **A** still unifies void-tag / boolean / doctype / quote-escape semantics; it is not a performance fix at this scale. **B** would shrink generated Roc and goldens without moving `roc check`.[^plan]
 
 ## Options
 
@@ -244,16 +279,15 @@ Do not ship `--html-nodes` / `--html-strings` as the first performance project.
 
 ## Exploratory recommendation
 
-1. **Keep constructor-call lowering as the public composition API** until fusion is measured. `@component` stays a pure function to Html. Do not make authors write markup strings in Roc.[^pure-render][^template-readme]
-2. **Do not add dual lowering modes** as the default plan. Use inspector views for debug structure.
-3. **Measure** compile time and render time on AllSyntax, Counter, and a theme painter, against both Html backends and a hand-fused Hello twin.[^plan]
-4. If compile time dominates, implement **B (static fusion)** as one emit, keep `Html.text` / component calls at holes, rewrite goldens once.
-5. If only runtime of CSS-wrapped fragments dominates, implement **A**: string Html on the product path (or stop `fragment` from eagerly serializing if a real forest is still wanted). Unify void-tag and boolean-attribute semantics in the same change.
-6. Leave static documentation on the Rust article renderer. Do not lower catalog prose to Roc Html to “use nodes.”[^rust-catalog][^okf-cost]
+1. **Keep constructor-call lowering as the public composition API.** `@component` stays a pure function to Html. Do not make authors write markup strings in Roc.[^pure-render][^template-readme]
+2. **Do not add dual lowering modes.** Inspector views already separate source / AST / Roc / HTML. Phase 0 did not show a tool that needs a debug emit.[^inspector-plan]
+3. **Phase 0:** compile time and CSS-wrapped render are noise next to basic-cli `main` wrap through NavList. The suspected bottleneck is Roc process + platform compile, not emit shape or Html backend.
+4. Fusion (**B**) is not justified by these `roc check` numbers. Runtime unify (**A**) is still the way to kill doctype / quote-escape drift, not to save milliseconds.
+5. Leave static documentation on the Rust article renderer. Do not lower catalog prose to Roc Html to “use nodes.”[^rust-catalog][^okf-cost]
 
-These are hypotheses until Phase 0 numbers exist. Do not treat this record as shipped behavior.
+Phase 1 of the paired plan is the recorded choice. These numbers point at **E** unless a human wants **A** for semantics only.[^plan]
 
-[^plan]: Paired implementation plan; no phase started.
+[^plan]: Paired implementation plan; Phase 0 numbers recorded 2026-09-09.
 [^lower-html]: Tags, interpolations, `@for` maps, and CSS `fragment` wrap.
 [^lower-mod]: `LowerOptions.html_type` default `Html`; consumers override.
 [^lower-emitter]: Signature `props, Html, … -> Html` uses `html_type`.

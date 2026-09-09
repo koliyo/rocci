@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-09
 
+- Recorded [measure Html emit, then fuse or unify](plans/rocci/html-node-lowering.md) Phase 0 on `preview-watch-content-roots`: NavList-scale `roc check` / one-shot render sit on the basic-cli `main` wrap floor for both Html backends; fused Hello twin does not move compile. Pair: [research](research/rocci/html-node-lowering.md). Exploratory; do not log complete until CI and Knowledge succeed.
+
 - Filed draft [rocci.dev is a catalog instance](research/rocdown/generic-catalog-site.md): `run_site_dev` is any catalog root; remaining coupling is closed layouts/news/playground, `rocci-docs` `/examples/` URLs, and first-party ops. Pair: [plan](plans/rocdown/generic-catalog-site.md). Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Filed draft [treat rocci.dev as one Rocdown catalog instance](plans/rocdown/generic-catalog-site.md): optional rename; configurable stager; layout contract is a human gate; do not move `package site` into the engine. Pair: [research](research/rocdown/generic-catalog-site.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.

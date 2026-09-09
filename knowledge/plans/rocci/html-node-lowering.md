@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Measure Html emit, then fuse static chunks or unify Html.roc
-description: "Phase 0 measures constructor-call compile and render cost against both Html backends. A human gate then chooses runtime unify, static fusion, dual lowering modes, or status quo. Do not add debug/release emits until that gate. Exploratory; no phase started."
+description: "Phase 0 recorded: constructor-call compile and render are noise next to basic-cli main wrap on both Html backends. Phase 1 human gate chooses runtime unify, static fusion, dual lowering modes, or status quo. Do not add debug/release emits until that gate."
 tags: [domain/rocci, domain/rocdown, domain/runtime, integration/roc, concern/performance, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T09:53:00Z }
+generated: { by: process:cursor, at: 2026-09-09T10:20:00Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
@@ -98,8 +98,10 @@ sources:
 
 # Measure Html emit, then fuse static chunks or unify Html.roc
 
-Exploratory. Do not start a phase until the user asks. Research:
+Exploratory. Research:
 [emit shape versus Html runtime](/research/rocci/html-node-lowering.md).[^research]
+
+Phase 0 recorded 2026-09-09. Phase 1 is the human gate.
 
 ## Goal
 
@@ -134,6 +136,8 @@ Bound:
 - Write the numbers and the suspected bottleneck (compile AST vs node walk vs `fragment` serialize vs escape `fold`) into the research record. Do not implement a fix in this phase.
 
 **Exit:** numbers in [the research record](/research/rocci/html-node-lowering.md); `okmate check knowledge --profile base`. No production code change required.
+
+**Outcome (2026-09-09):** sizes and timings are in the research. Suspected bottleneck is Roc process + basic-cli `main` wrap, not constructor AST or Html backend. NavList (99 constructors, 24 kB) `roc check` ~75–78 ms versus empty main 70 ms; one-shot render ~3 ms on both backends. AllSyntax counted only (incomplete Roc). Fused Hello twin did not move `roc check`. Dual-runtime HTML still diverges (doctype; quote escape in `<style>` text).
 
 ## Phase 1 — Human decision gate
 
