@@ -1,10 +1,10 @@
 ---
 type: Research Report
 title: Html.element lowering is the composition API, not the performance bottleneck
-description: "Generated Roc already emits Html.element trees. Phase 0: at NavList scale, roc check and one-shot render are noise next to basic-cli main wrap on both Html backends. Dual lowering modes stay the expensive option."
+description: "Generated Roc already emits Html.element trees. Phase 0: at NavList scale, roc check and one-shot render are noise next to basic-cli main wrap on both Html backends. Phase 1 chose status quo (E). Dual lowering modes stay the expensive option."
 tags: [domain/rocci, domain/rocdown, domain/runtime, integration/roc, concern/performance, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T10:20:00Z }
+generated: { by: process:cursor, at: 2026-09-09T10:25:00Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
@@ -221,7 +221,7 @@ Hello string `roc check` median 109 ms is an outlier (samples 72 / 187 / 109). E
 
 These timings are one-shot processes. A long-running `rocci run` server would amortize compile and process start; it would not make constructor emit appear on this fixture set. Revisit if generated chrome grows an order of magnitude beyond NavList, or if an in-process render profile of a live poll shows the walk.
 
-Phase 1 implication (not a recorded choice): the plan prefers **E** when both compile and render are noise next to `main` wrap. Do not choose **C**. **A** still unifies void-tag / boolean / doctype / quote-escape semantics; it is not a performance fix at this scale. **B** would shrink generated Roc and goldens without moving `roc check`.[^plan]
+Phase 1 recorded **E**. Do not choose **C**. **A** still unifies void-tag / boolean / doctype / quote-escape semantics; it is not a performance fix at this scale. **B** would shrink generated Roc and goldens without moving `roc check`.[^plan]
 
 ## Options
 
@@ -263,7 +263,7 @@ No `Html.element` in generated Roc. Everything is `"<div>…${escape(x)}…"</di
 
 ### E. Status quo
 
-Constructor emit plus two Html backends plus `html_type` annotations. Works. Pays dual-runtime drift and an unmeasured node+`fragment` tax on every CSS-wrapped component.
+Constructor emit plus two Html backends plus `html_type` annotations. Works. Pays dual-runtime drift. Phase 0 did not find a node+`fragment` tax at NavList scale. **Chosen 2026-09-09.**
 
 ## Dual-mode specifically
 
@@ -285,9 +285,9 @@ Do not ship `--html-nodes` / `--html-strings` as the first performance project.
 4. Fusion (**B**) is not justified by these `roc check` numbers. Runtime unify (**A**) is still the way to kill doctype / quote-escape drift, not to save milliseconds.
 5. Leave static documentation on the Rust article renderer. Do not lower catalog prose to Roc Html to “use nodes.”[^rust-catalog][^okf-cost]
 
-Phase 1 of the paired plan is the recorded choice. These numbers point at **E** unless a human wants **A** for semantics only.[^plan]
+Phase 1 of the paired plan recorded **E (status quo)** from those numbers. Dual-runtime semantic drift is leftover cleanup, not a compile-time project.[^plan]
 
-[^plan]: Paired implementation plan; Phase 0 numbers recorded 2026-09-09.
+[^plan]: Paired implementation plan; Phase 0 numbers and Phase 1 choice E recorded 2026-09-09.
 [^lower-html]: Tags, interpolations, `@for` maps, and CSS `fragment` wrap.
 [^lower-mod]: `LowerOptions.html_type` default `Html`; consumers override.
 [^lower-emitter]: Signature `props, Html, … -> Html` uses `html_type`.

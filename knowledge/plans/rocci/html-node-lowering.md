@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Measure Html emit, then fuse static chunks or unify Html.roc
-description: "Phase 0 recorded: constructor-call compile and render are noise next to basic-cli main wrap on both Html backends. Phase 1 human gate chooses runtime unify, static fusion, dual lowering modes, or status quo. Do not add debug/release emits until that gate."
+description: "Phase 0 recorded: constructor-call compile and render are noise next to basic-cli main wrap. Phase 1 chose E (status quo). No fusion, no Html.roc unify, no debug/release emit. Closed after documenting why."
 tags: [domain/rocci, domain/rocdown, domain/runtime, integration/roc, concern/performance, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T10:20:00Z }
+generated: { by: process:cursor, at: 2026-09-09T10:25:00Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
@@ -101,7 +101,7 @@ sources:
 Exploratory. Research:
 [emit shape versus Html runtime](/research/rocci/html-node-lowering.md).[^research]
 
-Phase 0 recorded 2026-09-09. Phase 1 is the human gate.
+Phase 0 recorded 2026-09-09. Phase 1 chose **E (status quo)** from those numbers: both `roc check` and one-shot render are noise next to basic-cli `main` wrap through NavList. Phases 2–4 are skipped. Phase 5 documents the unchanged public emit.
 
 ## Goal
 
@@ -153,6 +153,8 @@ Options (from the research):[^research]
 Default recommendation if numbers are unclear: **do not choose C.** Prefer B when `roc check` dominates; prefer A when only CSS-wrapped `fragment` render dominates; prefer E when both are noise next to Roc compile of `main` wrap.
 
 **Exit:** written choice. No code required.
+
+**Outcome (2026-09-09):** **E. Status quo.** Phase 0 `roc check` (~75–78 ms NavList vs 70 ms empty main) and one-shot render (~3 ms on both backends) are noise next to the basic-cli `main` wrap. Do not choose **C**. **B** would rewrite goldens without moving `roc check`. **A** would still unify doctype / quote-escape semantics; it is not this plan’s performance fix. Phases 2–4 skipped. Dual-runtime drift remains documented in the research, not a second emit.
 
 ## Phase 2 — Runtime unify (only if Phase 1 chose A)
 
