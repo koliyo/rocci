@@ -40,6 +40,7 @@ mod response_body;
 mod roc_alloc;
 mod roc_executor;
 mod roc_platform_abi;
+mod rocci;
 mod server_transport;
 mod shutdown;
 mod sqlite;

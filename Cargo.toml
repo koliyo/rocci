@@ -43,7 +43,7 @@ rocci-docs = { path = "crates/rocci-docs" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 h35-desktop = { git = "https://github.com/koliyo/h35-desktop" }
 rocci-cli = { path = "crates/rocci-cli" }
-rocci-template = { path = "crates/rocci-template" }
+rocci-template = { path = "crates/rocci-template", default-features = false }
 rocci-ungram = { path = "crates/rocci-ungram" }
 rocci-rocdown = { path = "crates/rocci-rocdown" }
 rocci-rocdown-cli = { path = "crates/rocci-rocdown-cli" }

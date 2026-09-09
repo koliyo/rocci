@@ -74,6 +74,9 @@ pub(crate) type PathTypeResultPayload = HostPathTypeResultPayload;
 pub(crate) type PathTypeResultTag = HostPathTypeResultTag;
 pub(crate) type PathInfo = HostPathTypeOk;
 
+pub(crate) type RocciCompileResult = HostRocciCompile;
+pub(crate) type RocciDiagnostic = HostRocciCompileDiagnostics;
+
 pub(crate) type SqliteHostOpenResult = HostSqliteOpenResult;
 pub(crate) type SqliteHostOpenResultPayload = HostSqliteOpenResultPayload;
 pub(crate) type SqliteHostOpenResultTag = HostSqliteOpenResultTag;

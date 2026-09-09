@@ -3571,6 +3571,7 @@ dependencies = [
  "libc",
  "libsqlite3-sys",
  "ring",
+ "rocci-template",
  "rustls",
  "serde",
  "serde_json",

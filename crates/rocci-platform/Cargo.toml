@@ -40,6 +40,7 @@ hyper-util = { version = "0.1.12", features = ["tokio", "client", "client-legacy
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "tls12", "webpki-tokio", "ring"] }
 rustls = { version = "0.23", default-features = false }
 ring = "0.17"
+rocci-template = { workspace = true, default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.45", features = ["rt", "rt-multi-thread", "macros", "net", "signal", "sync", "time"] }

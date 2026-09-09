@@ -1,0 +1,23 @@
+import Host
+import Path
+import IOErr exposing [IOErr]
+
+## Hosted parse/compile over crates/rocci-template. This is not `rocci run`
+## and does not interpret interpolations.
+Rocci := [].{
+
+	Diagnostic : { code : Str, message : Str, start : U64, end : U64 }
+
+	Source : { name : Str, source : Str }
+
+	CompileResult : { roc : Str, diagnostics : List(Diagnostic) }
+
+	compile! : Source => CompileResult
+	compile! = |input| Host.rocci_compile!(input)
+
+	compile_file! : Path.Path => Try(CompileResult, [PathErr(IOErr), ..])
+	compile_file! = |path| {
+		source = Path.read_utf8!(path)?
+		Ok(compile!({ name: Path.display(path), source: source }))
+	}
+}

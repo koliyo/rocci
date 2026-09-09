@@ -26,6 +26,7 @@ platform "rocci"
 		MultipartFormData,
 		OsStr,
 		Path,
+		Rocci,
 		Server,
 		Sse,
 		Sleep,
@@ -111,6 +112,7 @@ platform "rocci"
 		"hosted_readiness_create": Host.readiness_create!,
 		"hosted_readiness_set": Host.readiness_set!,
 		"hosted_request_body_write_file": Host.request_body_write_file!,
+		"hosted_rocci_compile": Host.rocci_compile!,
 	}
 	targets: {
 		inputs_dir: "targets/",
@@ -132,6 +134,7 @@ import Http
 import IOErr
 import OsStr
 import Path
+import Rocci
 import Server
 import Sse
 import Sleep

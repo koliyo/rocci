@@ -35,8 +35,11 @@ crates/rocci-platform/*.tar.zst
 crates/rocci-platform/*.tar.zst.sha256
 crates/rocci-platform/examples/hello-web
 crates/rocci-platform/examples/hello-datastar
+crates/rocci-platform/examples/hello-compile
+crates/rocci-platform/hello-compile
 /hello-web
 /hello-datastar
+/hello-compile
 /server
 datastar.js
 

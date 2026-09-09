@@ -187,4 +187,12 @@ Host := [].{
 	sleep_millis! : U64 => {}
 
 	unix_time_now! : () => I128
+
+	Diagnostic : { code : Str, message : Str, start : U64, end : U64 }
+
+	RocciSource : { name : Str, source : Str }
+
+	RocciCompile : { roc : Str, diagnostics : List(Diagnostic) }
+
+	rocci_compile! : RocciSource => RocciCompile
 }

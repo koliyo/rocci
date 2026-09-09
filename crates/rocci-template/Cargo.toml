@@ -12,6 +12,11 @@ path = "src/lib.rs"
 [[bin]]
 name = "rocci-template"
 path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
 
 [dependencies]
-clap = { workspace = true }
+clap = { workspace = true, optional = true }
