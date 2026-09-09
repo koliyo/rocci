@@ -8,6 +8,10 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-09
 
+- Recorded [hosted glue for the Rust template parser](plans/rocci/template-parser-roc-glue.md) Phase 0 on `preview-watch-content-roots`: froze `pf.Rocci`, `hosted_rocci_compile`, Diagnostic/Source/CompileResult records, clap `cli` default with platform `default-features = false`, and `hello-compile.roc` fixtures. Exploratory; do not log complete until CI and Knowledge succeed.
+
+- Filed draft [expose parse and compile on rocci-platform](research/rocci/rocci-platform-template-api.md): hosted `pf.Rocci` over `crates/rocci-template`; Luke's rust template is glue/`build.sh` mechanics rocci-platform already has; render is not `Html.Node`. Retargeted [hosted glue plan](plans/rocci/template-parser-roc-glue.md) off a stdio template-host. Pair: [earlier glue research](research/rocci/template-parser-roc-glue.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 - Recorded [measure Html emit, then fuse or unify](plans/rocci/html-node-lowering.md) Phase 5 on `html-node-lowering`: `rocci-template` README states constructor emit and `Html.Node` vs `Str` as the linked runtime, not a second language. Exploratory; do not log complete until CI and Knowledge succeed.
 
 - Recorded [measure Html emit, then fuse or unify](plans/rocci/html-node-lowering.md) Phase 1 on `html-node-lowering`: chose **E (status quo)** because NavList-scale compile and one-shot render are noise next to basic-cli `main` wrap. Phases 2–4 skipped. Pair: [research](research/rocci/html-node-lowering.md). Exploratory; do not log complete until CI and Knowledge succeed.

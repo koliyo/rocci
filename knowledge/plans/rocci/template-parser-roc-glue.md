@@ -1,19 +1,24 @@
 ---
 type: Implementation Plan
 title: Hosted glue for the Rust template parser
-description: "Give Roc a hosted compile/parse/apply API over crates/rocci-template without rewriting the parser. Stdio template-host first; do not interpret interpolations; do not replace rocci-cli. Exploratory; do not start a phase until asked."
+description: "Give Roc hosted compile/parse over crates/rocci-template on rocci-platform (pf.Rocci). Do not add a stdio host in v1; do not interpret interpolations; do not replace rocci-cli. Exploratory; do not start a phase until asked."
 tags: [domain/rocci, domain/runtime, integration/roc, concern/architecture, concern/tooling, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-02T20:45:00Z }
-stale_after: 2026-12-02
+generated: { by: process:cursor, at: 2026-09-09T19:52:00Z }
+stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: platform-api
+    resource: ../../research/rocci/rocci-platform-template-api.md
+    title: Expose parse and compile on rocci-platform via hosted glue
+    author: process:cursor
+    last_modified: 2026-09-09
   - id: research
     resource: ../../research/rocci/template-parser-roc-glue.md
-    title: Expose the Rust template parser to Roc via hosted glue
+    title: Glue vocabulary and three payloads
     author: process:cursor
-    last_modified: 2026-09-02
+    last_modified: 2026-09-09
   - id: native-research
     resource: ../../research/rocci/roc-native-template-compiler.md
     title: A Roc-native template parser and lowerer
@@ -44,24 +49,14 @@ sources:
     title: RCxxxx IDs
     author: process:git
     last_modified: 2026-08-31
-  - id: template-readme
-    resource: ../../../crates/rocci-template/README.md
-    title: Crate CLI and language contract
-    author: process:git
-    last_modified: 2026-08-25
   - id: platform-main
     resource: ../../../crates/rocci-platform/platform/main.roc
     title: Existing hosted block and glue size note
     author: process:git
-    last_modified: 2026-09-02
+    last_modified: 2026-09-03
   - id: roc-host
     resource: ../../../crates/rocci-roc-host/README.md
     title: Apply cache
-    author: process:git
-    last_modified: 2026-09-01
-  - id: roc-host-lib
-    resource: ../../../crates/rocci-roc-host/src/lib.rs
-    title: NativeHost
     author: process:git
     last_modified: 2026-09-01
   - id: gen-research
@@ -69,53 +64,51 @@ sources:
     title: Glue vs compiler embed
     author: process:cursor
     last_modified: 2026-08-31
+  - id: path-roc
+    resource: ../../../crates/rocci-platform/platform/Path.roc
+    title: Path.read_utf8! for file wrappers
+    author: process:git
+    last_modified: 2026-09-03
+  - id: hello-web
+    resource: ../../../crates/rocci-platform/examples/hello-web.roc
+    title: In-tree HTTP example pin
+    author: process:git
+    last_modified: 2026-09-03
   - id: as-platform
     resource: ../../research/rocci/rocci-as-roc-platform.md
     title: Domain platform vs package
     author: process:cursor
-    last_modified: 2026-09-02
-  - id: workspace
-    resource: ../../../Cargo.toml
-    title: Workspace members
-    author: process:git
-    last_modified: 2026-09-02
+    last_modified: 2026-09-03
   - id: workspace-deps
     resource: ../../../rocci-ops/src/rocci_ops/workspace_deps.py
     title: BASE_ROCCI classification
     author: process:git
-    last_modified: 2026-09-02
-  - id: agents
-    resource: ../../../AGENTS.md
-    title: Classify new workspace members in the same change
-    author: process:git
-    last_modified: 2026-08-31
+    last_modified: 2026-09-03
   - id: pure-render
     resource: ../../decisions/pure-render-components.md
     title: Pure Html functions
     author: human:nils
-    last_modified: 2026-08-16
-  - id: styling
-    resource: ../../../examples/rocci/standalone/styling/Styling.rocci
-    title: Pure-template-ish fixture after stripping the route
-    author: process:git
-    last_modified: 2026-08-25
+    last_modified: 2026-08-31
 ---
 
 # Hosted glue for the Rust template parser
 
-Exploratory. Do not start a phase until the user asks. Analysis:
-[expose the Rust template parser to Roc via hosted glue](/research/rocci/template-parser-roc-glue.md).
-[^research]
+Exploratory. Do not start a phase until the user asks. Placement:
+[expose parse and compile on rocci-platform](/research/rocci/rocci-platform-template-api.md).
+Glue vocabulary:
+[hosted glue research](/research/rocci/template-parser-roc-glue.md).
+[^platform-api][^research]
 
 ## Goal
 
-A Roc application can call the **existing** `rocci-template` parser
-through **platform hosted functions**, with **no rocci CLI**. First
-host is a small **stdio template-host** (`requires` `{ main! }`), not
-a second HTTP engine. Payloads in order: **compile!** (generated Roc),
-**parse!** (S-expr + diagnostics), **apply!** (HTML `Str` for one
-pure component via rocci-roc-host). Interpolations stay compiled Roc,
-not a Rust interpreter.[^research][^template-lib][^native-research][^pure-render]
+A Rocci app that pins **rocci-platform** can call the **existing**
+`rocci-template` parser through **`pf.Rocci` hosted functions**, with
+**no rocci CLI** and **no second platform crate**. Payloads in order:
+**compile!** (generated Roc `Str` plus diagnostics), **parse!**
+(`format_ast` S-expr plus diagnostics). File-path wrappers use
+`Path.read_utf8!`. Interpolations stay compiled Roc, not a Rust
+interpreter. Apply / HTML render is a follow-on.
+[^platform-api][^template-lib][^native-research][^pure-render][^path-roc]
 
 ## Out of bound
 
@@ -124,15 +117,18 @@ not a Rust interpreter.[^research][^template-lib][^native-research][^pure-render
   [^native-plan]
 - Interpreting `{expr}` / `@if` conditions in the host
   [^pure-render][^native-research]
+- Returning `pf.Html` / `Html.Node` from parse or compile
+  [^platform-api][^gen-research]
 - Replacing `rocci` / playground / LSP
 - Embedding the Roc compiler as a library [^gen-research]
 - Handler / `@init` / `@method:role` apply
+- A new `crates/rocci-template-host` stdio platform in this plan
+  [^platform-api]
 - Adding these `hosted_*` to upstream basic-cli
-- Merging this host into rocci-platform in v1 (may copy the same Rust
-  helpers later) [^as-platform][^postmortem]
-- WASI `--http-module` / wasm apply as the first apply backend
+- WASI `--http-module` / wasm apply as the first backend
 - A typed Roc AST for the full ungram in v1 (S-expr first)
 - `import Hello.rocci`
+- Apply! / nested `roc` during `respond!` (follow-on)
 
 ## Constraints that do not move
 
@@ -140,112 +136,113 @@ not a Rust interpreter.[^research][^template-lib][^native-research][^pure-render
    `compile`. Do not fork a second grammar. [^template-lib]
 2. **Roc → Rust is `hosted`, not a package.** `roc glue` only
    regenerates ABI when `platform/main.roc` changes. Hosted result
-   types are fully sized (no rigid/flex holes; see the `Exit(I64)`
-   note). [^platform-main][^research]
-3. **One platform per app.** Apps that want glue pin the template-host
-   (or, later, a platform that copies these hosted names).
+   types are fully sized records (no rigid/flex holes; see the
+   `Exit(I64)` note). Prefer a compile/parse **record**, not `Try`.
+   [^platform-main][^research][^platform-api]
+3. **One platform per app.** Callers pin rocci-platform.
    [^postmortem][^as-platform]
-4. **`rocci-template` does not depend on the new platform crate.**
-   Classify the host `base-rocci` in the same change as the workspace
-   member. [^workspace][^workspace-deps][^agents]
-5. **Apply uses rocci-roc-host caching** and may require `roc` on a
-   miss. Do not hash the whole Rust crate. [^roc-host][^roc-host-lib]
-6. **Parser/lowering unit tests stay Roc-free.** Hosted proofs are
-   named `roc build` examples.
-7. **Do not start native-compiler phases from this plan.**
+4. **`rocci-template` does not depend on rocci-platform.** Feature-gate
+   `clap` on the template crate **before** the platform depends on the
+   lib, so `libhost.a` does not pull the CLI parser.
+   [^workspace-deps][^platform-api]
+5. **Parser/lowering unit tests stay Roc-free.** Hosted proofs are
+   `roc build` examples on rocci-platform (`hello-web` siblings).
+6. **Do not start native-compiler phases from this plan.**
+7. **A later basic-webserver vendor snapshot must keep**
+   `hosted_rocci_*`, `platform/Rocci.roc`, and the `rocci-template`
+   Cargo dep.
 
 ## Phase 0 — Freeze the hosted contract
 
-Bound: tables below complete enough that Phase 1 can add a crate
-without inventing names. No Rust required if the tables are filled.
+Bound: tables below complete enough that Phase 1 can edit
+`rocci-platform` without inventing names. No Rust required if the
+tables are filled.
 
 | Item | Frozen first cut |
 | --- | --- |
-| Crate | `crates/rocci-template-host`. `[lib] name = "host"`. `base-rocci`. |
-| Platform header | `platform "rocci-template"` (or `rocci-templates`; pick one in this phase) |
-| App `requires` | `{ main! : {} => Try({}, [Exit(I64), ..]) }` (stdio, not HTTP) |
-| Hosted compile | `compile! : Str => Try({ roc : Str }, List(Diagnostic))` — source is file contents, not a path, so the host need not open files in v1 |
-| Diagnostic | `{ code : Str, message : Str, start : U64, end : U64 }` using `RCxxxx` |
-| Path IO | Out of compile! v1; the Roc app reads the file with `pf.File` if the platform exposes it, or inlines a fixture |
-| Not hosted yet | `parse!`, `apply!` |
+| Crate | Existing `crates/rocci-platform`. No new workspace member. |
+| Template Cargo | `rocci-template` `cli` feature = optional `clap`. Package `default = ["cli"]` so `cargo run -p rocci-template` stays. Platform depends `rocci-template` with `default-features = false`. |
+| Roc module | `platform/Rocci.roc`, `exposes` name `Rocci` (`import pf.Rocci`) |
+| Host types | Named on `Host`: `Diagnostic`, `RocciSource`, `RocciCompile`. Same field shapes as the public aliases. |
+| Hosted compile | C symbol `hosted_rocci_compile`. `main.roc` map `"hosted_rocci_compile": Host.rocci_compile!`. `Host.rocci_compile! : RocciSource => RocciCompile`. |
+| Public compile | `Rocci.compile! : Source => CompileResult` calls `Host.rocci_compile!`. |
+| Source | `{ name : Str, source : Str }` (`name` is `SourceFile` name) |
+| CompileResult | `{ roc : Str, diagnostics : List(Diagnostic) }` (record, not `Try`; inspect `diagnostics`) |
+| Diagnostic | `{ code : Str, message : Str, start : U64, end : U64 }`. `code` empty when `rocci-template` has `None`. `start`/`end` are `Span` offsets (`U64`); default encoding UTF-16, not line/column. |
+| Path IO | `Rocci.compile_file! : Path => Try(CompileResult, [PathErr(IOErr), ..])` = `Path.read_utf8!` then `compile!({ name: Path.display(path), source })`. Not a hosted path. |
+| Rust host | `crates/rocci-platform/src/rocci.rs`; `mod rocci` in `src/lib.rs`. Calls `rocci_template::compile(SourceFile::new(name, src), &LowerOptions::default())`. Map every diagnostic; do not panic on `has_errors`. After `roc glue`, alias generated compile/record types in `src/abi/mod.rs`. |
+| Glue regen | From `crates/rocci-platform`: `roc glue /path/to/roc/src/glue/src/RustGlue.roc ./src/ platform/main.roc` (overwrites `src/roc_platform_abi.rs`). Needs matching compiler + `RustGlue.roc`. |
+| Example | `crates/rocci-platform/examples/hello-compile.roc`, pin `../platform/main.roc`, `init!` / `respond!` / `shutdown!` like `hello-web.roc`. GET `/` inlines success fixture, `Rocci.compile!`, `text/plain` body is `result.roc`. GET `/bad` inlines error fixture; body may be empty Roc plus diagnostics; no panic. |
+| Success fixture | name `"Hello.rocci"`; source `@component Hello {\n    <p>ok</p>\n}\n`. Emitted Roc contains `import Html`. |
+| Error fixture | name `"Bad.rocci"`; source `@component hello {\n    <p>ok</p>\n}\n` (non-Pascal). Diagnostics non-empty. Phase 2 asserts `code` starts with `"RC"` (`RC1003`). |
+| Not hosted yet | `parse!`, `apply!`. No `hosted_rocci_parse` in Phase 1. |
 
 Exit:
 
 ```text
-# tables in this phase name crate, platform string, compile! type, diagnostic record
+# tables in this phase name module, compile! type, diagnostic record
 okmate check knowledge --profile base --format terminal
 ```
 
-## Phase 1 — compile! on the stdio host
+## Phase 1 — clap gate and compile! on rocci-platform
 
-Bound: crate + `platform/main.roc` + `build.sh` (native `libhost.a`).
-Host implements `hosted_rocci_compile` by
-`rocci_template::compile`. Example `examples/hello-compile.roc`
-inlines a tiny `@component` fixture, calls `compile!`, prints
-`roc` on stdout. `roc glue` documented. No apply, no parse tree.
-[^template-lib][^template-readme][^workspace-deps]
+Bound: feature-gate `clap` on `rocci-template` (binary `cli` feature
+only). `rocci-platform` depends on `rocci-template`. `Host.roc` +
+`main.roc` hosted entry + `roc glue` + `src/abi/mod.rs` alias +
+`hosted_rocci_compile` calling `rocci_template::compile` with
+`LowerOptions::default()`. `platform/Rocci.roc` wraps it. Example
+`crates/rocci-platform/examples/hello-compile.roc` is an HTTP app:
+GET `/` inlines a tiny `@component` fixture, calls `Rocci.compile!`,
+returns generated Roc as `text/plain`. Rebuild native `libhost.a`.
+No parse tree, no apply. [^template-lib][^platform-api][^hello-web]
 
 Exit:
 
 ```text
-crates/rocci-template-host/build.sh
-roc build crates/rocci-template-host/examples/hello-compile.roc
-# stdout contains `hello =` (or the camelCase emit) for the fixture
+crates/rocci-platform/build.sh
+roc build crates/rocci-platform/examples/hello-compile.roc
+# GET / body contains `import Html` (or the camelCase emit) for the fixture
 # a known-bad fixture yields a non-empty diagnostics list and no panic
+# rocci-template lib without the cli feature does not link clap
 cargo fmt --all -- --check
 ```
 
 ## Phase 2 — Structured diagnostics
 
-Bound: `compile!` errors use `RCxxxx` codes from `rocci-template`,
-not a single `Str`. A malformed fixture asserts a specific code
-(pick one stable parse error from the catalog).
+Bound: `compile!` diagnostics use `RCxxxx` codes from
+`rocci-template` when present. A malformed fixture asserts a specific
+code (pick one stable parse error from the catalog).
 [^codes]
 
 Exit:
 
 ```text
-roc build crates/rocci-template-host/examples/hello-compile.roc
+roc build crates/rocci-platform/examples/hello-compile.roc
 # bad fixture: diagnostic.code starts with "RC"
 ```
 
 ## Phase 3 — parse! as format_ast
 
-Bound: `parse! : Str => Try({ ast : Str }, List(Diagnostic))` where
-`ast` is `format_ast` S-expression. Example prints the tree for the
-hello fixture and includes a `(component` (or current inspect head).
-No typed Roc AST. [^pprint]
+Bound: `Host.rocci_parse!` returns `{ ast : Str, diagnostics :
+List(Diagnostic) }` where `ast` is `format_ast`. Example GET `/parse`
+(or sibling `hello-parse.roc`) includes a `(component` (or current
+inspect head). No typed Roc AST. File wrapper `Rocci.parse_file!`
+optional if compile_file! already landed. [^pprint][^path-roc]
 
 Exit:
 
 ```text
-roc build crates/rocci-template-host/examples/hello-parse.roc
-# stdout is an S-expr; contains the component name from the fixture
+roc build crates/rocci-platform/examples/hello-parse.roc
+# response body is an S-expr; contains the component name from the fixture
 ```
 
-## Phase 4 — apply! for one pure component
+## Phase 4 — Docs, glue note, vendor warning
 
-Bound: `apply! : { source : Str, component : Str, args_json : Str } => Try(Str, [CompileFailed, ApplyFailed(Str)])`.
-Host: `compile`, wrap a `main!` that calls the named camelCase function
-with JSON-decoded args, `NativeHost::compile_or_cached` + `run_apply`
-(or equivalent), return stdout HTML. Fixture is a single `@component`
-with a `Str` field (Styling-like card with the `@get:view` omitted).
-Cache miss may require `roc` on PATH; document that. Do not apply
-routes. [^roc-host][^roc-host-lib][^styling][^pure-render]
-
-Exit:
-
-```text
-roc build crates/rocci-template-host/examples/hello-apply.roc
-# stdout is HTML containing the interpolated name from args_json
-# second run with unchanged source hits cache (log or test)
-```
-
-## Phase 5 — Docs and knowledge
-
-Bound: crate README, a short public note that this is **not**
-`rocci run` and **not** the native rewrite. Point native-compiler
-research at the distinction. `--http-module` unchanged.
+Bound: `crates/rocci-platform/README.md` documents `pf.Rocci`, glue
+regen, and that this is **not** `rocci run` and **not** the native
+rewrite. Point native-compiler research at the distinction.
+`--http-module` unchanged. Note that a later basic-webserver vendor
+copy must keep the Rocci hosted symbols.
 
 Exit:
 
@@ -256,27 +253,26 @@ cargo fmt --all -- --check
 
 ## Follow-ons (not this plan)
 
-- Copy the same hosted helpers onto rocci-platform for HTTP apps
+- **apply!** via rocci-roc-host (HTML `Str`, nested `roc`, cache miss
+  needs PATH `roc`) [^roc-host]
+- Stdio template-host for non-HTTP callers
 - Typed Roc AST matching the ungram subset
-- File-path compile! (`File.read!` vs passing `Str`)
 - Native-compiler rewrite consuming hosted parse as an oracle
 - Apply via wasm host instead of native subprocess
 
-[^research]: Hosted vs roc glue; three payloads; stdio template-host first.
+[^platform-api]: Product pin is rocci-platform; clap gate; record ABI; apply is follow-on.
+[^research]: Hosted vs roc glue; three payloads; parse cannot return Html.
 [^native-research]: Consume-in-Roc vision; rewrite unstarted; D is non-goal.
 [^native-plan]: Do not execute that POC from this plan.
 [^postmortem]: One platform per app; pf.Html is not a foreign-host import.
 [^template-lib]: `compile` returns Roc source; does not run `roc`.
 [^pprint]: S-expr is the v1 parse payload.
 [^codes]: Stable diagnostic IDs.
-[^template-readme]: Crate `build` already exists as a Rust binary.
 [^platform-main]: Hosted list plus glue size caution.
-[^roc-host]: Two-tier cache; `roc` on miss.
-[^roc-host-lib]: `compile_or_cached` / `run_apply`.
+[^roc-host]: Two-tier cache; native apply pins basic-cli; `roc` on miss.
 [^gen-research]: No compiler-as-library; prefer Str across the boundary.
+[^path-roc]: File wrappers read UTF-8 through existing Path effects.
+[^hello-web]: Proof apps stay HTTP `init!` / `respond!` / `shutdown!`.
 [^as-platform]: Do not make this a package on basic-webserver.
-[^workspace]: New member in root `Cargo.toml`.
-[^workspace-deps]: `BASE_ROCCI` in the same change.
-[^agents]: Classify workspace members with the crate.
-[^pure-render]: Apply compiles a function; it does not interpret markup.
-[^styling]: Strip `@get:view` for an in-bound apply fixture.
+[^workspace-deps]: Both crates already `BASE_ROCCI`; no new member.
+[^pure-render]: Compile emits a function; the host does not interpret markup.
