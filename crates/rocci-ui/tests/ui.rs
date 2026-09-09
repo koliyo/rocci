@@ -162,6 +162,10 @@ fn goto_script_is_self_contained() {
     assert!(GOTO_SCRIPT.contains("keepNav"));
     assert!(GOTO_SCRIPT.contains("navSectionKeys"));
     assert!(GOTO_SCRIPT.contains(".mobile-panel"));
+    assert!(GOTO_SCRIPT.contains("details.mobile-menu"));
+    assert!(GOTO_SCRIPT.contains("closeMobileMenu"));
+    assert!(GOTO_SCRIPT.contains("inMobilePanel"));
+    assert!(GOTO_SCRIPT.contains("data-rocci-nav-href"));
     assert!(GOTO_SCRIPT.contains("__rocciResize.enhance"));
     assert!(GOTO_SCRIPT.contains("__rocciToc.enhance"));
     assert!(GOTO_SCRIPT.contains("resetDocumentScroll"));
@@ -227,4 +231,6 @@ fn nav_list_fold_summary_is_not_a_link() {
     );
     assert!(chrome::NAV_LIST.contains("<summary class=\"nav-category\">"));
     assert!(chrome::NAV_LIST.contains("<span"));
+    assert!(chrome::NAV_LIST.contains("data-rocci-nav-href={group.href}"));
+    assert!(chrome::NAV_LIST.contains("data-rocci-nav-href={child.href}"));
 }

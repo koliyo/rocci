@@ -852,6 +852,12 @@
     }
   };
 
+  const closeMobileMenu = () => {
+    document.querySelectorAll("details.mobile-menu").forEach((menu) => {
+      menu.open = false;
+    });
+  };
+
   const fullLoad = (href) => {
     window.location.assign(href);
   };
@@ -894,6 +900,7 @@
       fullLoad(href);
       return;
     }
+    closeMobileMenu();
     const target = url.pathname + url.search + url.hash;
     if (window.__rocciNavSections) {
       window.__rocciNavSections.remember();
@@ -1091,6 +1098,28 @@
         event.preventDefault();
         open();
         return;
+      }
+      const inMobilePanel = closest(event.target, ".mobile-panel");
+      if (inMobilePanel && event.button === 0) {
+        const sectionSummary = closest(event.target, "details.nav-section > summary");
+        if (
+          sectionSummary &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey
+        ) {
+          const section = closest(sectionSummary, "details.nav-section");
+          const sectionHref = section && section.getAttribute("data-rocci-nav-href");
+          if (sectionHref) {
+            event.preventDefault();
+            go(sectionHref, "push");
+            return;
+          }
+        }
+        if (closest(event.target, "a[href], button")) {
+          closeMobileMenu();
+        }
       }
       if (event.defaultPrevented || event.button !== 0) {
         return;
