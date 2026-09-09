@@ -1,7 +1,6 @@
 use std::{
-    collections::BTreeSet,
     fs,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         Arc, Mutex,
         atomic::{AtomicU16, Ordering},
@@ -22,7 +21,7 @@ use crate::site::load_site;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ContentRoots {
-    dirs: Vec<std::path::PathBuf>,
+    dirs: Vec<PathBuf>,
 }
 
 impl ContentRoots {
@@ -52,12 +51,17 @@ impl ContentRoots {
         Self { dirs }
     }
 
-    pub(crate) fn dirs(&self) -> &[std::path::PathBuf] {
+    pub(crate) fn dirs(&self) -> &[PathBuf] {
         &self.dirs
+    }
+
+    #[cfg(test)]
+    fn from_dirs(dirs: Vec<PathBuf>) -> Self {
+        Self { dirs }
     }
 }
 
-fn push_existing_dir(dirs: &mut Vec<std::path::PathBuf>, path: &Path) {
+fn push_existing_dir(dirs: &mut Vec<PathBuf>, path: &Path) {
     if !path.is_dir() {
         return;
     }
@@ -67,11 +71,7 @@ fn push_existing_dir(dirs: &mut Vec<std::path::PathBuf>, path: &Path) {
     }
 }
 
-fn push_out_of_tree_service_parent(
-    dirs: &mut Vec<std::path::PathBuf>,
-    root: &Path,
-    config: &SiteConfig,
-) {
+fn push_out_of_tree_service_parent(dirs: &mut Vec<PathBuf>, root: &Path, config: &SiteConfig) {
     if config.http.service.is_empty() {
         return;
     }
@@ -121,41 +121,15 @@ pub fn run_with_host_at(
     let root = fs::canonicalize(&root)
         .with_context(|| format!("failed to resolve root {}", root.display()))?;
 
-    let title = load_config(&root)
-        .map(|config| config.site.title)
-        .unwrap_or_else(|_| "Documentation".into());
-    let assets = load_config(&root)
-        .map(|config| config.build.assets)
-        .unwrap_or_else(|_| "assets".into());
+    let config = load_config(&root).unwrap_or_default();
+    let title = config.site.title.clone();
+    let content_roots = ContentRoots::collect(&root, &config);
+    let watch_paths = content_roots.dirs().to_vec();
 
     let host_choice = host.unwrap_or_default();
     let mut session = BuildSession::create_with_host(host_choice)?;
 
-    let mut watch_paths = vec![root.clone()];
-    if let Ok(config) = load_config(&root) {
-        for mount in &config.mounts {
-            let mount_dir = root.join(&mount.source);
-            if mount_dir.is_dir() {
-                let canonical = fs::canonicalize(&mount_dir).unwrap_or(mount_dir);
-                if !canonical.starts_with(&root) {
-                    watch_paths.push(canonical);
-                }
-            }
-        }
-        for entry in &config.snippets.roots {
-            let path = root.join(entry);
-            if path.is_dir() && !path.starts_with(&root) {
-                watch_paths.push(path);
-            }
-        }
-    }
-
-    let filter_root = root.clone();
-    let filter_assets = assets;
-    let snippet_paths = session.snippet_paths.clone();
-    let custom_filter = Arc::new(move |path: &Path| {
-        path_is_relevant(path, &filter_root, &filter_assets, &snippet_paths)
-    });
+    let custom_filter = Arc::new(move |path: &Path| path_is_relevant(path, &content_roots));
 
     let backend_port = Arc::new(AtomicU16::new(0));
     let backend = Arc::new(Mutex::new(None::<RunningApp>));
@@ -302,52 +276,7 @@ fn push_span(
     rec.push(name, duration_ms, note);
 }
 
-pub(crate) fn path_is_relevant(
-    path: &Path,
-    root: &Path,
-    assets: &str,
-    snippet_paths: &BTreeSet<String>,
-) -> bool {
-    let components: Vec<_> = path.components().collect();
-    if components
-        .iter()
-        .any(|c| c.as_os_str() == ".git" || c.as_os_str() == "target")
-    {
-        return false;
-    }
-    if let Some(s) = path.to_str()
-        && snippet_paths.contains(s)
-    {
-        return true;
-    }
-    if let Ok(rel) = path.strip_prefix(root) {
-        if rel.as_os_str().is_empty() {
-            return false;
-        }
-        if rel.iter().any(|comp| {
-            let s = comp.to_string_lossy();
-            s.starts_with('.') && s != "." && s != ".."
-        }) {
-            return false;
-        }
-        if rel == Path::new("rocdown.toml") {
-            return true;
-        }
-        if rel.starts_with(assets) {
-            return true;
-        }
-        if let Some(ext) = path.extension().and_then(|ext| ext.to_str()) {
-            return matches!(
-                ext,
-                "rocdown" | "md" | "markdown" | "rocci" | "roc" | "css" | "png" | "jpg" | "svg"
-            );
-        }
-        return true;
-    }
-    false
-}
-
-pub(crate) fn path_is_relevant_in(path: &Path, roots: &ContentRoots) -> bool {
+pub(crate) fn path_is_relevant(path: &Path, roots: &ContentRoots) -> bool {
     if has_ignored_watch_component(path) {
         return false;
     }
@@ -390,32 +319,11 @@ mod tests {
 
     #[test]
     fn path_filter_keeps_content_and_ignores_noise() {
-        let root = PathBuf::from("/docs");
-        let none = std::collections::BTreeSet::new();
-        assert!(path_is_relevant(
-            Path::new("/docs/index.rocdown"),
-            &root,
-            "assets",
-            &none
-        ));
-        assert!(path_is_relevant(
-            Path::new("/docs/rocdown.toml"),
-            &root,
-            "assets",
-            &none
-        ));
-        assert!(path_is_relevant(
-            Path::new("/docs/assets/og.png"),
-            &root,
-            "assets",
-            &none
-        ));
-        assert!(!path_is_relevant(
-            Path::new("/docs/.git/index"),
-            &root,
-            "assets",
-            &none
-        ));
+        let roots = ContentRoots::from_dirs(vec![PathBuf::from("/docs")]);
+        assert!(path_is_relevant(Path::new("/docs/index.rocdown"), &roots));
+        assert!(path_is_relevant(Path::new("/docs/rocdown.toml"), &roots));
+        assert!(path_is_relevant(Path::new("/docs/assets/og.png"), &roots));
+        assert!(!path_is_relevant(Path::new("/docs/.git/index"), &roots));
     }
 
     #[test]
@@ -480,9 +388,15 @@ prefix = "docs"
 
         let config = load_config(&site).unwrap();
         let roots = ContentRoots::collect(&site, &config);
-        assert!(path_is_relevant_in(&docs.join("index.rocdown"), &roots));
-        assert!(!path_is_relevant_in(&docs.join(".git/index"), &roots));
-        assert!(path_is_relevant_in(&site.join("index.rocdown"), &roots));
+        let docs_canonical = fs::canonicalize(&docs).unwrap();
+        assert!(roots.dirs().contains(&docs_canonical), "{:?}", roots.dirs());
+        assert!(path_is_relevant(&docs.join("index.rocdown"), &roots));
+        assert!(!path_is_relevant(&docs.join(".git/index"), &roots));
+        assert!(path_is_relevant(&site.join("index.rocdown"), &roots));
+        assert!(path_is_relevant(
+            &site.join("../docs/index.rocdown"),
+            &roots
+        ));
         let _ = fs::remove_dir_all(workspace);
     }
 
@@ -522,8 +436,14 @@ prefix = "missing"
             "{:?}",
             roots.dirs()
         );
-        assert!(path_is_relevant_in(&project.join("page.rocdown"), &roots));
-        assert!(path_is_relevant_in(&docs.join("index.rocdown"), &roots));
+        let project_canonical = fs::canonicalize(&project).unwrap();
+        assert!(
+            roots.dirs().contains(&project_canonical),
+            "{:?}",
+            roots.dirs()
+        );
+        assert!(path_is_relevant(&project.join("page.rocdown"), &roots));
+        assert!(path_is_relevant(&docs.join("index.rocdown"), &roots));
         let _ = fs::remove_dir_all(workspace);
     }
 }
