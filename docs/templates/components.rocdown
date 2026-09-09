@@ -12,8 +12,6 @@ A component is a function that takes props and returns HTML. This one
 greets whoever you pass as `name`:
 
 ```rocci
-import Html
-
 @component
 Hello = |{ name }|
     <p>Hello, <strong>{name}</strong></p>
@@ -23,11 +21,10 @@ Hello = |{ name }|
 rocci view Hello.rocci --component Hello --arg name=Ada
 ```
 
-The window should read **Hello, Ada**. HTTP declarations in the same file
-are ignored during `view`.
+The window should read **Hello, Ada**.
 
-The cataloged module with scoped CSS is
-[Styling.rocci](/examples/styling/source/Styling-rocci/).
+The `.rocci` file may also contain normal Roc code in addition to the template functions.
+
 
 ## Call another component
 
