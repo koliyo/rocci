@@ -4,7 +4,7 @@ title: Watch composed catalog trees for Rocdown preview
 description: "Introduce ContentRoots from mount, peer, theme, assets, and service paths so view site rebuilds mounted docs and view docs rebuilds on peer and in-root edits. Do not collapse the two catalogs."
 tags: [domain/rocdown, concern/tooling, concern/architecture, concern/developer-experience]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T09:26:00Z }
+generated: { by: process:cursor, at: 2026-09-09T09:58:00Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
@@ -67,6 +67,11 @@ sources:
   - id: limitations
     resource: ../../status/known-limitations.md
     title: Known limitations
+    author: process:cursor
+    last_modified: 2026-09-09
+  - id: generic-site
+    resource: generic-catalog-site.md
+    title: Treat rocci.dev as one Rocdown catalog instance
     author: process:cursor
     last_modified: 2026-09-09
 ---
@@ -184,6 +189,13 @@ Exit: `okmate check knowledge --profile base --format terminal` after the
 doc/knowledge edits; `cargo fmt --all -- --check` if Rust comments changed
 (they should not).
 
+## Follow-on
+
+`run_site_dev` is already path-generic. Remaining rocci.dev coupling (closed
+layouts, `rocci-docs` URLs, ops `package site`) is
+[treat rocci.dev as one catalog instance](generic-catalog-site.md), not another
+watch phase.[^generic-site]
+
 [^research]: Filter drops mount events; peers are not registered; both catalogs stay.
 [^dev-rs]: Current `path_is_relevant` and mount `watch_paths`.
 [^site-rs]: Discovery order: root, mounts, peers.
@@ -196,3 +208,4 @@ doc/knowledge edits; `cargo fmt --all -- --check` if Rust comments changed
 [^readme]: Documented mount/peer split.
 [^preview-doc]: Troubleshooting does not mention mounts.
 [^limitations]: Status currently over-claims watch for composed catalogs.
+[^generic-site]: Engine preview is path-generic; layout/stager/ops coupling is a follow-on plan.
