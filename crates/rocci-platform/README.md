@@ -15,6 +15,9 @@ module: `element` / `void_element` / `attribute` / `boolean_attribute` /
 
 ## Host origin
 
+HTTP/1.1 client-disconnect logs are classified in this host, not by
+generated `main`.
+
 The Rust host and most `platform/` Roc modules are a vendored snapshot of
 [roc-lang/basic-webserver](https://github.com/roc-lang/basic-webserver)
 at `50e064cdd1c4562c293598c61f6ce7a895d99bcf` (0.16 line). Copyright

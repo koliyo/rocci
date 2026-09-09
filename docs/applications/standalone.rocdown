@@ -73,4 +73,12 @@ the native preview.
 `rocci run` on that directory picks the unique entry. `rocci run
 Counter.rocci` still names the primary and loads sibling modules.
 
+## Client disconnects
+
+Preview and `rocci run` may print that a client disconnected before an HTTP
+request or response finished. That is a cancelled navigation or closed
+stream, not a 500. The incomplete-request line never reached Roc. If
+handler stderr already advanced (`counter increment count=…`), that write
+ran; ignore the later disconnect line.
+
 Next: [Handlers](/docs/applications/handlers/).
