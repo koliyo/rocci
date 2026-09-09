@@ -24,6 +24,11 @@ There is no `@log`.
 `--no-live-reload` pauses automatic refresh on purpose; watch still rebuilds.
 Hard-reload the browser tab after a failed compile.
 
+`rocdown view site` rebuilds when **mounted** sources change, such as `docs/`
+when `site/` mounts `../docs`. `rocdown view docs` rebuilds on in-root edits
+and on existing `[[peer]]` trees such as `site/project` or staged
+`dist/example-docs`. Hidden path segments, `.git`, and `target` are ignored.
+
 `rocci browse` is the component gallery only. It does not open a project
 picker or launch other products.
 

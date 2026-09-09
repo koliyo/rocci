@@ -8,6 +8,16 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-09
 
+- Revised [known limitations](status/known-limitations.md): preview watch follows mounts and peers via `ContentRoots`; catalogs stay separate. Exploratory; do not log complete until CI and Knowledge succeed.
+
+- Revised [watch composed catalog trees](plans/rocdown/preview-watch-content-roots.md) and [mounted watch research](research/rocdown/preview-watch-content-roots.md): `[[peer]]` trees are watch roots (link graph / `RD2101`); they still do not emit. No strong skip: missing peer dirs appear later, apply-without-recompile covers peer-only rebuilds. Exploratory; do not log complete until CI and Knowledge succeed.
+
+- Filed draft [preview watch ignores mounted catalog trees](research/rocdown/preview-watch-content-roots.md): `view site` watches `docs/` then drops events in `path_is_relevant`; `view docs` stays first-class; mounts emit, peers do not. Pair: [plan](plans/rocdown/preview-watch-content-roots.md). Exploratory; do not log complete until CI and Knowledge succeed.
+
+- Filed draft [watch emitted catalog trees](plans/rocdown/preview-watch-content-roots.md): `ContentRoots` for mounts/theme/assets/service; both catalogs remain; no peer watch; no `rocci-docs` replacement. Pair: [research](research/rocdown/preview-watch-content-roots.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
+- Revised [known limitations](status/known-limitations.md): watch/live reload is in-root only; `view site` drops mounted `docs/` events. Exploratory finding; do not log complete until CI and Knowledge succeed.
+
 - Filed draft [classify HTTP client disconnects](plans/rocci/http-client-disconnects.md): Phase 1 host diagnostic class in `rocci-platform`; Phases 2–3 standalone docs and author skill; Phase 4 quiet-log / upstream review gate. Pair: [research](research/rocci/http-client-disconnects.md). Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 
 - Filed draft [HTTP client disconnects](research/rocci/http-client-disconnects.md): incomplete-request CLI line is Hyper parse failure before Roc; body `ClientDisconnected` and SSE abort are later phases. Pointed [SSE and HTTP limits](research/rocci/basic-webserver-sse-http.md) and [known limitations](status/known-limitations.md). Exploratory; do not log complete until CI and Knowledge succeed.

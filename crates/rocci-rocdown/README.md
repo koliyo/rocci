@@ -367,6 +367,12 @@ link inventory only: `check` and the language server resolve those routes;
 those routes fail as `RD2101`. Stage `dist/example-docs` before
 `rocdown check docs` when `docs/rocdown.toml` peers that tree.
 
+`rocdown view DIR` watches the same composed trees the loader understands:
+the catalog root, existing `[[mount]]` and `[[peer]]` directories, theme,
+assets, snippet roots, and the parent of an out-of-tree `http.service`.
+Peers still do not emit pages on `build`; preview rebuilds so peer routes
+stay in the link graph. Missing peer directories are omitted until they exist.
+
 The catalog owns routes, navigation, breadcrumbs, journeys, and visibility.
 Project `.rocci` layouts own the visible frame. A site may validate named
 layouts such as `home`, `faq`, `product`, `section`, `docs`, `plain`, and
@@ -379,7 +385,7 @@ deployment-level redirects or terminal responses remain an origin concern.
 `rocdown` is the command package for Rocdown documents and static documentation sites. See [`rocci-rocdown-cli`](../rocci-rocdown-cli).
 
 - `rocdown view FILE.rocdown`: Preview a single interactive document, including pages it links to. A file under an ancestor `rocdown.toml` previews that site at the page route. `rocdown run` is a deprecated alias.
-- `rocdown view DIR`: Preview a documentation site with live reload. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
+- `rocdown view DIR`: Preview a documentation site with live reload. Watch follows mounts and peers, not only files under the catalog root. Hybrid sites serve the CDN tree and proxy the generated island service on the same origin.
 - `rocdown serve-islands DIR`: Start the island HTTP service for `live` pages (`@method:fragment` / `@method:command` / `@get:live` / Datastar) by itself (CDN-plus-service deploy, or a sibling `[http].service` app).
 - `rocdown build DIR`: Build a static documentation site to `dist/`. `--host auto|native|wasm` is apply on the build machine (`wasm` is not a hosted Wasm server). `--target` is the Linux container process ISA/OS for island/app binaries (`arm64musl` on Apple Silicon Docker; `x64musl` on amd64)—never mixed into Mac apply. Hybrid sites emit CDN HTML plus `islands.json` for the service; `--cdn-only` errors on `live` pages.
 - `rocdown package DIR`: write `publish.json` and `site.tgz`. Static catalogs imply `--cdn-only`. Hybrid catalogs compile a sibling `islands` binary unless `--cdn-only` (then `RD2302`). `--target` matches the Linux container CPU (see `docker/README.md`).

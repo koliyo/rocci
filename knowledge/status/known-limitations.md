@@ -4,7 +4,7 @@ title: Known Rocci limitations
 description: Rocci deliberately lacks dynamic Rocdown islands, full-text documentation-site search, production packaging, broad native APIs, and full cross-platform validation.
 tags: [domain/rocci, domain/rocdown, domain/desktop, concern/validation, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T09:09:00Z }
+generated: { by: process:cursor, at: 2026-09-09T11:50:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2026-11-19
@@ -61,6 +61,11 @@ sources:
     title: Incomplete request vs body disconnect vs SSE abort
     author: process:cursor
     last_modified: 2026-09-09
+  - id: preview-watch
+    resource: ../research/rocdown/preview-watch-content-roots.md
+    title: Preview watch ignores mounted catalog trees
+    author: process:cursor
+    last_modified: 2026-09-09
 ---
 
 # Known Rocci limitations
@@ -73,7 +78,7 @@ sources:
 
 Rocdown site builds reject pages containing `@render`, Roc blocks, Rocci templates, handlers, file CSS, or custom layouts; the dynamic-island splice path is not implemented. This includes document-root `<Tag>` islands because Rocdown classifies them as Rocci template items before applying its static feature gate. `:kind` article blocks are allowed on static pages.[^rocdown-site][^rocdown-article]
 
-Cmd/Ctrl-K fuzzy page navigation ships on Rocdown sites, rocci.dev, OKF review HTML, and desktop preview. It ranks `pages.json` / `catalog.json` titles and paths and swaps already-rendered HTML; it is not full-text search.[^goto-js][^fuzzy-plan] Full-text documentation-site search, clean per-page Markdown artifacts, and some machine-output polish remain in the ordinary Rocdown backlog. Markdown and search text functions already exist for `:kind` article nodes so those outputs stay honest when they land. The separate OKF knowledge path emits a heading-chunk search index, supports filtered CLI search, and measures a fixed lexical retrieval benchmark; that does not add a full-text search interface to ordinary generated documentation sites. Watch/serve, aliases, and live reload are already implemented, and the public status page reflects that boundary.[^roadmap-plan][^status-doc][^okf]
+Cmd/Ctrl-K fuzzy page navigation ships on Rocdown sites, rocci.dev, OKF review HTML, and desktop preview. It ranks `pages.json` / `catalog.json` titles and paths and swaps already-rendered HTML; it is not full-text search.[^goto-js][^fuzzy-plan] Full-text documentation-site search, clean per-page Markdown artifacts, and some machine-output polish remain in the ordinary Rocdown backlog. Markdown and search text functions already exist for `:kind` article nodes so those outputs stay honest when they land. The separate OKF knowledge path emits a heading-chunk search index, supports filtered CLI search, and measures a fixed lexical retrieval benchmark; that does not add a full-text search interface to ordinary generated documentation sites. Watch/serve, aliases, and live reload follow each catalog’s composed trees: catalog root, existing mounts and peers, theme, assets, snippet roots, and an out-of-tree `http.service` parent. `rocdown view site` rebuilds when mounted sources such as `docs/` change; `rocdown view docs` rebuilds on in-root edits and existing peer trees. The two catalogs stay separate. Details: [preview watch content roots](/research/rocdown/preview-watch-content-roots.md).[^roadmap-plan][^status-doc][^okf][^preview-watch]
 
 ## Runtime and desktop delivery
 
@@ -98,6 +103,7 @@ Review this record when a cited source changes or on its `stale_after` date. The
 [^okf]: Current local search and machine-output support in portable OKF engine.
 [^goto-js]: Shared Cmd/Ctrl-K palette and History-API HTML swap.
 [^fuzzy-plan]: Document navigation versus full-text search boundary.
+[^preview-watch]: Watch relevance uses `ContentRoots`; `.git`, `target`, and hidden segments stay ignored.
 [^site-ref]: Pack-inferred custom kinds default to any children; helpers must not live in the pack.
 [^bws-sse]: Host idle timeout and HTTP/1.1 on plaintext run; Rocci keepalives and empty SSE are workarounds.
 [^disconnects]: Incomplete-request and client-abort eprintln are classified in `rocci-platform`; leftover `Could not serve` is idle timeout or unknown Hyper failure.
