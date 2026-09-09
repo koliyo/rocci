@@ -37,10 +37,21 @@ respond! = |request, _context| {
     match path {
         "/bad" => {
             result = Rocci.compile!({ name: "Bad.rocci", source: error_source })
+            code =
+                match List.get(result.diagnostics, 0) {
+                    Ok(diag) => diag.code
+                    Err(_) => ""
+                }
+            status = if Str.starts_with(code, "RC") {
+                200
+            } else {
+                500
+            }
             Ok(
                 Server.respond(
-                    Response.from_status(200)
-                    .with_body(Str.to_utf8(format_compile(result))),
+                    Response.from_status(status)
+                    .with_headers([{ name: "Content-Type", value: "text/plain; charset=utf-8" }])
+                    .with_body(Str.to_utf8(code)),
                 ),
             )
         }
@@ -56,15 +67,6 @@ respond! = |request, _context| {
         }
     }
 }
-
-format_compile : Rocci.CompileResult -> Str
-format_compile = |result|
-    Str.concat(
-        "codes=",
-        result.diagnostics
-        |> List.map(|diag| diag.code)
-        |> Str.join_with(","),
-    )
 
 shutdown! : Server.ShutdownReason, Context => Try({}, [Exit(I64), ..])
 shutdown! = |_reason, _context| Ok({})
