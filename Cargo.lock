@@ -3468,7 +3468,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3490,7 +3490,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "thiserror 2.0.20",
@@ -3501,7 +3501,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-datastar"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -3512,7 +3512,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "h35-desktop",
  "rocci-core",
@@ -3520,7 +3520,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-docs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3532,7 +3532,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-highlight"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cc",
  "rocci-template",
@@ -3542,7 +3542,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-lsp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lsp-server",
  "lsp-types",
@@ -3556,7 +3556,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-platform"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "brotli",
  "bytes",
@@ -3584,7 +3584,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-playground"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rocci-highlight",
  "rocci-rocdown",
@@ -3595,7 +3595,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-playground-spike"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rocci-rocdown",
  "rocci-template",
@@ -3606,7 +3606,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-playground-wasm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rocci-playground",
  "serde",
@@ -3616,7 +3616,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-roc-host"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "serde",
@@ -3630,7 +3630,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-rocdown"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3655,7 +3655,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-rocdown-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3671,7 +3671,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-rocdown-lsp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lsp-server",
  "lsp-types",
@@ -3682,14 +3682,14 @@ dependencies = [
 
 [[package]]
 name = "rocci-template"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
 ]
 
 [[package]]
 name = "rocci-theme"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rocci-ui",
  "thiserror 2.0.20",
@@ -3697,7 +3697,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-ui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rocci-template",
  "serde",
@@ -3706,7 +3706,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-ungram"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3717,7 +3717,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-wasi-http"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "rusqlite",
@@ -3729,7 +3729,7 @@ dependencies = [
 
 [[package]]
 name = "rocci-wasi-http-component"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "rocci-wasi-http",
  "wasip3",
