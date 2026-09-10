@@ -28,7 +28,7 @@
 | Braces required | `@let`, `@css`, `@if`/`@for`/`@match`, or multiple roots. |
 | First param | Normally a props record. |
 | Extra param | Default body; paired tags pass nested markup as `Html`. |
-| `??` defaults | Allowed in `.rocci`; lowering emits `{ name : Str ?? "Roc" }` and a stripped pattern. Omitted fields use the Roc default. |
+| `??` defaults | Allowed in `.rocci`; lowering emits `HelloProps := { name : Str ?? "Roc" }` and a stripped pattern. Omitted fields use the Roc default. |
 
 There is no magic `children` field and no runtime component registry.
 `rocci show --component Hello` and `--component hello` both select the function.

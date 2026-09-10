@@ -24,7 +24,7 @@ pub use ast::{
     CssDecl, Document, Element, FixtureDecl, ForDirective, Fragment, FragmentDecl, Ident,
     IfDirective, InitDecl, Interpolation, LeadingComments, LetDirective, LiveDecl, MatchArm,
     MatchDirective, ModuleItem, ParsedParams, RouteDecl, TemplateBlock, TemplateItem, TestDecl,
-    TextNode, ViewDecl, component_props_type_anno, infer_record_default_type,
+    TextNode, ViewDecl, component_props_type_anno, defaulted_props_type, infer_record_default_type,
     parse_component_params, strip_param_defaults,
 };
 pub use diagnostic::{Diagnostic, DiagnosticFrame, Severity, supports_ansi};

@@ -60,9 +60,7 @@ fn split_heading(target: &str) -> (String, Option<String>) {
 fn find_open_wiki(src: &str, offset: usize) -> Option<usize> {
     let mut search_end = offset;
     while search_end > 0 {
-        let Some(idx) = src[..search_end].rfind("[[") else {
-            return None;
-        };
+        let idx = src[..search_end].rfind("[[")?;
         let before = idx;
         if in_code(src, idx) {
             search_end = idx;
@@ -225,9 +223,7 @@ pub(crate) fn markdown_dest_context(src: &str, offset: usize) -> Option<Markdown
 fn find_open_markdown_dest(src: &str, offset: usize) -> Option<usize> {
     let mut search_end = offset;
     while search_end > 0 {
-        let Some(idx) = src[..search_end].rfind("](") else {
-            return None;
-        };
+        let idx = src[..search_end].rfind("](")?;
         if in_code(src, idx) {
             search_end = idx;
             continue;

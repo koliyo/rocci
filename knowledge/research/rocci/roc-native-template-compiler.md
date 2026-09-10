@@ -211,8 +211,7 @@ If the parser is never rewritten in Roc, the consume-in-Roc idea can
 still go through **hosted glue** to `crates/rocci-template` (a platform
 effect, not a package). On rocci-platform that is `import pf.Rocci` /
 `compile!` / `parse!`. It is **not** this rewrite, **not** `rocci run`,
-and **not** apply/HTML render. Crate note:
-[rocci-platform README](../../../crates/rocci-platform/README.md).
+and **not** apply/HTML render. Crate note in the rocci-platform README.
 Placement:
 [rocci-platform template API](rocci-platform-template-api.md).
 Pair: [glue research](template-parser-roc-glue.md) /

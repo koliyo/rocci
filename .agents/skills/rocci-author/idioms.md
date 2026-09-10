@@ -183,7 +183,7 @@ not the way older Roc or Elm juxtaposition looked.
 | `->` | Pure function (components, wasm render). |
 | `=>` | Effectful function (`write_page!`, `@init`). |
 | `=> Try({}, [..])` | Effect that returns `Ok({})`. Matches custom app `main!`. |
-| `{ name : Str ?? "Roc" }` | Defaulted field on a **type**. Pattern `|{ name ?? "Roc" }|` is still illegal. |
+| `{ name : Str ?? "Roc" }` | Defaulted field on a **nominal** type (`HelloProps := { … }`). Pattern `|{ name ?? "Roc" }|` is still illegal. |
 
 **Do this**
 

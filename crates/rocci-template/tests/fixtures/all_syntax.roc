@@ -15,7 +15,8 @@ helloSample = { name: "Roc" }
 
 
 
-badge : { tone : Tone ?? Neutral }, Html -> Html
+BadgeProps := { tone : Tone ?? Neutral }
+badge : BadgeProps, Html -> Html
 badge = |{ tone }, content| {
     Html.fragment(
         [
@@ -42,7 +43,8 @@ badge = |{ tone }, content| {
 
 
 ## Simple greeting used by CounterPage.
-hello : { name : Str ?? "World" } -> Html
+HelloProps := { name : Str ?? "World" }
+hello : HelloProps -> Html
 hello = |{ name }| {
     Html.fragment(
         [

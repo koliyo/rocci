@@ -17,8 +17,10 @@ Hello = |{ name }|
     <p>Hello, <strong>{name}</strong></p>
 ```
 
+You can use the `rocci show` command to preview the component.
+
 ```sh
-rocci show Hello.rocci --component Hello --arg name=Ada
+rocci show Hello.rocci --arg name=Ada
 ```
 
 The window should read **Hello, Ada**.
@@ -26,12 +28,21 @@ The window should read **Hello, Ada**.
 The `.rocci` file may also contain normal Roc code in addition to the template functions.
 
 
-## Call another component
+## Composing components
 
-Names are PascalCase. Consecutive leading capitals (`HTMLShell`) are
-rejected; write `HtmlShell`. Nested markup is a second `Html` argument,
-not a `children` field. Putting `Html` in the props record wraps it in
-`Html.text` and escapes it.
+Component names are PascalCase. Consecutive leading capitals (`HTMLShell`)
+are rejected as ambiguous; write `HtmlShell`. The generated roc functions are lowercase due to roc naming conventions.
+
+Nested markup is a **second parameter**, not a `children` field on the
+props record. A self-closing tag (`<Hello name="Ada" />`) is a one-argument
+call. A paired tag (`<Card title="Hello">…</Card>`) passes the inner markup
+as that second argument, typed `Html`.
+
+Write `{content}` for that body parameter: it is already `Html`, so Rocci
+inserts it as-is. Do not put the nested tree on the props record
+(`|{ title, content }|`). A `{content}` interpolation in text position
+expects `Str`, so an `Html` field would be wrapped in `Html.text` and
+escaped (you would see tags as literal text, not nested elements).
 
 ```rocci
 @component Card = |{ title }, content|
@@ -46,9 +57,9 @@ not a `children` field. Putting `Html` in the props record wraps it in
     </Card>
 ```
 
-A self-closing tag is a one-argument call. Qualified calls use the
-imported module: `<Design.Button />` becomes `Design.button`. Missing
-PascalCase names fail in Roc, not in a client-side registry.
+Qualified calls use the imported module: `<Design.Button />` becomes
+`Design.button`. Missing PascalCase names fail in Roc, not in a
+client-side registry.
 
 `??` field defaults are **experimental**. Omit the field at the call
 site; generated Roc uses a type-position default so Roc fills it.
@@ -70,7 +81,7 @@ helloTest = { name: "Ada" }
 ```
 
 ```sh
-rocci show Hello.rocci --component Hello
+rocci show Hello.rocci
 ```
 
 The preview shows **Hello, Ada** from `helloTest`. Pass `--arg name=Roc`

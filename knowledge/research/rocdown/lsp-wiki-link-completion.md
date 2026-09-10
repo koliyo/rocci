@@ -188,3 +188,17 @@ sync is workspace-intelligence leftover.[^site-index][^language-plan]
    for wiki, published route and relative document path for `[text](`.
 5. Keep this out of `rocci-lsp` analysis types. Rocdown owns the items;
    the generic crate only advertises triggers.[^tooling-arch]
+
+[^rocdown-lsp]: Rocdown analyzer compile_text, completion, goto_definition.
+[^lsp-tests]: Rocdown LSP tests for kinds, fields, interpolation.
+[^lsp-core]: Composed server capabilities and completion triggers.
+[^links-rs]: Compile-time page index and URL resolution.
+[^wiki-catalog]: Catalog wiki_target, RD2101, RD2105.
+[^site-index]: workspace_pages cache from rocdown.toml.
+[^markdown-rs]: Comrak WikiLink lowered to MdNode::Link.
+[^readme]: Wiki and page-link contract.
+[^lang-ref]: Public Rocdown links reference.
+[^pages-ref]: Published routes versus wiki keys.
+[^tooling-arch]: Rocci language-tooling boundary.
+[^language-plan]: Umbrella language-tooling plan.
+[^impl-plan]: Implementation plan for Rocdown link completion.

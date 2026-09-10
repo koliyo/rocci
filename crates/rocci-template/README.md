@@ -95,14 +95,15 @@ record. Extra parameters are the default body:
 
 `??` field defaults are allowed in `.rocci` (`|{ name ?? "Roc" }|`). Lowering
 keeps a stripped pattern (`|{ name }|`) because Roc still rejects `??` in
-patterns, and emits a type annotation `{ name : Str ?? "Roc" }` so omitted
+patterns, and emits a nominal `HelloProps := { name : Str ?? "Roc" }` so omitted
 fields materialize at construction. String and integer defaults infer a type;
 Bool defaults stay filled at call sites (`True`/`False` in a type annotation
 crashes this Roc nightly at runtime). Tag defaults need an authored type
 (`tone : Tone ?? Neutral`).
 
 ```roc
-hello : { name : Str ?? "Roc" } -> Html
+HelloProps := { name : Str ?? "Roc" }
+hello : HelloProps -> Html
 hello = |{ name }| { … }
 ```
 

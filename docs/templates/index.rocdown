@@ -8,7 +8,7 @@
 
 # Templates
 
-:lead Rocci templates provide HTML templating for Roc applications. The core functionality is pure templates, with no assumptions on the rest of the stack. See [Applications](/docs/applications) for full standalone Rocci application development.
+Rocci templates provide HTML templating for Roc applications. The core functionality is pure templates, with no assumptions on the rest of the stack. See [Applications](/docs/applications) for full standalone Rocci application development.
 
 Rocci templates are inspired by golang [templ](https://templ.guide) templating language, which integrate HTML tags into normal Go code functions, which is then generated as pure Go code by the generator.
 

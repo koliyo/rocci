@@ -209,8 +209,10 @@ pub fn compile_text(name: &str, text: &str) -> CompileOutput {
         .as_ref()
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|| name.to_string());
-    let mut options = CompileOptions::default();
-    options.pages = document_pages(name, text);
+    let options = CompileOptions {
+        pages: document_pages(name, text),
+        ..Default::default()
+    };
     crate::compile(SourceFile::new(&source_name, text), &options)
 }
 

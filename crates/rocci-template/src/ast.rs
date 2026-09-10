@@ -84,7 +84,7 @@ pub fn parse_component_params(src: &str, params: Span) -> ParsedParams {
 /// Rewrite `| { name ?? "Roc" } |` to `|{ name }|`.
 ///
 /// Roc still rejects `??` in record patterns. Generated functions keep a
-/// stripped pattern and a type annotation `{ name : Str ?? "Roc" }` instead.
+/// stripped pattern and a nominal `{Name}Props := { name : Str ?? "Roc" }`.
 pub fn strip_param_defaults(raw: &str) -> String {
     let trimmed = raw.trim();
     let Some(inner) = trimmed.strip_prefix('|').and_then(|s| s.strip_suffix('|')) else {
@@ -128,8 +128,8 @@ fn roc_type_default_expr(expr: &str) -> String {
     }
 }
 
-/// First-record Roc type when any prop is defaulted, e.g. `{ name : Str ?? "Roc" }`.
-pub fn component_props_type_anno(parsed: &ParsedParams) -> Option<String> {
+/// Backing record for defaulted props, e.g. `{ name : Str ?? "Roc" }`.
+pub fn component_props_backing_record(parsed: &ParsedParams) -> Option<String> {
     if !parsed.first_param_is_record {
         return None;
     }
@@ -168,6 +168,17 @@ pub fn component_props_type_anno(parsed: &ParsedParams) -> Option<String> {
         }
     }
     Some(format!("{{ {} }}", fields.join(", ")))
+}
+
+/// Nominal `{Name}Props` for defaulted props. Roc only allows `??` on `:=` records.
+pub fn defaulted_props_type(pascal: &str, parsed: &ParsedParams) -> Option<(String, String)> {
+    let backing = component_props_backing_record(parsed)?;
+    let type_name = format!("{pascal}Props");
+    Some((format!("{type_name} := {backing}"), type_name))
+}
+
+pub fn component_props_type_anno(parsed: &ParsedParams) -> Option<String> {
+    component_props_backing_record(parsed)
 }
 
 pub fn component_param_pattern(parsed: &ParsedParams) -> String {

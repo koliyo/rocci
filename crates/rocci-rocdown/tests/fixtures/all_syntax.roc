@@ -17,7 +17,8 @@ init! = || {
     }
     Ok(rocci_state)
 }
-hello : { name : Str ?? "World" } -> Html
+HelloProps := { name : Str ?? "World" }
+hello : HelloProps -> Html
 hello = |{ name }| {
     Html.fragment(
         [

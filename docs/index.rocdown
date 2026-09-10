@@ -8,7 +8,7 @@
 
 # Overview
 
-:lead Rocci is a stack for building web applications using Roc. Rocci templates lets you write HTML templates for Roc web applications. Standalone Rocci applications allow bulding web applications with Roc and Datastar.
+Rocci is a stack for building web applications using Roc. Rocci templates lets you write HTML templates for Roc web applications. Standalone Rocci applications allow bulding web applications with Roc and Datastar.
 
 Example of a simple Rocci template:
 

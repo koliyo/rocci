@@ -68,7 +68,8 @@ fn kitchen_sink_compiles_without_errors() {
     );
     assert!(
         out.roc
-            .contains("hello : { name : Str ?? \"World\" } -> Html")
+            .contains("HelloProps := { name : Str ?? \"World\" }")
+            && out.roc.contains("hello : HelloProps -> Html")
     );
     assert!(out.roc.contains("hello = |{ name }|"));
     assert!(!out.roc.contains("|{ name ??"));

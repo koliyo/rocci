@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::{
     Attr, AttrValue, ComponentDecl, CssDecl, Document, FixtureDecl, ModuleItem, TemplateItem,
-    TestDecl, component_param_pattern, component_props_type_anno, parse_component_params,
+    TestDecl, component_param_pattern, defaulted_props_type, parse_component_params,
 };
 use crate::resolve::pascal_to_camel;
 use crate::source_map::{OriginKind, Segment};
@@ -359,7 +359,9 @@ impl<'a> Emitter<'a> {
             span: component.span,
         });
 
-        if let Some(props_ty) = component_props_type_anno(&parsed) {
+        if let Some((decl, props_ty)) = defaulted_props_type(&component.name.name, &parsed) {
+            self.emit(&decl);
+            self.emit("\n");
             let mut anno = props_ty;
             for _ in &body_params {
                 anno.push_str(", ");
