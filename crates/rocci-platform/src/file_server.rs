@@ -1075,6 +1075,7 @@ mod tests {
     use crate::telemetry::Metrics;
     use std::fs;
     use std::io::Read;
+    use std::sync::atomic::{AtomicU64, Ordering};
 
     #[test]
     fn root_activation_rejects_duplicates_and_missing_directories() {
@@ -1464,15 +1465,18 @@ mod tests {
     }
 
     fn tempfile_dir() -> PathBuf {
-        let path = std::env::temp_dir().join(format!(
-            "basic-webserver-file-test-{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir(&path).unwrap();
-        path
+        static SEQ: AtomicU64 = AtomicU64::new(0);
+        loop {
+            let unique = SEQ.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "basic-webserver-file-test-{}-{unique}",
+                std::process::id()
+            ));
+            match fs::create_dir(&path) {
+                Ok(()) => return path,
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("{error}"),
+            }
+        }
     }
 }

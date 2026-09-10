@@ -406,21 +406,24 @@ fn map_io_error(error: io::Error) -> SinkError {
 mod tests {
     use super::*;
     use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::sync::{Arc, Barrier};
     use std::thread;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "basic-webserver-body-sink-{}-{unique}",
-            std::process::id()
-        ));
-        fs::create_dir(&path).unwrap();
-        path
+        static SEQ: AtomicU64 = AtomicU64::new(0);
+        loop {
+            let unique = SEQ.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "basic-webserver-body-sink-{}-{unique}",
+                std::process::id()
+            ));
+            match fs::create_dir(&path) {
+                Ok(()) => return path,
+                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("{error}"),
+            }
+        }
     }
 
     fn service(path: &Path, max_concurrent: usize) -> BodySinkService {

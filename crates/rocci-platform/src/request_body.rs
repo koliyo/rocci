@@ -1199,10 +1199,10 @@ mod tests {
     use futures::stream;
     use std::fs;
     use std::path::{Path, PathBuf};
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
     use std::sync::Arc;
     use std::thread;
-    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, Instant};
 
     fn test_host() -> &'static RocHost {
         let mut host = make_roc_host(core::ptr::null_mut());
@@ -1232,16 +1232,19 @@ mod tests {
     }
 
     fn temp_dir() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "basic-webserver-request-sink-{}-{unique}",
-            std::process::id()
-        ));
-        fs::create_dir(&path).unwrap();
-        path
+        static SEQ: AtomicU64 = AtomicU64::new(0);
+        loop {
+            let unique = SEQ.fetch_add(1, Ordering::Relaxed);
+            let path = std::env::temp_dir().join(format!(
+                "basic-webserver-request-sink-{}-{unique}",
+                std::process::id()
+            ));
+            match fs::create_dir(&path) {
+                Ok(()) => return path,
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("{error}"),
+            }
+        }
     }
 
     fn sink_registration(
