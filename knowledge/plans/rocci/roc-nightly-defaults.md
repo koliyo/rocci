@@ -1,11 +1,11 @@
 ---
 type: Implementation Plan
 title: Pin Roc 2026-08-23 and emit type-position defaults
-description: "Pin nightly-2026-08-23-fb208ba. Lower authored ?? to a Roc type annotation `{ name : Str ?? \"Roc\" }` and a stripped pattern; stop filling omitted fields at call sites. Pattern ?? stays illegal in generated Roc."
+description: "Historical plan: pin nightly-2026-08-23-fb208ba and emit structural type-position defaults. Current pin rejects that form; see nominal Props DX. Pattern ?? stays illegal in generated Roc."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T11:00:00Z }
-stale_after: 2026-11-25
+generated: { by: process:cursor, at: 2026-09-10T09:30:00Z }
+stale_after: 2026-12-10
 authority: exploratory
 owners: [human:nils]
 sources:
@@ -33,7 +33,12 @@ sources:
     resource: ../../../docs/reference/language/components.rocdown
     title: Public ?? defaults contract
     author: process:git
-    last_modified: 2026-08-22
+    last_modified: 2026-09-10
+  - id: current-dx
+    resource: ../../research/rocci/nominal-props-defaults-dx.md
+    title: Nominal-only ?? and generated HelloProps on the current pin
+    author: process:cursor
+    last_modified: 2026-09-10
 ---
 
 # Pin Roc 2026-08-23 and emit type-position defaults
@@ -44,6 +49,12 @@ CI, docs, and generated Roc use **nightly-2026-08-23-fb208ba**. Authored
 `|{ name ?? "Roc" }|` lowers to a **type-position** default and a stripped
 pattern. Call sites may omit the field. Pattern `??` is never copied into
 generated Roc.[^research][^ast-strip]
+
+**Current pin (2026-09-10):** product Roc is `nightly-2026-09-03-62fcb65`.
+That compiler rejects the structural annotation this plan emitted.
+`afb4d15e` emits `HelloProps := { name : Str ?? "Roc" }` instead. Empty
+`hello({})` then fails #11271. Follow-on research, not a new phase of
+this plan: [nominal Props DX](/research/rocci/nominal-props-defaults-dx.md).[^current-dx]
 
 ## Out of bound
 
@@ -108,3 +119,4 @@ plan status; indexes; `knowledge/log.md`.
 [^lower]: Current fill of omitted props at calls.
 [^install-roc]: Current pin was 2026-08-10 `7df8509`.
 [^components-ref]: Public `??` stripping wording.
+[^current-dx]: Nominal `{Name}Props` plus empty `{}` mismatch; authored `.rocci` unchanged.

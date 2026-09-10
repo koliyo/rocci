@@ -10,6 +10,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 - Restored lexical tokens on [known limitations](status/known-limitations.md) so the retrieval question `public documentation-site search packaging` hits `status/known-limitations` (Knowledge CI hit rate 87.50%). Descriptive; do not log complete until Knowledge succeeds.
 
+- Filed draft [Roc nominal-only ?? defaults force generated Props types](research/rocci/nominal-props-defaults-dx.md): `afb4d15e` emits `HelloProps :=` after roc-lang/roc#10834; authored `.rocci` is unchanged; `<Hello />` → `hello({})` mismatches #11271. Pointed the [Aug 23 defaults probe](research/rocci/roc-nightly-record-defaults.md) and [pin plan](plans/rocci/roc-nightly-defaults.md) at that record. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 - Filed draft [Rocdown LSP does not complete wiki or internal page links](research/rocdown/lsp-wiki-link-completion.md) and paired [wiki and internal link completion](plans/rocdown/lsp-wiki-link-completion.md): reuse `workspace_pages`, lexical `[[` / `](` context, do not change link resolution. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
 
 - Revised [Rocdown documentation generator](architecture/rocdown-documentation-compiler.md) and [Rocdown format](architecture/rocdown-format.md): mounted catalogs prefix ids/routes; prose uses `/docs/…`; wiki targets with `/` are relative paths (`RD2101`). Descriptive; do not log complete until CI and Knowledge succeed.

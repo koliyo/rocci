@@ -1,11 +1,11 @@
 ---
 type: Research Report
 title: Roc nightly 2026-08-23 record defaults versus Rocci ??
-description: "Nightly 2026-08-23-fb208ba typechecks defaulted and optional record fields in type position. Pattern ?? is still illegal. Rocci emits type annotations and stripped patterns; it does not copy ?? into generated parameter lists."
+description: "Historical probe: nightly 2026-08-23-fb208ba typechecked structural { name : Str ?? Roc } in type position. Pattern ?? stayed illegal. The current pin rejects structural ??; see nominal Props DX."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-08-25T10:45:00Z }
-stale_after: 2026-11-25
+generated: { by: process:cursor, at: 2026-09-10T09:30:00Z }
+stale_after: 2026-12-10
 authority: exploratory
 owners: [human:nils]
 sources:
@@ -56,6 +56,11 @@ sources:
     resource: https://github.com/roc-lang/roc/commit/fb208ba17ef1af6254c90a6715f423589a4bcb75
     title: nightly-2026-08-23-fb208ba merge
     author: organization:roc-lang
+  - id: current-dx
+    resource: ./nominal-props-defaults-dx.md
+    title: Nominal-only ?? and generated HelloProps on the current pin
+    author: process:cursor
+    last_modified: 2026-09-10
 ---
 
 # Roc nightly 2026-08-23 record defaults versus Rocci ??
@@ -70,7 +75,11 @@ Checked against two local compilers on 2026-08-25, using `roc check` on
 | `/Users/nils/Projects/roc/roc_nightly-macos_apple_silicon-2026-08-23-fb208ba/roc` | `nightly-2026-08-23-fb208ba` |
 | `/Users/nils/Projects/roc/roc_nightly-macos_apple_silicon-2026-08-12-606470f/roc` | `nightly-2026-08-12-606470f` (PATH at probe time) |
 
-This record is exploratory. Implementation: [pin Roc and emit type-position
+This record is exploratory. It is a **dated probe of `fb208ba`**. On the
+current product nightly, structural type-position `??` is illegal and
+Rocci emits `HelloProps :=` instead; that DX impact is
+[nominal Props defaults](/research/rocci/nominal-props-defaults-dx.md).[^current-dx]
+Implementation of the August cutover: [pin Roc and emit type-position
 defaults](/plans/rocci/roc-nightly-defaults.md). Pattern `??` is still not
 copied into generated Roc.[^ast-strip][^components-ref][^plan]
 
@@ -168,3 +177,4 @@ this nightly or later.
 [^roc-optional-commit]: End-to-end defaulted (`name : Type ?? default`) and optional (`name :? Type` / `?:`) record fields.
 [^roc-allsyntax]: `ServerConfig : { host : Str, port : U16 ?? 8080, timeout_ms ?: U64 }` and `.?timeout_ms`.
 [^roc-nightly]: Compiler tag of the probed binary.
+[^current-dx]: Current pin is `nightly-2026-09-03-62fcb65`; `afb4d15e` emits nominal `{Name}Props`.
