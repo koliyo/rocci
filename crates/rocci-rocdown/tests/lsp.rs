@@ -1062,3 +1062,50 @@ fn completes_wiki_targets_from_sibling_index() {
     );
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn completes_wiki_heading_fragments_from_target_page() {
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-wiki-{}-{}",
+        std::process::id(),
+        "headings"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("Target.rocdown"), "# heading\n").unwrap();
+    let home = root.join("home.rocdown");
+    let src = "See [[Target#he";
+    fs::write(&home, src).unwrap();
+    let uri: Uri = format!("file://{}", home.display())
+        .parse()
+        .expect("heading uri");
+
+    let mut server = initialize_server();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open heading buffer");
+    let (line, character) = line_col(src, src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("heading completion")
+    else {
+        panic!("expected completion array");
+    };
+    let found = labels(&items);
+    assert!(found.contains(&"heading"), "{found:?}");
+    let _ = fs::remove_dir_all(root);
+}

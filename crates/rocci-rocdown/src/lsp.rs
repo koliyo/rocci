@@ -495,9 +495,11 @@ pub fn completion(
         );
     }
     if let Some(wiki) = crate::link_completion::wiki_link_context(text, offset)
-        && wiki.heading_prefix.is_none()
         && wiki.label_prefix.is_none()
     {
+        if let Some(heading_prefix) = wiki.heading_prefix.as_deref() {
+            return heading_completion(compiled, pages, &wiki.prefix, heading_prefix);
+        }
         return CompletionResponse::Array(
             crate::link_completion::wiki_page_keys(pages, &wiki.prefix)
                 .into_iter()
@@ -505,7 +507,46 @@ pub fn completion(
                 .collect(),
         );
     }
+    if let Some(dest) = crate::link_completion::markdown_dest_context(text, offset)
+        && let Some(heading_prefix) = dest.heading_prefix.as_deref()
+    {
+        return heading_completion(compiled, pages, &dest.path_prefix, heading_prefix);
+    }
     CompletionResponse::Array(Vec::new())
+}
+
+fn heading_completion(
+    compiled: &CompileOutput,
+    pages: &[crate::PageRef],
+    page_key: &str,
+    heading_prefix: &str,
+) -> CompletionResponse {
+    let ids = heading_ids_for_target(compiled, pages, page_key);
+    CompletionResponse::Array(
+        crate::link_completion::heading_keys(ids, heading_prefix)
+            .into_iter()
+            .map(|id| completion_item(&id, CompletionItemKind::TEXT, Some(format!("#{id}"))))
+            .collect(),
+    )
+}
+
+fn heading_ids_for_target(
+    compiled: &CompileOutput,
+    pages: &[crate::PageRef],
+    page_key: &str,
+) -> Vec<String> {
+    if page_key.is_empty() {
+        return compiled.headings.iter().map(|h| h.id.clone()).collect();
+    }
+    let Some(page) = crate::link_completion::page_for_wiki_key(pages, page_key) else {
+        return Vec::new();
+    };
+    let current = pages.last();
+    if current.is_some_and(|cur| cur.path == page.path) {
+        compiled.headings.iter().map(|h| h.id.clone()).collect()
+    } else {
+        page.heading_ids.clone()
+    }
 }
 
 pub fn semantic_tokens_rocdown(

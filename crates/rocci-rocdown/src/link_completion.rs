@@ -189,6 +189,94 @@ pub(crate) fn wiki_page_keys(pages: &[PageRef], prefix: &str) -> Vec<(String, St
     items
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct MarkdownDestContext {
+    pub path_prefix: String,
+    pub heading_prefix: Option<String>,
+}
+
+pub(crate) fn markdown_dest_context(src: &str, offset: usize) -> Option<MarkdownDestContext> {
+    let offset = offset.min(src.len());
+    if in_code(src, offset) {
+        return None;
+    }
+    let dest_start = find_open_markdown_dest(src, offset)?;
+    if offset < dest_start {
+        return None;
+    }
+    let typed = &src[dest_start..offset];
+    if typed.contains('\n') || typed.chars().any(|ch| ch.is_whitespace()) || typed.contains(')') {
+        return None;
+    }
+    let (path_prefix, heading_prefix) = split_heading(typed);
+    if crate::links::has_scheme(&path_prefix) {
+        return None;
+    }
+    Some(MarkdownDestContext {
+        path_prefix,
+        heading_prefix,
+    })
+}
+
+fn find_open_markdown_dest(src: &str, offset: usize) -> Option<usize> {
+    let mut search_end = offset;
+    while search_end > 0 {
+        let Some(idx) = src[..search_end].rfind("](") else {
+            return None;
+        };
+        if in_code(src, idx) {
+            search_end = idx;
+            continue;
+        }
+        if src[idx + 2..offset].contains(')') {
+            search_end = idx;
+            continue;
+        }
+        let Some(label_open) = src[..idx].rfind('[') else {
+            search_end = idx;
+            continue;
+        };
+        if label_open > 0 && src.as_bytes()[label_open - 1] == b'!' {
+            search_end = idx;
+            continue;
+        }
+        return Some(idx + 2);
+    }
+    None
+}
+
+pub(crate) fn heading_keys(
+    ids: impl IntoIterator<Item = impl AsRef<str>>,
+    prefix: &str,
+) -> Vec<String> {
+    let mut items: Vec<String> = ids
+        .into_iter()
+        .map(|id| id.as_ref().to_string())
+        .filter(|id| id.starts_with(prefix) && !crate::links::is_source_line_anchor_id(id))
+        .collect();
+    items.sort();
+    items.dedup();
+    items
+}
+
+pub(crate) fn page_for_wiki_key<'a>(pages: &'a [PageRef], key: &str) -> Option<&'a PageRef> {
+    if key.is_empty() {
+        return None;
+    }
+    let file = format!("{key}.rocdown");
+    let md = format!("{key}.md");
+    let markdown = format!("{key}.markdown");
+    pages.iter().find(|page| {
+        page.wiki_key() == key
+            || page.stem == key
+            || (!page.id.contains('/') && page.id == key)
+            || page.file_name == key
+            || page.file_name == file
+            || page.file_name == md
+            || page.file_name == markdown
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -267,5 +355,28 @@ mod tests {
         let found = ctx("[[Page|la", "[[Page|la").expect("wiki");
         assert_eq!(found.prefix, "Page");
         assert_eq!(found.label_prefix.as_deref(), Some("la"));
+    }
+
+    #[test]
+    fn markdown_dest_heading_prefix() {
+        let src = "[x](Page#he";
+        let offset = src.len();
+        let found = markdown_dest_context(src, offset).expect("dest");
+        assert_eq!(found.path_prefix, "Page");
+        assert_eq!(found.heading_prefix.as_deref(), Some("he"));
+    }
+
+    #[test]
+    fn markdown_same_page_heading() {
+        let src = "[x](#he";
+        let found = markdown_dest_context(src, src.len()).expect("dest");
+        assert_eq!(found.path_prefix, "");
+        assert_eq!(found.heading_prefix.as_deref(), Some("he"));
+    }
+
+    #[test]
+    fn markdown_image_dest_is_ignored() {
+        let src = "![x](Page#he";
+        assert_eq!(markdown_dest_context(src, src.len()), None);
     }
 }
