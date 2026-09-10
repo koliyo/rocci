@@ -1,5 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import { spawnSync } from 'child_process'
 import { commands, ExtensionContext, window, workspace } from 'vscode'
 import {
   Executable,
@@ -14,7 +15,13 @@ import {
 import { createOutputChannels, wrappedOutput } from './output-channels'
 import { PreviewSession, registerPreviewCommands } from './preview/session'
 import { extractTarGz, installTools, nodeGithubClient } from './tools/install'
-import { newestLocalCargoBuild, resolveTool, ToolsChannel, workspaceCargoRoots } from './tools/resolve'
+import {
+  cargoProfileFromPath,
+  formatExtensionIdentity,
+  formatLanguageServerIdentity,
+  parseBuildInfo
+} from './tools/identity'
+import { newestLocalCargoBuild, readCachedManifest, resolveTool, ToolsChannel, workspaceCargoRoots } from './tools/resolve'
 
 let client: LanguageClient | undefined
 let previewSession: PreviewSession | undefined
@@ -32,15 +39,71 @@ function resolveServerPath(context: ExtensionContext): string | undefined {
   })
 }
 
-function describeServerSource(serverPath: string): string {
-  const cargo =
-    serverPath.includes(`${path.sep}target${path.sep}debug${path.sep}`) ||
-    serverPath.includes(`${path.sep}target${path.sep}release${path.sep}`)
-  if (cargo) {
-    const mtime = fs.statSync(serverPath).mtime.toISOString()
-    return `Language server source: local Cargo (${mtime})`
+function shortGit(cwd: string): string | undefined {
+  const result = spawnSync('git', ['-C', cwd, 'rev-parse', '--short', 'HEAD'], { encoding: 'utf8' })
+  if (result.status !== 0) {
+    return undefined
   }
-  return 'Language server source: GitHub extract'
+  const git = result.stdout.trim()
+  return git || undefined
+}
+
+function extensionGit(context: ExtensionContext): string | undefined {
+  const infoPath = path.join(context.extensionPath, 'build-info.json')
+  if (fs.existsSync(infoPath)) {
+    try {
+      const info = parseBuildInfo(JSON.parse(fs.readFileSync(infoPath, 'utf8')))
+      if (info?.git) {
+        return info.git
+      }
+    } catch {
+      // packaged build-info is optional
+    }
+  }
+  const gitHead = (context.extension.packageJSON as { gitHead?: string }).gitHead
+  if (typeof gitHead === 'string' && gitHead) {
+    return gitHead.slice(0, 7)
+  }
+  return shortGit(path.join(context.extensionPath, '..', '..')) ?? shortGit(context.extensionPath)
+}
+
+function logExtensionIdentity(context: ExtensionContext): void {
+  const pkg = context.extension.packageJSON as {
+    publisher?: string
+    name?: string
+    version?: string
+  }
+  wrappedOutput.appendLine(
+    formatExtensionIdentity({
+      publisher: pkg.publisher ?? 'koliyo',
+      name: pkg.name ?? 'rocci',
+      version: pkg.version ?? 'unknown',
+      git: extensionGit(context),
+      mode: isDebug ? 'F5' : 'installed'
+    })
+  )
+}
+
+function logLanguageServerIdentity(context: ExtensionContext, serverPath: string): void {
+  wrappedOutput.appendLine(`Language server path: ${serverPath}`)
+  const profile = cargoProfileFromPath(serverPath)
+  const cached = readCachedManifest(context.globalStorageUri.fsPath)
+  wrappedOutput.appendLine(
+    formatLanguageServerIdentity({
+      binaryPath: serverPath,
+      cargoProfile: profile,
+      cargoMtime: profile ? fs.statSync(serverPath).mtime.toISOString() : undefined,
+      github:
+        profile || !cached
+          ? undefined
+          : {
+              tagName: cached.tagName,
+              name: cached.name,
+              id: cached.id,
+              publishedAt: cached.publishedAt
+            }
+    })
+  )
 }
 
 function lspVerbose(): boolean {
@@ -92,8 +155,7 @@ async function startClient(context: ExtensionContext) {
     return
   }
 
-  wrappedOutput.appendLine(`Language server: ${serverPath}`)
-  wrappedOutput.appendLine(describeServerSource(serverPath))
+  logLanguageServerIdentity(context, serverPath)
 
   const rocPath = resolveRocPath()
   const env = { ...process.env }
@@ -211,6 +273,7 @@ async function updateTools(context: ExtensionContext, overwriteDev: boolean): Pr
 
 export async function activate(context: ExtensionContext) {
   createOutputChannels(isDebug)
+  logExtensionIdentity(context)
   wrappedOutput.appendLine(`Activate LSP client in ${context.extensionPath}`)
   registerCommands(context)
   const autoUpdate = workspace.getConfiguration('rocci').get<boolean>('tools.autoUpdate', true)

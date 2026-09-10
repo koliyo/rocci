@@ -70,9 +70,9 @@ function selectRemote(
   if (versioned && isNewerRelease(versioned.manifest, rolling?.manifest)) {
     if (!preferred || isNewerRelease(versioned.manifest, preferred.manifest)) {
       log(
-        `Prefer versioned ${versioned.manifest.tagName}: newer than ${
-          rolling ? `dev (${rolling.manifest.publishedAt})` : 'missing dev'
-        }`
+        `GitHub candidate: versioned ${versioned.manifest.tagName} (newer than ${
+          rolling ? `rolling dev ${rolling.manifest.publishedAt}` : 'missing rolling dev'
+        })`
       )
       return versioned
     }

@@ -32,7 +32,7 @@ The VSIX does not ship binaries. `rocci-language-server`, `rocci`, and `rocdown`
      3. Versioned GitHub `/releases/latest` (`publishedAt`). A newer versioned release always beats a stale GitHub `dev`.
 4. A previously extracted archive under VS Code global storage, then `PATH`.
 
-Local Cargo roots are the repo implied by the extension checkout (`extensionPath/../../target/…`) and each workspace folder’s `target/…`. Auto-update still fetches both GitHub remotes on `dev`. If the local Cargo mtime is newer than the selected remote, the download is skipped (`Skip install: local Cargo build newer than …`). The **Rocci** output channel logs the winner (`Language server source: local Cargo (…)` or `GitHub extract`).
+Local Cargo roots are the repo implied by the extension checkout (`extensionPath/../../target/…`) and each workspace folder’s `target/…`. Auto-update still fetches both GitHub remotes on `dev`. If the local Cargo mtime is newer than the selected remote, the download is skipped (`Skip install: local Cargo build newer than …`). The **Rocci** output channel logs `Extension: koliyo.rocci <version> git <hash> (installed|F5)` and `Language server: local Cargo …` or `Language server: GitHub v…`.
 
 ### Local dev LSP (no GitHub tag)
 

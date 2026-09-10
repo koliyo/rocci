@@ -4,6 +4,12 @@ import * as os from 'os'
 import * as path from 'path'
 
 import { installTools } from '../../tools/install'
+import {
+  cargoProfileFromPath,
+  formatExtensionIdentity,
+  formatLanguageServerIdentity,
+  parseBuildInfo
+} from '../../tools/identity'
 import { localCargoBinary, pickResolvedTool } from '../../tools/local-build'
 
 import {
@@ -273,7 +279,7 @@ suite('Rocci tools release contract (offline)', () => {
       JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8'))
     )
     assert.strictEqual(manifest.tagName, 'v0.2.0')
-    assert.ok(logs.some(line => line.includes('Prefer versioned v0.2.0')))
+    assert.ok(logs.some(line => line.includes('GitHub candidate: versioned v0.2.0')))
   })
 
   test('replaces a stale local dev on stable when versioned is newer', async () => {
@@ -505,5 +511,55 @@ suite('Rocci tools release contract (offline)', () => {
     fs.utimesSync(debugPath, newer, newer)
     fs.utimesSync(releasePath, older, older)
     assert.strictEqual(localCargoBinary([root], 'rocci-language-server')?.path, debugPath)
+  })
+
+  test('formats extension and language-server identity lines', () => {
+    assert.strictEqual(
+      formatExtensionIdentity({
+        publisher: 'koliyo',
+        name: 'rocci',
+        version: '0.1.0',
+        git: 'd2a3bd4',
+        mode: 'installed'
+      }),
+      'Extension: koliyo.rocci 0.1.0 git d2a3bd4 (installed)'
+    )
+    assert.strictEqual(
+      formatExtensionIdentity({
+        publisher: 'koliyo',
+        name: 'rocci',
+        version: '0.1.0',
+        mode: 'F5'
+      }),
+      'Extension: koliyo.rocci 0.1.0 git unknown (F5)'
+    )
+    assert.strictEqual(
+      cargoProfileFromPath('/Users/nils/Projects/rocci/target/debug/rocci-language-server'),
+      'debug'
+    )
+    assert.strictEqual(
+      formatLanguageServerIdentity({
+        binaryPath: '/tmp/target/debug/rocci-language-server',
+        cargoProfile: 'debug',
+        cargoMtime: '2026-09-10T20:09:26.870Z'
+      }),
+      'Language server: local Cargo debug 2026-09-10T20:09:26.870Z'
+    )
+    assert.strictEqual(
+      formatLanguageServerIdentity({
+        binaryPath: '/tmp/releases/v0.1.1/rocci-language-server',
+        github: {
+          tagName: 'v0.1.1',
+          name: 'v0.1.1',
+          id: 386403705,
+          publishedAt: '2026-09-10T15:25:44Z'
+        }
+      }),
+      'Language server: GitHub v0.1.1 (v0.1.1, id 386403705, published 2026-09-10T15:25:44Z)'
+    )
+    assert.deepStrictEqual(parseBuildInfo({ git: 'abc1234', builtAt: '2026-09-10T20:00:00Z' }), {
+      git: 'abc1234',
+      builtAt: '2026-09-10T20:00:00Z'
+    })
   })
 })
