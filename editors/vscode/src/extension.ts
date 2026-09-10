@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import * as path from 'path'
 import { commands, ExtensionContext, window, workspace } from 'vscode'
 import {
   Executable,
@@ -13,15 +14,33 @@ import {
 import { createOutputChannels, wrappedOutput } from './output-channels'
 import { PreviewSession, registerPreviewCommands } from './preview/session'
 import { extractTarGz, installTools, nodeGithubClient } from './tools/install'
-import { resolveTool } from './tools/resolve'
+import { newestLocalCargoBuild, resolveTool, ToolsChannel, workspaceCargoRoots } from './tools/resolve'
 
 let client: LanguageClient | undefined
 let previewSession: PreviewSession | undefined
 const isDebug = process.env.VSCODE_DEBUG_MODE !== undefined
 
+function toolsChannel(): ToolsChannel {
+  return workspace.getConfiguration('rocci').get<string>('tools.channel') === 'dev' ? 'dev' : 'stable'
+}
+
 function resolveServerPath(context: ExtensionContext): string | undefined {
   const configured = workspace.getConfiguration('rocci').get<string>('lsp.serverPath')
-  return resolveTool(context, 'rocci-language-server', configured, isDebug)
+  return resolveTool(context, 'rocci-language-server', configured, {
+    isDebug,
+    channel: toolsChannel()
+  })
+}
+
+function describeServerSource(serverPath: string): string {
+  const cargo =
+    serverPath.includes(`${path.sep}target${path.sep}debug${path.sep}`) ||
+    serverPath.includes(`${path.sep}target${path.sep}release${path.sep}`)
+  if (cargo) {
+    const mtime = fs.statSync(serverPath).mtime.toISOString()
+    return `Language server source: local Cargo (${mtime})`
+  }
+  return 'Language server source: GitHub extract'
 }
 
 function lspVerbose(): boolean {
@@ -74,6 +93,7 @@ async function startClient(context: ExtensionContext) {
   }
 
   wrappedOutput.appendLine(`Language server: ${serverPath}`)
+  wrappedOutput.appendLine(describeServerSource(serverPath))
 
   const rocPath = resolveRocPath()
   const env = { ...process.env }
@@ -162,8 +182,10 @@ function registerCommands(context: ExtensionContext) {
 }
 
 async function updateTools(context: ExtensionContext, overwriteDev: boolean): Promise<void> {
-  const config = workspace.getConfiguration('rocci')
-  const channel = config.get<string>('tools.channel') === 'dev' ? 'dev' : 'stable'
+  const channel = toolsChannel()
+  const local = newestLocalCargoBuild(
+    workspaceCargoRoots(context.extensionPath, workspace.workspaceFolders)
+  )
   wrappedOutput.appendLine(
     overwriteDev ? 'Update tools (manual)' : 'Update tools (auto on activate)'
   )
@@ -173,6 +195,7 @@ async function updateTools(context: ExtensionContext, overwriteDev: boolean): Pr
       storageRoot: context.globalStorageUri.fsPath,
       channel,
       overwriteDev,
+      localBuiltAt: local?.mtime,
       platform: process.platform,
       arch: process.arch,
       client: nodeGithubClient('rocci-vscode'),

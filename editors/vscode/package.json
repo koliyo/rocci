@@ -163,10 +163,10 @@
           "enum": ["stable", "dev"],
           "enumDescriptions": [
             "Install from the latest GitHub release",
-            "Install from the rolling koliyo/rocci tag and release named dev"
+            "Use the newest of a local Cargo build, the rolling GitHub tag/release named dev, and the latest versioned GitHub release"
           ],
           "default": "stable",
-          "description": "GitHub release channel. stable uses /releases/latest. dev uses the rolling tag/release `dev` (assets named rocci-dev-<sha>-<triple>.tar.gz)."
+          "description": "GitHub release channel. stable uses /releases/latest. dev compares a workspace Cargo build (target/debug or target/release) with the rolling tag/release `dev` and /releases/latest; the newest date wins. A newer versioned release always wins over a stale GitHub `dev`."
         },
         "rocci.tools.autoUpdate": {
           "type": "boolean",

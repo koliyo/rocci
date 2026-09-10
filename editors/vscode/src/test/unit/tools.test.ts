@@ -4,11 +4,13 @@ import * as os from 'os'
 import * as path from 'path'
 
 import { installTools } from '../../tools/install'
+import { localCargoBinary, pickResolvedTool } from '../../tools/local-build'
 
 import {
   findReleaseArchive,
   githubReleaseApiUrl,
   githubRequestHeaders,
+  isNewerTimestamp,
   manifestsEqual,
   parseReleaseManifest,
   parseSha256Line,
@@ -56,6 +58,9 @@ suite('Rocci tools release contract (offline)', () => {
     assert.strictEqual(jsonHeaders.accept, 'application/vnd.github+json')
     assert.notStrictEqual(jsonHeaders.accept, 'application/octet-stream')
     assert.strictEqual(githubRequestHeaders('rocci-vscode', 'asset').accept, 'application/octet-stream')
+    assert.ok(isNewerTimestamp(new Date('2026-09-10T00:00:00Z'), '2026-09-01T10:21:56Z'))
+    assert.ok(!isNewerTimestamp(new Date('2026-09-01T10:21:56Z'), '2026-09-10T00:00:00Z'))
+    assert.ok(isNewerTimestamp(new Date('2026-09-10T00:00:00Z'), undefined))
   })
 
   test('verifies sha256 against a fixture buffer and rejects mismatch', () => {
@@ -133,6 +138,15 @@ suite('Rocci tools release contract (offline)', () => {
       arch: 'arm64',
       client: {
         getJson: async url => {
+          if (url === githubReleaseApiUrl('stable')) {
+            return {
+              id: 8,
+              name: 'v0.0.9',
+              tagName: 'v0.0.9',
+              publishedAt: '2026-08-01T00:00:00Z',
+              assets: []
+            }
+          }
           assert.strictEqual(url, githubReleaseApiUrl('dev'))
           return JSON.parse(
             '{"id":11,"name":"Development Build (abcdef0)","tag_name":"dev","published_at":"2026-08-25T12:00:00Z","assets":[{"name":"rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz","browser_download_url":"https://example.test/archive"},{"name":"rocci-dev-abcdef0-aarch64-apple-darwin.tar.gz.sha256","browser_download_url":"https://example.test/sha"}]}'
@@ -207,5 +221,271 @@ suite('Rocci tools release contract (offline)', () => {
     assert.ok(logs.some(line => line.includes('Current installed: v0.1.0')))
     assert.ok(logs.some(line => line.includes('Remote found: v0.1.0')))
     assert.ok(logs.some(line => line.includes('Skip install: already at v0.1.0')))
+  })
+
+  test('uses a newer versioned release even when channel is dev', async () => {
+    const archive = Buffer.from('stable-newer-than-dev')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-prefer-stable-'))
+    const logs: string[] = []
+    await installTools({
+      storageRoot: storage,
+      channel: 'dev',
+      overwriteDev: false,
+      platform: 'darwin',
+      arch: 'arm64',
+      client: {
+        getJson: async url => {
+          if (url === githubReleaseApiUrl('dev')) {
+            return JSON.parse(
+              '{"id":11,"name":"Development Build (3c42f27)","tag_name":"dev","published_at":"2026-09-01T10:21:56Z","assets":[{"name":"rocci-dev-3c42f27-aarch64-apple-darwin.tar.gz","browser_download_url":"https://example.test/dev-archive"},{"name":"rocci-dev-3c42f27-aarch64-apple-darwin.tar.gz.sha256","browser_download_url":"https://example.test/dev-sha"}]}'
+            )
+          }
+          return {
+            id: 42,
+            name: 'v0.2.0',
+            tagName: 'v0.2.0',
+            publishedAt: '2026-09-10T00:00:00Z',
+            assets: [
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz',
+                downloadUrl: 'https://example.test/archive'
+              },
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz.sha256',
+                downloadUrl: 'https://example.test/sha'
+              }
+            ]
+          }
+        },
+        getBuffer: async url =>
+          url.endsWith('/sha')
+            ? Buffer.from(`${digest}  rocci-v0.2.0-aarch64-apple-darwin.tar.gz\n`)
+            : archive
+      },
+      extract: async (buffer, dest) => {
+        fs.writeFileSync(path.join(dest, 'rocci-language-server'), buffer)
+      },
+      log: message => logs.push(message)
+    })
+    assert.ok(fs.existsSync(path.join(storage, 'releases', 'v0.2.0', 'rocci-language-server')))
+    const manifest = parseReleaseManifest(
+      JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8'))
+    )
+    assert.strictEqual(manifest.tagName, 'v0.2.0')
+    assert.ok(logs.some(line => line.includes('Prefer versioned v0.2.0')))
+  })
+
+  test('replaces a stale local dev on stable when versioned is newer', async () => {
+    const archive = Buffer.from('replace-stale-dev')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-replace-dev-'))
+    fs.mkdirSync(storage, { recursive: true })
+    fs.writeFileSync(
+      path.join(storage, 'manifest.json'),
+      JSON.stringify({
+        id: 11,
+        name: 'Development Build (3c42f27)',
+        tagName: 'dev',
+        publishedAt: '2026-09-01T10:21:56Z'
+      })
+    )
+    await installTools({
+      storageRoot: storage,
+      channel: 'stable',
+      overwriteDev: false,
+      platform: 'darwin',
+      arch: 'arm64',
+      client: {
+        getJson: async url => {
+          if (url === githubReleaseApiUrl('dev')) {
+            return {
+              id: 11,
+              name: 'Development Build (3c42f27)',
+              tagName: 'dev',
+              publishedAt: '2026-09-01T10:21:56Z',
+              assets: []
+            }
+          }
+          return {
+            id: 42,
+            name: 'v0.2.0',
+            tagName: 'v0.2.0',
+            publishedAt: '2026-09-10T00:00:00Z',
+            assets: [
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz',
+                downloadUrl: 'https://example.test/archive'
+              },
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz.sha256',
+                downloadUrl: 'https://example.test/sha'
+              }
+            ]
+          }
+        },
+        getBuffer: async url =>
+          url.endsWith('/sha')
+            ? Buffer.from(`${digest}  rocci-v0.2.0-aarch64-apple-darwin.tar.gz\n`)
+            : archive
+      },
+      extract: async (buffer, dest) => {
+        fs.writeFileSync(path.join(dest, 'rocci-language-server'), buffer)
+      },
+      log: () => undefined
+    })
+    const manifest = parseReleaseManifest(
+      JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8'))
+    )
+    assert.strictEqual(manifest.tagName, 'v0.2.0')
+  })
+
+  test('skips GitHub install on dev when a local Cargo build is newer', async () => {
+    const archive = Buffer.from('should-not-download')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-local-newer-'))
+    const logs: string[] = []
+    let extracted = false
+    await installTools({
+      storageRoot: storage,
+      channel: 'dev',
+      overwriteDev: false,
+      localBuiltAt: new Date('2026-09-10T12:00:00Z'),
+      platform: 'darwin',
+      arch: 'arm64',
+      client: {
+        getJson: async url => {
+          if (url === githubReleaseApiUrl('dev')) {
+            return {
+              id: 11,
+              name: 'Development Build (3c42f27)',
+              tagName: 'dev',
+              publishedAt: '2026-09-01T10:21:56Z',
+              assets: []
+            }
+          }
+          return {
+            id: 42,
+            name: 'v0.2.0',
+            tagName: 'v0.2.0',
+            publishedAt: '2026-09-10T00:00:00Z',
+            assets: [
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz',
+                downloadUrl: 'https://example.test/archive'
+              },
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz.sha256',
+                downloadUrl: 'https://example.test/sha'
+              }
+            ]
+          }
+        },
+        getBuffer: async url =>
+          url.endsWith('/sha')
+            ? Buffer.from(`${digest}  rocci-v0.2.0-aarch64-apple-darwin.tar.gz\n`)
+            : archive
+      },
+      extract: async () => {
+        extracted = true
+      },
+      log: message => logs.push(message)
+    })
+    assert.strictEqual(extracted, false)
+    assert.ok(!fs.existsSync(path.join(storage, 'manifest.json')))
+    assert.ok(logs.some(line => line.includes('Skip install: local Cargo build newer than v0.2.0')))
+  })
+
+  test('installs a versioned release newer than the local Cargo build', async () => {
+    const archive = Buffer.from('github-newer-than-local')
+    const digest = sha256Hex(archive)
+    const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-tools-github-newer-'))
+    await installTools({
+      storageRoot: storage,
+      channel: 'dev',
+      overwriteDev: false,
+      localBuiltAt: new Date('2026-09-01T10:21:56Z'),
+      platform: 'darwin',
+      arch: 'arm64',
+      client: {
+        getJson: async url => {
+          if (url === githubReleaseApiUrl('dev')) {
+            return {
+              id: 11,
+              name: 'Development Build (3c42f27)',
+              tagName: 'dev',
+              publishedAt: '2026-09-01T10:21:56Z',
+              assets: []
+            }
+          }
+          return {
+            id: 42,
+            name: 'v0.2.0',
+            tagName: 'v0.2.0',
+            publishedAt: '2026-09-10T00:00:00Z',
+            assets: [
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz',
+                downloadUrl: 'https://example.test/archive'
+              },
+              {
+                name: 'rocci-v0.2.0-aarch64-apple-darwin.tar.gz.sha256',
+                downloadUrl: 'https://example.test/sha'
+              }
+            ]
+          }
+        },
+        getBuffer: async url =>
+          url.endsWith('/sha')
+            ? Buffer.from(`${digest}  rocci-v0.2.0-aarch64-apple-darwin.tar.gz\n`)
+            : archive
+      },
+      extract: async (buffer, dest) => {
+        fs.writeFileSync(path.join(dest, 'rocci-language-server'), buffer)
+      },
+      log: () => undefined
+    })
+    const manifest = parseReleaseManifest(
+      JSON.parse(fs.readFileSync(path.join(storage, 'manifest.json'), 'utf8'))
+    )
+    assert.strictEqual(manifest.tagName, 'v0.2.0')
+  })
+
+  test('picks the newest local Cargo binary over an older GitHub extract', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-cargo-root-'))
+    const debugDir = path.join(root, 'target', 'debug')
+    fs.mkdirSync(debugDir, { recursive: true })
+    const localPath = path.join(debugDir, 'rocci-language-server')
+    fs.writeFileSync(localPath, 'local')
+    const found = localCargoBinary([root], 'rocci-language-server')
+    assert.ok(found)
+    assert.strictEqual(found.path, localPath)
+    assert.strictEqual(
+      pickResolvedTool({
+        isDebug: false,
+        channel: 'dev',
+        local: { path: localPath, mtime: new Date('2026-09-10T12:00:00Z') },
+        release: { path: '/tmp/extract/rocci-language-server', publishedAt: '2026-09-01T10:21:56Z' }
+      }),
+      localPath
+    )
+    assert.strictEqual(
+      pickResolvedTool({
+        isDebug: false,
+        channel: 'dev',
+        local: { path: localPath, mtime: new Date('2026-09-01T10:21:56Z') },
+        release: { path: '/tmp/extract/rocci-language-server', publishedAt: '2026-09-10T00:00:00Z' }
+      }),
+      '/tmp/extract/rocci-language-server'
+    )
+    assert.strictEqual(
+      pickResolvedTool({
+        isDebug: true,
+        channel: 'stable',
+        local: { path: localPath, mtime: new Date('2026-09-01T10:21:56Z') },
+        release: { path: '/tmp/extract/rocci-language-server', publishedAt: '2026-09-10T00:00:00Z' }
+      }),
+      localPath
+    )
   })
 })

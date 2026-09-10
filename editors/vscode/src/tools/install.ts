@@ -9,11 +9,14 @@ import {
   githubReleaseApiUrl,
   githubRequestHeaders,
   isDevRelease,
+  isNewerRelease,
+  isNewerTimestamp,
   manifestsEqual,
   parseReleaseAssets,
   parseReleaseManifest,
   parseSha256Line,
   releaseExtractDir,
+  ReleaseAsset,
   ReleaseManifest,
   rustTriple,
   verifySha256
@@ -32,33 +35,102 @@ function describeManifest(manifest: ReleaseManifest): string {
   return `${manifest.tagName} (${manifest.name}, id ${manifest.id}, published ${manifest.publishedAt})`
 }
 
+type RemoteRelease = {
+  manifest: ReleaseManifest
+  assets: ReleaseAsset[]
+}
+
+async function fetchRemote(
+  client: GithubClient,
+  channel: 'stable' | 'dev',
+  log: InstallLog
+): Promise<RemoteRelease | undefined> {
+  const api = githubReleaseApiUrl(channel)
+  log(`Check remote release: ${api}`)
+  try {
+    const payload = await client.getJson(api)
+    const manifest = parseReleaseManifest(payload)
+    const assets = parseReleaseAssets(payload)
+    log(`Remote found: ${describeManifest(manifest)}`)
+    return { manifest, assets }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    log(`Remote ${channel} unavailable: ${message}`)
+    return undefined
+  }
+}
+
+function selectRemote(
+  channel: 'stable' | 'dev',
+  versioned: RemoteRelease | undefined,
+  rolling: RemoteRelease | undefined,
+  log: InstallLog
+): RemoteRelease {
+  const preferred = channel === 'dev' ? rolling : versioned
+  if (versioned && isNewerRelease(versioned.manifest, rolling?.manifest)) {
+    if (!preferred || isNewerRelease(versioned.manifest, preferred.manifest)) {
+      log(
+        `Prefer versioned ${versioned.manifest.tagName}: newer than ${
+          rolling ? `dev (${rolling.manifest.publishedAt})` : 'missing dev'
+        }`
+      )
+      return versioned
+    }
+  }
+  const selected = preferred ?? versioned ?? rolling
+  if (!selected) {
+    throw new Error('Could not read GitHub releases for rocci tools')
+  }
+  return selected
+}
+
 export async function installTools(options: {
   storageRoot: string
   channel: 'stable' | 'dev'
   overwriteDev: boolean
+  localBuiltAt?: Date
   platform: string
   arch: string
   client: GithubClient
   extract: (archive: Buffer, dest: string) => Promise<void>
   log: InstallLog
 }): Promise<ReleaseManifest | undefined> {
-  const api = githubReleaseApiUrl(options.channel)
   options.log(
     `Update tools: channel=${options.channel} overwriteDev=${options.overwriteDev} platform=${options.platform} arch=${options.arch}`
   )
-  options.log(`Check remote release: ${api}`)
-  const payload = await options.client.getJson(api)
-  const latest = parseReleaseManifest(payload)
-  const assets = parseReleaseAssets(payload)
+  const versioned = await fetchRemote(options.client, 'stable', options.log)
+  const rolling = await fetchRemote(options.client, 'dev', options.log)
+  const { manifest: latest, assets } = selectRemote(
+    options.channel,
+    versioned,
+    rolling,
+    options.log
+  )
   const manifestPath = path.join(options.storageRoot, 'manifest.json')
   const local = fs.existsSync(manifestPath)
     ? parseReleaseManifest(JSON.parse(fs.readFileSync(manifestPath, 'utf8')))
     : undefined
 
   options.log(local ? `Current installed: ${describeManifest(local)}` : 'Current installed: none')
-  options.log(`Remote found: ${describeManifest(latest)}`)
 
-  if (options.channel !== 'dev' && !options.overwriteDev && local && isDevRelease(local)) {
+  if (
+    options.channel === 'dev' &&
+    options.localBuiltAt &&
+    isNewerTimestamp(options.localBuiltAt, latest.publishedAt)
+  ) {
+    options.log(
+      `Skip install: local Cargo build newer than ${latest.tagName} (${latest.publishedAt})`
+    )
+    return local
+  }
+
+  if (
+    options.channel !== 'dev' &&
+    !options.overwriteDev &&
+    local &&
+    isDevRelease(local) &&
+    !isNewerRelease(latest, local)
+  ) {
     options.log(
       `Skip install: keeping local ${local.tagName} on channel=${options.channel} (overwriteDev=false)`
     )

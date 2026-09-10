@@ -3,9 +3,23 @@ import * as os from 'os'
 import * as path from 'path'
 import { ExtensionContext, workspace } from 'vscode'
 
+import {
+  localCargoBinary,
+  pickResolvedTool,
+  ToolsChannel,
+  workspaceCargoRoots
+} from './local-build'
 import { parseReleaseManifest, releaseExtractDir, releaseTag, ReleaseManifest } from './release'
 
+export type { ToolsChannel }
+export { newestLocalCargoBuild, workspaceCargoRoots } from './local-build'
+
 export type ToolName = 'rocci' | 'rocdown' | 'rocci-language-server'
+
+export type ResolveToolOptions = {
+  isDebug: boolean
+  channel: ToolsChannel
+}
 
 function exeName(base: ToolName): string {
   return os.type() === 'Windows_NT' ? `${base}.exe` : base
@@ -26,17 +40,7 @@ export function findOnPath(name: string): string | undefined {
 }
 
 export function debugBinary(context: ExtensionContext, exe: string): string | undefined {
-  const fromExtension = path.join(context.extensionPath, '..', '..', 'target', 'debug', exe)
-  if (fs.existsSync(fromExtension)) {
-    return fromExtension
-  }
-  for (const folder of workspace.workspaceFolders ?? []) {
-    const candidate = path.join(folder.uri.fsPath, 'target', 'debug', exe)
-    if (fs.existsSync(candidate)) {
-      return candidate
-    }
-  }
-  return undefined
+  return localCargoBinary(workspaceCargoRoots(context.extensionPath, workspace.workspaceFolders), exe)?.path
 }
 
 export function extractedBinary(storageRoot: string, tag: string, tool: ToolName): string | undefined {
@@ -87,26 +91,22 @@ export function resolveTool(
   context: ExtensionContext,
   tool: ToolName,
   settingValue: string | undefined,
-  isDebug: boolean
+  options: ResolveToolOptions
 ): string | undefined {
-  const configured = settingValue?.trim()
-  if (configured) {
-    return configured
-  }
   const exe = exeName(tool)
-  if (isDebug) {
-    const debug = debugBinary(context, exe)
-    if (debug) {
-      return debug
-    }
-  }
+  const local = localCargoBinary(
+    workspaceCargoRoots(context.extensionPath, workspace.workspaceFolders),
+    exe
+  )
   const storageRoot = context.globalStorageUri.fsPath
   const cached = readCachedManifest(storageRoot)
-  if (cached) {
-    const fromRelease = extractedBinary(storageRoot, releaseTag(cached), tool)
-    if (fromRelease) {
-      return fromRelease
-    }
-  }
-  return latestExtractedBinary(storageRoot, tool) ?? findOnPath(exe)
+  const fromRelease = cached ? extractedBinary(storageRoot, releaseTag(cached), tool) : undefined
+  return pickResolvedTool({
+    configured: settingValue,
+    isDebug: options.isDebug,
+    channel: options.channel,
+    local,
+    release: fromRelease && cached ? { path: fromRelease, publishedAt: cached.publishedAt } : undefined,
+    fallback: latestExtractedBinary(storageRoot, tool) ?? findOnPath(exe)
+  })
 }

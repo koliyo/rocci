@@ -164,6 +164,24 @@ export function isDevRelease(manifest: ReleaseManifest): boolean {
   return manifest.tagName === 'dev'
 }
 
+export function timestampMs(value: Date | string): number {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime()
+}
+
+export function isNewerTimestamp(candidate: Date | string, other: Date | string | undefined): boolean {
+  if (other === undefined) {
+    return true
+  }
+  return timestampMs(candidate) > timestampMs(other)
+}
+
+export function isNewerRelease(
+  candidate: ReleaseManifest,
+  other: ReleaseManifest | undefined
+): boolean {
+  return isNewerTimestamp(candidate.publishedAt, other?.publishedAt)
+}
+
 export function releaseExtractDir(storageRoot: string, tag: string): string {
   return path.join(storageRoot, 'releases', tag)
 }

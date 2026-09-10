@@ -14,34 +14,70 @@ Language support for `.rocci` template modules and `.rocdown` documents. Analysi
 - **Restart**: **Rocci: Restart LSP server** (`rocci.restartLspServer`) respawns `rocci-language-server` and its optional `roc experimental-lsp` child. Use it after changing `rocci.roc.path`.
 - **Preview**: **Rocci: Preview** (`rocci.preview`) saves the active `.rocci` or `.rocdown` file, runs `rocci run` or `rocdown view` with `--no-window --port auto --verbose`, and opens that loopback origin in a beside-editor webview host. The host owns the Rocci toolbar (back, forward, home, reload, live-reload, path, and the CLI serving name). **Rocci: Reload Preview** refreshes the page iframe. **Rocci: Stop Preview** stops the process. Watch, rebuild, and reload lines are written to the **Rocci Preview** output channel.
 - **Dev inspector**: When the CLI prints `inspector_ready <url>` (piped `--no-window` stdout), **Dev** iframes `/__rocci/dev` or the sibling inspector and docks it right or bottom. Inspector UX defects (scroll, overlay overlap, OKF snapshots, `tok-*` highlighting) stay on the [preview inspector repair](../../knowledge/plans/rocci/preview-inspector-repair.md) plan, not this extension.
-- **Tools**: **Rocci: Update tools** (`rocci.updateTools`) checks GitHub releases. Supported archives are `rocci-{version}-aarch64-apple-darwin.tar.gz` and `rocci-{version}-x86_64-unknown-linux-gnu.tar.gz`.
+- **Tools**: **Rocci: Update tools** (`rocci.updateTools`) checks GitHub releases and, on `dev`, a local Cargo build. Supported archives are `rocci-{version}-aarch64-apple-darwin.tar.gz` and `rocci-{version}-x86_64-unknown-linux-gnu.tar.gz`.
 
 The preview is the product HTTP origin, not a second renderer. Saving a Rocdown file in the same site reloads the webview after the CLI rebuilds. Saving a Rocci file restarts `rocci run` (that command does not watch). Preview requires a saved file; untitled buffers cannot be served.
+
+## Tool resolution
+
+The VSIX does not ship binaries. `rocci-language-server`, `rocci`, and `rocdown` are chosen in this order:
+
+1. An explicit path (`rocci.lsp.serverPath`, `rocci.preview.rocciPath`, `rocci.preview.rocdownPath`).
+2. **F5** (`VSCODE_DEBUG_MODE`): a local Cargo binary if one exists, so extension-host debugging is not pulled onto GitHub mid-session.
+3. **`rocci.tools.channel`**:
+   - `stable` (default): GitHub `/releases/latest`. A locally installed rolling `dev` extract is kept only when it is newer than that versioned release.
+   - `dev`: newest of three candidates by timestamp:
+     1. Local Cargo binary mtime (`target/debug/<exe>` or `target/release/<exe>`; later file wins).
+     2. Rolling GitHub tag/release `dev` (`publishedAt`).
+     3. Versioned GitHub `/releases/latest` (`publishedAt`). A newer versioned release always beats a stale GitHub `dev`.
+4. A previously extracted archive under VS Code global storage, then `PATH`.
+
+Local Cargo roots are the repo implied by the extension checkout (`extensionPath/../../target/…`) and each workspace folder’s `target/…`. Auto-update still fetches both GitHub remotes on `dev`. If the local Cargo mtime is newer than the selected remote, the download is skipped (`Skip install: local Cargo build newer than …`). The **Rocci** output channel logs the winner (`Language server source: local Cargo (…)` or `GitHub extract`).
+
+### Local dev LSP (no GitHub tag)
+
+Use this to test a language-server change without pushing `dev` or cutting a `v*` release.
+
+1. In the rocci workspace (this repo), set `"rocci.tools.channel": "dev"` (see `.vscode/settings.json`).
+2. Build from the repository root:
+
+   ```sh
+   cargo build -p rocci-rocdown-lsp
+   ```
+
+   That writes `target/debug/rocci-language-server`. For a release-profile binary, use `cargo build --release -p rocci-rocdown-lsp` (`target/release/rocci-language-server`). The newer mtime of the two wins.
+
+   Preview CLIs, if you need those from the same tree:
+
+   ```sh
+   cargo build -p rocci-cli -p rocci-rocdown-cli
+   ```
+
+3. **Rocci: Restart LSP server** (or reload the window). The installed extension then uses the local binary when its mtime is newer than GitHub.
+
+F5 still works: build the server as above, then **Run Rocci Extension**. That session always prefers the local binary when present.
 
 ## Configuration
 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
-| `rocci.lsp.serverPath` | `string` | `""` | Path to `rocci-language-server`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
+| `rocci.lsp.serverPath` | `string` | `""` | Path to `rocci-language-server`. Empty follows [Tool resolution](#tool-resolution). |
 | `rocci.roc.path` | `string` | `""` | Path to the `roc` compiler for executable Roc LSP features. Empty uses `ROCCI_ROC_PATH`, then vscode-roc `roc.path`, then `roc` on `PATH`. |
 | `rocci.lsp.verbose` | `boolean` | `false` | Write child-spawn, projection, and mapped-hover logs to the **Rocci** output channel. Also enabled when `rocci.lsp.trace.server` is `verbose`. |
 | `rocci.lsp.trace.server` | `string` | `"off"` | Traces communication between VS Code and the language server (`"off"`, `"messages"`, `"verbose"`) |
-| `rocci.preview.rocciPath` | `string` | `""` | Path to `rocci`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
-| `rocci.preview.rocdownPath` | `string` | `""` | Path to `rocdown`. Empty uses F5 `target/debug`, a verified GitHub extract, or `PATH`. |
-| `rocci.tools.channel` | `string` | `"stable"` | `stable` uses `/releases/latest`. `dev` installs from the rolling GitHub tag/release `dev` (`rocci-dev-<sha>-<triple>.tar.gz`). |
+| `rocci.preview.rocciPath` | `string` | `""` | Path to `rocci`. Empty follows [Tool resolution](#tool-resolution). |
+| `rocci.preview.rocdownPath` | `string` | `""` | Path to `rocdown`. Empty follows [Tool resolution](#tool-resolution). |
+| `rocci.tools.channel` | `string` | `"stable"` | See [Tool resolution](#tool-resolution). `stable` is GitHub `/releases/latest`. `dev` is local Cargo vs GitHub `dev` vs versioned, newest date wins. |
 | `rocci.tools.autoUpdate` | `boolean` | `true` | Check GitHub releases on activate when not debugging. |
 
 Semantic highlighting is enabled by default in VS Code (`editor.semanticHighlighting.enabled: true`).
 
 ## Development
 
-From the repository root:
+See [Local dev LSP](#local-dev-lsp-no-github-tag) for the installed-extension `dev` channel. For a debug Extension Host:
 
-1. Build the language server:
-   ```sh
-   cargo build -p rocci-rocdown-lsp
-   ```
-2. Press **F5** in VS Code (or run **Run Rocci Extension** from the Run & Debug panel).
+1. `cargo build -p rocci-rocdown-lsp` from the repository root.
+2. Press **F5** (or **Run Rocci Extension**).
 
 ## Testing
 
@@ -54,7 +90,7 @@ npm test
 
 ## Packaging
 
-Package the extension into a standalone `.vsix`. The VSIX does not contain Rocci binaries; first non-debug launch (or **Rocci: Update tools**) downloads `rocci`, `rocdown`, and `rocci-language-server` from GitHub releases after sha256 verify.
+Package the extension into a standalone `.vsix`. The VSIX does not contain Rocci binaries; first non-debug launch (or **Rocci: Update tools**) follows [Tool resolution](#tool-resolution) and downloads from GitHub when that candidate wins.
 
 ```sh
 uv run rocci-ops package vscode
@@ -71,4 +107,4 @@ uv run rocci-ops install cursor
 `editors/vscode/rocci-*.vsix`. `install cursor` uses the same `code` CLI with
 `--extensions-dir` pointed at `~/.cursor/extensions`.
 
-Path settings and F5 `target/debug` builds override the download. Preview and the language server resolve in that order, then a verified extract under global storage, then `PATH`.
+Path settings, F5, and `rocci.tools.channel` override the download as described in [Tool resolution](#tool-resolution).
