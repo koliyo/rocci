@@ -3479,6 +3479,7 @@ dependencies = [
  "rocci-highlight",
  "rocci-roc-host",
  "rocci-template",
+ "rocci-theme",
  "rocci-ui",
  "serde",
  "serde_json",

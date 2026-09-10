@@ -22,6 +22,7 @@ rocci-datastar = { workspace = true, features = ["fetch"] }
 rocci-highlight = { workspace = true }
 rocci-roc-host = { workspace = true }
 rocci-ui = { workspace = true }
+rocci-theme = { workspace = true }
 rocci-template = { workspace = true }
 rocci-desktop = { workspace = true }
 serde = { workspace = true }

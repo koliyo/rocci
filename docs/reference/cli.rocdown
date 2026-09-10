@@ -33,11 +33,14 @@ default. `--http-module` is not this platform.
 ## Show
 
 ```sh
-rocci show INPUT --component NAME [--arg name=val]
+rocci show INPUT [--component NAME] [--arg name=val] [--theme paper|rocci|none|PATH]
 ```
 
-Preview one component. HTTP declarations are ignored. `--component Hello`
-and `--component hello` both work. This is not `rocdown view`, which
+Preview one component. HTTP declarations are ignored. If the file has
+exactly one component, `--component` is optional. `--component Hello`
+and `--component hello` both work. Fragment components are wrapped in the
+default `paper` theme; pass `--theme none` for an unstyled shell. Full
+`<html>` documents are left as authored. This is not `rocdown view`, which
 serves a document or site the way `rocci run` does.
 
 ## Build

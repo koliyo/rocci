@@ -43,7 +43,7 @@ CLASSES = {
     "rocdown": ROCDOWN,
 }
 
-ALLOWED_REVERSE: set[tuple[str, str]] = set()
+ALLOWED_REVERSE: set[tuple[str, str]] = {("rocci-cli", "rocci-theme")}
 
 
 def classify(name: str) -> str | None:

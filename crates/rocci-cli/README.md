@@ -74,7 +74,8 @@ cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci --
 cargo run -p rocci-cli -- run examples/rocci/custom/datastar
 
 # Render a single component with mock arguments in a preview window
-# (`rocci show` is not `rocdown view`, which runs a document or site)
+# (`rocci show` is not `rocdown view`, which runs a document or site).
+# Fragments use the default `paper` theme; `--theme none` skips it.
 cargo run -p rocci-cli -- show examples/rocci/standalone/counter/Counter.rocci --component CounterCard --arg count=3
 
 # Browse all discovered components in an application directory

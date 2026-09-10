@@ -9,8 +9,9 @@ applies.
 
 1. `@page { theme: "..." }`
 2. `rocdown view --theme ...`
-3. `ROCCI_THEME`
-4. builtin `paper`
+3. `rocci show --theme ...` (fragment preview shell; default `paper`)
+4. `ROCCI_THEME`
+5. builtin `paper`
 
 `--theme` / `@page.theme` is a **name** or a **path**:
 

@@ -10,6 +10,7 @@ use rocci_template::{
     ComponentInfo, Document, LowerOptions, ModuleItem, SourceFile, TemplateItem, camel_to_pascal,
     compile, component_matches, format_diagnostic,
 };
+use rocci_theme::{ColorSchemePolicy, ResolvedTheme, ThemeOptions};
 
 use crate::datastar_asset;
 use crate::error_page::{self, FailedFile, ListedRoute, MappedModule};
@@ -23,13 +24,15 @@ const HTTP_PKG: &str = "https://github.com/roc-lang/http/releases/download/1.0.0
 #[allow(clippy::too_many_arguments)]
 pub fn view(
     input: &Path,
-    component: &str,
+    component: Option<&str>,
     raw_args: &[String],
     no_window: bool,
     port: serve::PortArg,
     live_reload: bool,
     verbose: bool,
     public: bool,
+    theme: Option<&str>,
+    color_scheme: Option<&str>,
 ) -> Result<()> {
     if !input.is_file() {
         bail!("no such file: {}", input.display());
@@ -47,7 +50,6 @@ pub fn view(
     let compiled = compile(source, &LowerOptions::default());
     let has_errors = compiled.has_errors();
     let inspect_page = crate::inspect::InspectPage::from_rocci_compile("/", &name, &src, &compiled);
-    let wrap_in_shell = !component_is_html_document(&compiled.document, component);
     let roc = compiled.roc;
     let diagnostics = compiled.diagnostics;
     let components = compiled.components;
@@ -62,23 +64,16 @@ pub fn view(
             src,
             diagnostics,
         }]);
-        let title = format!("rocci show · {component}");
+        let title = match component {
+            Some(name) => format!("rocci show · {name}"),
+            None => "rocci show".to_string(),
+        };
         let port = port.resolve()?;
         return serve::serve_html(port, 500, &html, &title, no_window, live_reload, public);
     }
 
-    let info = find_component(&components, component).with_context(|| {
-        let available = components
-            .iter()
-            .map(|c| c.name.as_str())
-            .collect::<Vec<_>>()
-            .join(", ");
-        if available.is_empty() {
-            format!("component `{component}` not found (file has no components)")
-        } else {
-            format!("component `{component}` not found; available: {available}")
-        }
-    })?;
+    let info = select_show_component(&components, component)?;
+    let wrap_in_shell = !component_is_html_document(&compiled.document, &info.name);
 
     let provided = parse_view_args(raw_args)?;
     let args = assign_args(&info.param_names, &info.optional_params, provided)?;
@@ -90,6 +85,7 @@ pub fn view(
     let type_name = type_name_from_path(input);
     let call = build_component_call(&type_name, info, &encoded);
     let src_dir = input.parent().unwrap_or_else(|| Path::new("."));
+    let theme = resolve_show_theme(theme, color_scheme, src_dir)?;
     let sibling_assets = src_dir.join("assets");
     let stage_version = datastar_asset::stage_version_for_dir(src_dir);
 
@@ -106,6 +102,10 @@ pub fn view(
     } else {
         fs::create_dir_all(&workspace_assets)?;
     }
+    if wrap_in_shell && !theme.is_none() {
+        fs::write(workspace_assets.join("theme.css"), &theme.css)
+            .context("failed to write preview theme.css")?;
+    }
     fs::write(
         workspace.path.join(format!("{type_name}.roc")),
         wrap_type_module(
@@ -121,6 +121,7 @@ pub fn view(
             &call,
             wrap_in_shell,
             &crate::dispatch::platform_pin_for_app_dir(&workspace.path),
+            Some(&theme),
         ),
     )
     .context("failed to write main.roc")?;
@@ -138,7 +139,7 @@ pub fn view(
         Ok(cmd) => cmd,
         Err(err) => {
             let html = error_page::render_roc_compile_error(&format!("{err:#}"), &[]);
-            let title = format!("rocci show · {component}");
+            let title = format!("rocci show · {}", info.name);
             return serve::serve_html(port, 500, &html, &title, no_window, live_reload, public);
         }
     };
@@ -198,6 +199,35 @@ pub(crate) fn find_component<'a>(
     components
         .iter()
         .find(|component| component.name == name || camel_to_pascal(&component.name) == name)
+}
+
+pub(crate) fn select_show_component<'a>(
+    components: &'a [ComponentInfo],
+    requested: Option<&str>,
+) -> Result<&'a ComponentInfo> {
+    let requested = requested.map(str::trim).filter(|name| !name.is_empty());
+    match requested {
+        Some(name) => find_component(components, name)
+            .with_context(|| missing_component_message(components, Some(name))),
+        None if components.len() == 1 => Ok(&components[0]),
+        None => bail!("{}", missing_component_message(components, None)),
+    }
+}
+
+fn missing_component_message(components: &[ComponentInfo], requested: Option<&str>) -> String {
+    let available = components
+        .iter()
+        .map(|component| camel_to_pascal(&component.name))
+        .collect::<Vec<_>>()
+        .join(", ");
+    match (requested, available.as_str()) {
+        (Some(name), "") => format!("component `{name}` not found (file has no components)"),
+        (Some(name), available) => {
+            format!("component `{name}` not found; available: {available}")
+        }
+        (None, "") => "file has no components".to_string(),
+        (None, available) => format!("specify `--component`; available: {available}"),
+    }
 }
 
 pub(crate) fn component_is_html_document(document: &Document, roc_name: &str) -> bool {
@@ -305,6 +335,97 @@ fn is_number(value: &str) -> bool {
     seen_digit
 }
 
+fn resolve_show_theme(
+    theme: Option<&str>,
+    color_scheme: Option<&str>,
+    source_dir: &Path,
+) -> Result<ResolvedTheme> {
+    let from_env = || {
+        std::env::var("ROCCI_THEME")
+            .or_else(|_| std::env::var("ROCDOWN_THEME"))
+            .ok()
+            .filter(|value| !value.is_empty())
+    };
+    let scheme_from_env = || {
+        std::env::var("ROCCI_COLOR_SCHEME")
+            .or_else(|_| std::env::var("ROCDOWN_COLOR_SCHEME"))
+            .ok()
+            .filter(|value| !value.is_empty())
+    };
+    let default_id = theme
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_string)
+        .or_else(from_env);
+    let scheme_raw = color_scheme
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .or_else(scheme_from_env);
+    let scheme = scheme_raw
+        .as_deref()
+        .map(|value| {
+            value
+                .parse::<ColorSchemePolicy>()
+                .map_err(|err| anyhow::anyhow!("{err}"))
+        })
+        .transpose()?;
+    rocci_theme::resolve(
+        None,
+        None,
+        &ThemeOptions {
+            default_id,
+            color_scheme: scheme,
+            source_dir: Some(source_dir.to_path_buf()),
+        },
+    )
+    .map_err(|err| anyhow::anyhow!("{err}"))
+}
+
+fn show_shell_roc(call: &str, theme: Option<&ResolvedTheme>) -> String {
+    let themed = theme.filter(|theme| !theme.is_none());
+    let mut html_attrs = vec![r#"Html.attribute("lang", "en")"#.to_string()];
+    let mut head = vec![
+        r#"Html.void_element("meta", [Html.attribute("charset", "utf-8")])"#.to_string(),
+        r#"Html.element("title", [], [Html.text("rocci show")])"#.to_string(),
+        r#"Html.element("script", [Html.attribute("type", "module"), Html.attribute("src", "/assets/datastar.js")], [])"#.to_string(),
+    ];
+    let body = if let Some(theme) = themed {
+        html_attrs.push(r#"Html.attribute("class", "rd-document")"#.to_string());
+        html_attrs.push(format!(
+            r#"Html.attribute("data-rd-theme", "{}")"#,
+            escape_roc_string(&theme.id)
+        ));
+        if let Some(scheme) = theme.policy.html_attr() {
+            html_attrs.push(format!(
+                r#"Html.attribute("data-rd-color-scheme", "{scheme}")"#
+            ));
+        }
+        head.insert(
+            1,
+            r#"Html.void_element("meta", [Html.attribute("name", "viewport"), Html.attribute("content", "width=device-width, initial-scale=1")])"#.to_string(),
+        );
+        head.insert(
+            2,
+            format!(
+                r#"Html.void_element("meta", [Html.attribute("name", "color-scheme"), Html.attribute("content", "{}")])"#,
+                theme.policy.meta_content()
+            ),
+        );
+        head.push(
+            r#"Html.void_element("link", [Html.attribute("rel", "stylesheet"), Html.attribute("href", "/assets/theme.css")])"#.to_string(),
+        );
+        format!(r#"Html.element("main", [], [{call}])"#)
+    } else {
+        call.to_string()
+    };
+    format!(
+        "Html.element(\n                \"html\",\n                [{}],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [{}],\n                    ),\n                    Html.element(\"body\", [], [{body}]),\n                ],\n            )",
+        html_attrs.join(", "),
+        head.join(",\n                            "),
+    )
+}
+
 fn escape_roc_string(value: &str) -> String {
     let mut out = String::new();
     for ch in value.chars() {
@@ -372,11 +493,10 @@ pub(crate) fn generate_main_roc(
     call: &str,
     wrap_in_shell: bool,
     platform: &str,
+    theme: Option<&ResolvedTheme>,
 ) -> String {
     let render = if wrap_in_shell {
-        format!(
-            "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci show\")]),\n                            Html.element(\"script\", [Html.attribute(\"type\", \"module\"), Html.attribute(\"src\", \"/assets/datastar.js\")], []),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
-        )
+        show_shell_roc(call, theme)
     } else {
         call.to_string()
     };
@@ -629,16 +749,21 @@ mod tests {
 
     #[test]
     fn generate_main_roc_renders_call_and_assets() {
+        let paper = rocci_theme::resolve(None, None, &ThemeOptions::default()).unwrap();
         let main = generate_main_roc(
             "Foo",
             "Foo.hello({ name: \"bart\" })",
             true,
             crate::dispatch::IN_TREE_PLATFORM_PIN,
+            Some(&paper),
         );
         assert!(main.contains("import Foo"));
         assert!(main.contains("Html.render("));
         assert!(main.contains("Foo.hello({ name: \"bart\" })"));
-        assert!(main.contains("Html.element(\"body\", [], [Foo.hello({ name: \"bart\" })])"));
+        assert!(main.contains(r#"Html.attribute("class", "rd-document")"#));
+        assert!(main.contains(r#"Html.attribute("data-rd-theme", "paper")"#));
+        assert!(main.contains("/assets/theme.css"));
+        assert!(main.contains(r#"Html.element("main", [], [Foo.hello({ name: "bart" })])"#));
         assert!(main.contains("import pf.Path"));
         assert!(main.contains("Server.static_mount"));
         assert!(main.contains("/assets/datastar.js"));
@@ -656,17 +781,31 @@ mod tests {
         );
         assert!(main.contains("import pf.Html"), "{main}");
 
+        let none = rocci_theme::resolve(Some("none"), None, &ThemeOptions::default()).unwrap();
+        let unthemed = generate_main_roc(
+            "Foo",
+            "Foo.hello({ name: \"bart\" })",
+            true,
+            crate::dispatch::IN_TREE_PLATFORM_PIN,
+            Some(&none),
+        );
+        assert!(unthemed.contains("Html.element(\"body\", [], [Foo.hello({ name: \"bart\" })])"));
+        assert!(!unthemed.contains("rd-document"));
+        assert!(!unthemed.contains("/assets/theme.css"));
+
         let page = generate_main_roc(
             "Counter",
             "Counter.counterPage({ count: 0 })",
             false,
             crate::dispatch::IN_TREE_PLATFORM_PIN,
+            Some(&paper),
         );
         assert!(page.contains("import pf.Path"));
         assert!(page.contains("Server.static_mount"));
         assert!(page.contains("Html.render(Counter.counterPage({ count: 0 }))"));
         assert!(!page.contains("rocci show"));
         assert!(!page.contains("/assets/datastar.js"));
+        assert!(!page.contains("rd-document"));
     }
 
     #[test]
@@ -677,18 +816,63 @@ mod tests {
         fs::write(&md_file, "# Hello").unwrap();
         let err = view(
             &md_file,
-            "main",
+            None,
             &[],
             true,
             serve::PortArg::Auto,
             true,
             false,
             false,
+            None,
+            None,
         )
         .unwrap_err()
         .to_string();
         assert!(err.contains("unsupported file extension for `rocci show`"));
         assert!(err.contains("expected a .rocci file"));
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn show_theme_defaults_to_paper() {
+        let dir = Path::new(".");
+        if std::env::var_os("ROCCI_THEME").is_none() && std::env::var_os("ROCDOWN_THEME").is_none()
+        {
+            let theme = resolve_show_theme(None, None, dir).unwrap();
+            assert_eq!(theme.id, rocci_theme::PAPER_ID);
+            assert!(!theme.css.is_empty());
+        }
+        let none = resolve_show_theme(Some("none"), None, dir).unwrap();
+        assert!(none.is_none());
+        let rocci = resolve_show_theme(Some("rocci"), Some("dark"), dir).unwrap();
+        assert_eq!(rocci.id, rocci_theme::ROCCI_ID);
+        assert_eq!(rocci.policy.as_str(), "dark");
+    }
+
+    #[test]
+    fn select_show_component_picks_the_only_component() {
+        let hello = component("hello", &["name"], &[], &[], true);
+        let only = [hello.clone()];
+        assert_eq!(select_show_component(&only, None).unwrap().name, "hello");
+        assert_eq!(
+            select_show_component(&only, Some("Hello")).unwrap().name,
+            "hello"
+        );
+    }
+
+    #[test]
+    fn select_show_component_requires_name_when_ambiguous() {
+        let components = [
+            component("hello", &[], &[], &[], true),
+            component("card", &[], &[], &[], true),
+        ];
+        let err = select_show_component(&components, None)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("specify `--component`"));
+        assert!(err.contains("Hello"));
+        assert!(err.contains("Card"));
+        let empty = select_show_component(&[], None).unwrap_err().to_string();
+        assert!(empty.contains("file has no components"));
     }
 }

@@ -111,11 +111,23 @@ enum Commands {
     /// Render a component in a preview window (not `rocdown view`).
     Show {
         input: PathBuf,
-        #[arg(long, default_value = "main")]
-        component: String,
+        /// Component to preview. Omitted when the file has exactly one component.
+        #[arg(long)]
+        component: Option<String>,
         /// Component parameter as name=value (repeatable).
         #[arg(long = "arg", value_name = "NAME=VALUE", action = clap::ArgAction::Append)]
         args: Vec<String>,
+        /// Preview-shell theme (`paper`, `rocci`, `none`, or a CSS path). Default `paper`.
+        #[arg(long, env = "ROCCI_THEME", value_name = "NAME|PATH")]
+        theme: Option<String>,
+        /// Force `light`, `dark`, or `auto` (follows the OS) on the preview shell.
+        #[arg(
+            long = "color-scheme",
+            env = "ROCCI_COLOR_SCHEME",
+            value_name = "SCHEME",
+            value_parser = ["auto", "light", "dark"]
+        )]
+        color_scheme: Option<String>,
         #[command(flatten)]
         serve: serve::ServeOptions,
     },
@@ -299,16 +311,20 @@ fn try_main() -> Result<()> {
             input,
             component,
             args,
+            theme,
+            color_scheme,
             serve,
         } => view::view(
             &input,
-            &component,
+            component.as_deref(),
             &args,
             serve.no_window,
             serve.port,
             serve.live_reload(),
             serve.verbose,
             serve.public,
+            theme.as_deref(),
+            color_scheme.as_deref(),
         ),
         Commands::Browse { roots, serve } => browse::browse(
             &roots,
@@ -702,6 +718,40 @@ mod tests {
     fn no_window_still_accepts_explicit_port() {
         let cli = Cli::try_parse_from(["rocci", "run", "--no-window", "--port", "auto"]).unwrap();
         assert_eq!(port_of(&cli), serve::PortArg::Auto);
+    }
+
+    #[test]
+    fn show_omits_component_by_default() {
+        let cli = Cli::try_parse_from(["rocci", "show", "Foo.rocci"]).unwrap();
+        match cli.command {
+            Commands::Show { component, .. } => assert_eq!(component, None),
+            _ => panic!("expected show"),
+        }
+    }
+
+    #[test]
+    fn show_parses_theme_flags() {
+        let cli = Cli::try_parse_from([
+            "rocci",
+            "show",
+            "Foo.rocci",
+            "--theme",
+            "none",
+            "--color-scheme",
+            "dark",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Show {
+                theme,
+                color_scheme,
+                ..
+            } => {
+                assert_eq!(theme.as_deref(), Some("none"));
+                assert_eq!(color_scheme.as_deref(), Some("dark"));
+            }
+            _ => panic!("expected show"),
+        }
     }
 
     #[test]
