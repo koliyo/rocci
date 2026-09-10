@@ -28,7 +28,7 @@ Hello = |{ name }|
 Preview it:
 
 ```sh
-rocci view Hello.rocci --component Hello --arg name=Ada
+rocci show Hello.rocci --component Hello --arg name=Ada
 ```
 
 Rocci compiles the module, starts a local HTTP server, prints the URL,

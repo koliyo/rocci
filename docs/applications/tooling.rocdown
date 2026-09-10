@@ -2,13 +2,13 @@
     layout: "docs",
     meta: {
         title: "Workflow",
-        description: "Day-to-day run, view, and inspect, then editors and rocci-ops.",
+        description: "Day-to-day run, show, and inspect, then editors and rocci-ops.",
     },
 }
 
 # Workflow
 
-Day to day you `run` the app, `view` a component, and `inspect` lowering.
+Day to day you `run` the app, `show` a component, and `inspect` lowering.
 Command flags live in the [CLI](/docs/reference/cli/).
 
 ## Run
@@ -23,15 +23,15 @@ rocci run examples/rocci/standalone/counter --no-live-reload
 webview. `--no-live-reload` pauses automatic refresh; watch still
 rebuilds. `--log-handlers` prints matched routes.
 
-## View
+## Show
 
 ```sh
-rocci view examples/rocci/standalone/styling/Styling.rocci \
+rocci show examples/rocci/standalone/styling/Styling.rocci \
   --component Hello --arg name=Ada
 rocci browse examples/rocci/standalone/styling
 ```
 
-`view` ignores HTTP declarations. `browse` is the component gallery.
+`show` ignores HTTP declarations. `browse` is the component gallery.
 
 ## Inspect
 

@@ -20,7 +20,7 @@ behavior stays in [reference](/docs/reference/).
 | Command | A mutation `@method:command` whose `{}` body performs effects and returns no success representation. |
 | Live | A path-bearing `@get:live` fragment stream; multiple streams may be declared per module. |
 | Datastar | Browser transport for intent and morphing. Not a client application framework. |
-| Fixture | `@fixture` preview data for `rocci view` / `browse`. |
+| Fixture | `@fixture` preview data for `rocci show` / `browse`. |
 | Test | Root-only `@test` boolean expression; `rocci test` runs it as Roc `expect`. |
 | Lowering | Translating template regions to ordinary Roc (`Html.*`, camelCase functions). |
 | Source map | Segments that map generated Roc back to `.rocci` spans. |

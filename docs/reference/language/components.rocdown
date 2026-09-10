@@ -31,7 +31,7 @@
 | `??` defaults | Allowed in `.rocci`; lowering emits `{ name : Str ?? "Roc" }` and a stripped pattern. Omitted fields use the Roc default. |
 
 There is no magic `children` field and no runtime component registry.
-`rocci view --component Hello` and `--component hello` both select the function.
+`rocci show --component Hello` and `--component hello` both select the function.
 
 **Example:** [Styling Hello](/examples/styling/source/Styling-rocci/).
 

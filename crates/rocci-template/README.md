@@ -114,7 +114,7 @@ passes the nested markup as a second argument:
 <Badge tone={Positive}>Current count</Badge>
 ```
 
-`rocci view --component Hello` and `--component hello` both select that
+`rocci show --component Hello` and `--component hello` both select that
 function.
 
 ```roc
@@ -252,7 +252,7 @@ this crate) maps handlers onto basic-webserver: authors never write
   error otherwise). Bodies may call platform effects such as
   `pf.Stderr.line!`; under `rocci run` those lines are teed to the CLI and Dev
   Console. Do not print from `@component`.
-- `rocci view` / `rocci browse` ignore these directives and render fixtures.
+- `rocci show` / `rocci browse` ignore these directives and render fixtures.
 
 | Kind | Declaration | Body | Response |
 | --- | --- | --- | --- |

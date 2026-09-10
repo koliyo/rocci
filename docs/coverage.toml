@@ -486,13 +486,13 @@ example = "/docs/applications/tooling/"
 status = "current"
 
 [[feature]]
-id = "cli.view"
-name = "rocci view"
+id = "cli.show"
+name = "rocci show"
 area = "cli"
 owner = "rocci-cli"
 source = "crates/rocci-cli/src/view.rs"
 contract = "crates/rocci-cli"
-canonical = "/docs/reference/cli/#view"
+canonical = "/docs/reference/cli/#show"
 example = "/docs/templates/components/"
 status = "current"
 

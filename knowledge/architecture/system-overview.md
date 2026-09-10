@@ -44,7 +44,7 @@ Knowledge records follow the [static OKF boundary](/decisions/static-okf-boundar
 
 Domain-neutral view records and presentation primitives live in `rocci-ui`.
 
-The preview window is the native shell opened by `rocci run`, `rocdown run`, `okmate view`, `rocci view`, and `rocci browse`. Preview chrome is the host-injected navigation overlay; the webview is the page surface; a Dev control can open a preview-origin inspector iframe. Those names are distinct from the overlay HTML itself.[^preview-window]
+The preview window is the native shell opened by `rocci run`, `rocdown view`, `okmate view`, `rocci show`, and `rocci browse`. Preview chrome is the host-injected navigation overlay; the webview is the page surface; a Dev control can open a preview-origin inspector iframe. Those names are distinct from the overlay HTML itself.[^preview-window]
 
 ## Not yet implemented
 

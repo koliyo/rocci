@@ -18,7 +18,7 @@ Hello = |{ name }|
 ```
 
 ```sh
-rocci view Hello.rocci --component Hello --arg name=Ada
+rocci show Hello.rocci --component Hello --arg name=Ada
 ```
 
 The window should read **Hello, Ada**.
@@ -60,7 +60,7 @@ and no implicit instance state.
 
 ## Preview with fixtures
 
-`@fixture` bindings feed `rocci view` and `rocci browse`. `@test`
+`@fixture` bindings feed `rocci show` and `rocci browse`. `@test`
 bindings check a boolean with `rocci test`. Neither changes the generated
 component function.
 
@@ -70,7 +70,7 @@ helloTest = { name: "Ada" }
 ```
 
 ```sh
-rocci view Hello.rocci --component Hello
+rocci show Hello.rocci --component Hello
 ```
 
 The preview shows **Hello, Ada** from `helloTest`. Pass `--arg name=Roc`

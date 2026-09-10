@@ -36,7 +36,7 @@ pub fn view(
     }
     if input.extension().and_then(|ext| ext.to_str()) != Some("rocci") {
         bail!(
-            "unsupported file extension for `rocci view`: {}; expected a .rocci file",
+            "unsupported file extension for `rocci show`: {}; expected a .rocci file",
             input.display()
         );
     }
@@ -62,7 +62,7 @@ pub fn view(
             src,
             diagnostics,
         }]);
-        let title = format!("rocci view · {component}");
+        let title = format!("rocci show · {component}");
         let port = port.resolve()?;
         return serve::serve_html(port, 500, &html, &title, no_window, live_reload, public);
     }
@@ -138,13 +138,13 @@ pub fn view(
         Ok(cmd) => cmd,
         Err(err) => {
             let html = error_page::render_roc_compile_error(&format!("{err:#}"), &[]);
-            let title = format!("rocci view · {component}");
+            let title = format!("rocci show · {component}");
             return serve::serve_html(port, 500, &html, &title, no_window, live_reload, public);
         }
     };
     let logs = Arc::new(LogHub::new());
     let (mut child, mut tee) = serve::spawn_roc_with_logs(cmd, Some(logs.clone()))?;
-    let title = format!("rocci view · {}", info.name);
+    let title = format!("rocci show · {}", info.name);
     match serve::wait_for_roc(
         &mut child,
         &mut tee,
@@ -375,7 +375,7 @@ pub(crate) fn generate_main_roc(
 ) -> String {
     let render = if wrap_in_shell {
         format!(
-            "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci view\")]),\n                            Html.element(\"script\", [Html.attribute(\"type\", \"module\"), Html.attribute(\"src\", \"/assets/datastar.js\")], []),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
+            "Html.element(\n                \"html\",\n                [Html.attribute(\"lang\", \"en\")],\n                [\n                    Html.element(\n                        \"head\",\n                        [],\n                        [\n                            Html.void_element(\"meta\", [Html.attribute(\"charset\", \"utf-8\")]),\n                            Html.element(\"title\", [], [Html.text(\"rocci show\")]),\n                            Html.element(\"script\", [Html.attribute(\"type\", \"module\"), Html.attribute(\"src\", \"/assets/datastar.js\")], []),\n                        ],\n                    ),\n                    Html.element(\"body\", [], [{call}]),\n                ],\n            )"
         )
     } else {
         call.to_string()
@@ -665,7 +665,7 @@ mod tests {
         assert!(page.contains("import pf.Path"));
         assert!(page.contains("Server.static_mount"));
         assert!(page.contains("Html.render(Counter.counterPage({ count: 0 }))"));
-        assert!(!page.contains("rocci view"));
+        assert!(!page.contains("rocci show"));
         assert!(!page.contains("/assets/datastar.js"));
     }
 
@@ -687,7 +687,7 @@ mod tests {
         )
         .unwrap_err()
         .to_string();
-        assert!(err.contains("unsupported file extension for `rocci view`"));
+        assert!(err.contains("unsupported file extension for `rocci show`"));
         assert!(err.contains("expected a .rocci file"));
         let _ = fs::remove_dir_all(&temp_dir);
     }

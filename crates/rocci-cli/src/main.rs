@@ -108,8 +108,8 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Render a component in a preview window.
-    View {
+    /// Render a component in a preview window (not `rocdown view`).
+    Show {
         input: PathBuf,
         #[arg(long, default_value = "main")]
         component: String,
@@ -295,7 +295,7 @@ fn try_main() -> Result<()> {
             fragment,
             output,
         } => render_file(&input, fragment, output.as_deref()),
-        Commands::View {
+        Commands::Show {
             input,
             component,
             args,
@@ -493,7 +493,7 @@ mod tests {
     fn port_of(cli: &Cli) -> serve::PortArg {
         match &cli.command {
             Commands::Run { serve, .. }
-            | Commands::View { serve, .. }
+            | Commands::Show { serve, .. }
             | Commands::Browse { serve, .. } => serve.port,
             _ => panic!("expected a hosting command"),
         }
@@ -502,7 +502,7 @@ mod tests {
     fn no_window_of(cli: &Cli) -> bool {
         match &cli.command {
             Commands::Run { serve, .. }
-            | Commands::View { serve, .. }
+            | Commands::Show { serve, .. }
             | Commands::Browse { serve, .. } => serve.no_window,
             _ => panic!("expected a hosting command"),
         }
@@ -511,7 +511,7 @@ mod tests {
     fn no_live_reload_of(cli: &Cli) -> bool {
         match &cli.command {
             Commands::Run { serve, .. }
-            | Commands::View { serve, .. }
+            | Commands::Show { serve, .. }
             | Commands::Browse { serve, .. } => serve.no_live_reload,
             _ => panic!("expected a hosting command"),
         }
@@ -629,7 +629,7 @@ mod tests {
     fn hosting_commands_accept_port_auto() {
         for args in [
             ["rocci", "run", "--port", "auto"].as_slice(),
-            ["rocci", "view", "Foo.rocci", "--port", "auto"].as_slice(),
+            ["rocci", "show", "Foo.rocci", "--port", "auto"].as_slice(),
             ["rocci", "browse", "--port", "auto"].as_slice(),
         ] {
             assert_eq!(
@@ -643,7 +643,7 @@ mod tests {
     fn hosting_commands_accept_numeric_port() {
         for args in [
             ["rocci", "run", "--port", "9001"].as_slice(),
-            ["rocci", "view", "Foo.rocci", "--port", "9001"].as_slice(),
+            ["rocci", "show", "Foo.rocci", "--port", "9001"].as_slice(),
             ["rocci", "browse", "--port", "9001"].as_slice(),
         ] {
             assert_eq!(
@@ -673,7 +673,7 @@ mod tests {
         }
         for args in [
             ["rocci", "run"].as_slice(),
-            ["rocci", "view", "Foo.rocci"].as_slice(),
+            ["rocci", "show", "Foo.rocci"].as_slice(),
             ["rocci", "browse"].as_slice(),
         ] {
             let cli = Cli::try_parse_from(args).unwrap();
@@ -689,7 +689,7 @@ mod tests {
         }
         for args in [
             ["rocci", "run", "--no-window"].as_slice(),
-            ["rocci", "view", "Foo.rocci", "--no-window"].as_slice(),
+            ["rocci", "show", "Foo.rocci", "--no-window"].as_slice(),
             ["rocci", "browse", "--no-window"].as_slice(),
         ] {
             let cli = Cli::try_parse_from(args).unwrap();
@@ -708,7 +708,7 @@ mod tests {
     fn hosting_commands_accept_no_live_reload() {
         for args in [
             ["rocci", "run", "--no-live-reload"].as_slice(),
-            ["rocci", "view", "Foo.rocci", "--no-live-reload"].as_slice(),
+            ["rocci", "show", "Foo.rocci", "--no-live-reload"].as_slice(),
             ["rocci", "browse", "--no-live-reload"].as_slice(),
         ] {
             assert!(no_live_reload_of(&Cli::try_parse_from(args).unwrap()));
@@ -721,7 +721,7 @@ mod tests {
     fn verbose_of(cli: &Cli) -> bool {
         match &cli.command {
             Commands::Run { serve, .. }
-            | Commands::View { serve, .. }
+            | Commands::Show { serve, .. }
             | Commands::Browse { serve, .. } => serve.verbose,
             _ => panic!("expected a hosting command"),
         }
@@ -732,7 +732,7 @@ mod tests {
         for args in [
             ["rocci", "run", "--verbose"].as_slice(),
             ["rocci", "run", "-v"].as_slice(),
-            ["rocci", "view", "Foo.rocci", "--verbose"].as_slice(),
+            ["rocci", "show", "Foo.rocci", "--verbose"].as_slice(),
             ["rocci", "browse", "--verbose"].as_slice(),
         ] {
             assert!(verbose_of(&Cli::try_parse_from(args).unwrap()));
@@ -743,7 +743,7 @@ mod tests {
     fn public_of(cli: &Cli) -> bool {
         match &cli.command {
             Commands::Run { serve, .. }
-            | Commands::View { serve, .. }
+            | Commands::Show { serve, .. }
             | Commands::Browse { serve, .. } => serve.public,
             _ => panic!("expected a hosting command"),
         }
@@ -753,7 +753,7 @@ mod tests {
     fn hosting_commands_accept_public() {
         for args in [
             ["rocci", "run", "--public"].as_slice(),
-            ["rocci", "view", "Foo.rocci", "--public"].as_slice(),
+            ["rocci", "show", "Foo.rocci", "--public"].as_slice(),
             ["rocci", "browse", "--public"].as_slice(),
         ] {
             assert!(public_of(&Cli::try_parse_from(args).unwrap()));

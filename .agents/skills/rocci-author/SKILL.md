@@ -89,7 +89,7 @@ path until island splicing lands.
   in helpers, interpolations, and attributes.
 - Parenthesize records in directive headers: `@match ({ status, items }) {`.
   The body `{` stays on the same logical header line.
-- Fixtures are ordinary Roc bindings tagged for `rocci view` / `browse`.
+- Fixtures are ordinary Roc bindings tagged for `rocci show` / `browse`.
 
 ## Rocdown essentials
 
@@ -199,7 +199,7 @@ POSTs. Author-facing wording:
 3. Reach for `@match` / `match` before adding another `@else if` / `else if`.
 4. Colocate isolated CSS. Authors keep writing `class="card"`; lowering scopes
    it. Document chrome belongs on `body` or `:scope`, not `html { ... }`.
-5. Add `@fixture` data for new components that `rocci view` should preview.
+5. Add `@fixture` data for new components that `rocci show` should preview.
    Add `@test` (optionally `{fixture: name}`) for boolean checks run by
    `rocci test`.
 
@@ -215,7 +215,7 @@ cargo run -q -p rocci-rocdown-cli -- inspect ast path/to/File.rocdown
 Preview or publish with the matching CLI:
 
 ```sh
-cargo run -q -p rocci-cli -- view File.rocci --component Name
+cargo run -q -p rocci-cli -- show File.rocci --component Name
 cargo run -q -p rocci-cli -- test File.rocci
 cargo run -q -p rocci-cli -- run File.rocci
 cargo run -q -p rocci-rocdown-cli -- view File.rocdown

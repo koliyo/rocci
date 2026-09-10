@@ -40,7 +40,7 @@ sources:
 
 ## Context
 
-`rocci run`, `rocdown run`, `rocci-okf run`, `rocci view`, and `rocci browse` open the same native Tao/Wry window. Docs and CLI help mixed *embedded window*, *run window*, and *preview window*, while launch research uses *public preview* for a different idea.[^readme][^preview-rs]
+`rocci run`, `rocdown view`, `rocci-okf run`, `rocci show`, and `rocci browse` open the same native Tao/Wry window. Docs and CLI help mixed *embedded window*, *run window*, and *preview window*, while launch research uses *public preview* for a different idea.[^readme][^preview-rs]
 
 Host overlay navigation is HTML/CSS/JS under `rocci-desktop/assets`. Compiler-derived panels are not that overlay.[^desktop-readme][^chrome-research]
 
@@ -58,7 +58,7 @@ Call that native window the **preview window**.
 
 Do not reuse **public preview** (launch) or OKF `resolve_preview_path` (which file or URL to open).
 
-Rejected names: *run window* (misses `view` / `browse`), *host window* (clashes with Roc native/wasm host), *desktop window* (too broad for later multi-window apps).
+Rejected names: *run window* (misses `show` / `browse`), *host window* (clashes with Roc native/wasm host), *desktop window* (too broad for later multi-window apps).
 
 Where compiler metrics or other inspector UI appear in the preview window, author them as a preview-origin Rocci app that consumes host JSON. Overlay chrome may add a control that opens that panel; it does not snapshot the panel into the initialization script.[^chrome-research][^desktop-readme][^preview-nav]
 

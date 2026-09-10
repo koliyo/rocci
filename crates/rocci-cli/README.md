@@ -74,7 +74,8 @@ cargo run -p rocci-cli -- run examples/rocci/standalone/counter/Counter.rocci --
 cargo run -p rocci-cli -- run examples/rocci/custom/datastar
 
 # Render a single component with mock arguments in a preview window
-cargo run -p rocci-cli -- view examples/rocci/standalone/counter/Counter.rocci --component CounterCard --arg count=3
+# (`rocci show` is not `rocdown view`, which runs a document or site)
+cargo run -p rocci-cli -- show examples/rocci/standalone/counter/Counter.rocci --component CounterCard --arg count=3
 
 # Browse all discovered components in an application directory
 cargo run -p rocci-cli -- browse examples/rocci/standalone/counter
@@ -98,7 +99,7 @@ cargo run -p rocci-cli -- inspect --ast examples/rocci/standalone/counter/Counte
 cargo run -p rocci-cli -- test examples/rocci/standalone/styling/Styling.rocci
 
 # Preview the profiling panel fixture
-cargo run -p rocci-cli -- view crates/rocci-cli/templates/dev/MetricsPanel.rocci --component MetricsPanel
+cargo run -p rocci-cli -- show crates/rocci-cli/templates/dev/MetricsPanel.rocci --component MetricsPanel
 
 # Bundle an ad-hoc signed macOS application (host-native server; not --target musl)
 cargo run -p rocci-cli -- bundle --config rocci.toml

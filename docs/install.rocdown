@@ -14,7 +14,7 @@ with one preview. There is no crates.io package and no install script.
 :note[title: "Checkout commands"] {{
     Until an installed `rocci` exists, the canonical spelling is
     `cargo run -p rocci-cli --` from the repository root. Later pages
-    write `rocci view` and `rocci run`; prefix those the same way.
+    write `rocci show` and `rocci run`; prefix those the same way.
 }}
 
 This manual does not teach programming from zero. You should be able to
@@ -83,7 +83,7 @@ cargo build -p rocci-cli
     }}
     :tab[id: "windows", label: "Windows"] {{
         Wry uses the operating-system webview. Windows packaging is not
-        implemented. Development `rocci run` / `rocci view` use the same local
+        implemented. Development `rocci run` / `rocci show` use the same local
         HTTP server as other platforms. This path is not in CI.
     }}
 :tabs.end
@@ -94,12 +94,12 @@ From the repository root:
 
 ```sh
 cargo run -q -p rocci-cli -- --help
-cargo run -q -p rocci-cli -- view \
+cargo run -q -p rocci-cli -- show \
   examples/rocci/standalone/styling/Styling.rocci \
   --component Hello --no-window
 ```
 
-The view command prints a local URL (default port `8000` with
+The show command prints a local URL (default port `8000` with
 `--no-window`). Open it, or drop `--no-window` to use the native window.
 You should see a greeting. If `roc` is missing or the webview fails to
 link, see [install failures](/docs/troubleshooting/install/).
