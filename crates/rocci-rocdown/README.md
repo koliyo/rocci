@@ -257,16 +257,21 @@ citation.
 **Page links:** `[[Foo]]`, `[text](Foo.rocdown)`, `[text](./Foo.rocdown)`,
 `[text](Foo)`, `[text](docs/Foo.md)`, and reference links to those destinations
 resolve to the target file’s `@page.route` when that file is in the page index.
-Standalone `rocdown view FILE` builds that index from sibling `.rocdown` files and
-from relative `.rocdown` / `.md` / `.markdown` links, including nested paths.
-Same-page `#heading-id` is checked against this file’s heading ids. Absolute
-`/path` or `/path/` destinations are checked against known page routes when a
-page index is present. Document pages canonicalize without a trailing slash;
-collection/`index` pages keep one. Both forms resolve. Absolute `*.md` /
-`*.rocdown` paths suffix-match indexed files when possible and otherwise pass
-through. `http(s):`, `mailto:`, and other schemes
-pass through. Unknown wiki / `.rocdown` targets are errors. Duplicate
-`@page.route` values across siblings are errors.
+Wiki `[[Foo]]` matches a unique title, file stem, or page id. A target that
+contains `/` is a relative path from the current file (``[[docs/applications]]``
+is not a page id). On a composed site, prefer the published route
+(`[text](/docs/applications/)`). This repository’s catalog check accepts
+`/docs/…` in both the standalone `docs/` catalog (prefix stripped) and
+`site/` (mount prefix kept). Standalone `rocdown view FILE` builds that index
+from sibling `.rocdown` files and from relative `.rocdown` / `.md` /
+`.markdown` links, including nested paths. Same-page `#heading-id` is checked
+against this file’s heading ids. Absolute `/path` or `/path/` destinations
+are checked against known page routes when a page index is present. Document
+pages canonicalize without a trailing slash; collection/`index` pages keep
+one. Both forms resolve. Absolute `*.md` / `*.rocdown` paths suffix-match
+indexed files when possible and otherwise pass through. `http(s):`,
+`mailto:`, and other schemes pass through. Unknown wiki / `.rocdown` targets
+are errors. Duplicate `@page.route` values across siblings are errors.
 
 **Raw HTML** in a Markdown paragraph is an error by default (`raw HTML is
 disabled in Rocdown; use Markdown, a document-root tag, or @render MyComponent({ ... })`). `CompileOptions.raw_html`
@@ -351,7 +356,12 @@ the template body. Putting `content` in the props record wraps it in
 Sites can mount external documentation catalogs using `[[mount]]` in `rocdown.toml`.
 For example, `site/` mounts `../docs` at prefix `docs` with `layout = "docs"`,
 allowing `docs/` to remain at repository root for standalone `rocdown view docs`
-while building as part of `rocdown build site`.
+while building as part of `rocdown build site`. Mounted page ids and routes
+gain that prefix (`applications/index` → `docs/applications/index`,
+`/applications/` → `/docs/applications/`). `[[nav]]` items use those ids.
+Prose in the mounted tree should still use the published `/docs/…` route so
+the same source checks in both catalogs. Wiki links do not take the mount
+prefix; ``[[docs/applications]]`` is a relative path and fails as `RD2101`.
 
 Mounts default to `visibility = "navigable"`: published pages omitted from
 navigation emit `RD2202`. Use `visibility = "linked-detail"` only for a
@@ -457,8 +467,9 @@ and the
 - `@page`, `@roc`, `@render`, delegated Rocci declarations, document-root
   `@if` / `@for` / `@match` / `@let`, and document-root HTML islands
 - CommonMark + GFM tables/strikethrough/task lists/autolink/footnotes + wiki links
-- Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links)
-  and standalone preview of nested relative `.md` / `.rocdown` document links
+- Sibling page-link resolution (`[[Foo]]`, `.rocdown` Markdown/reference links,
+  absolute `/docs/…` dual-catalog routes, and standalone preview of nested
+  relative `.md` / `.rocdown` document links)
 - `:kind[params]` article blocks and `:img` alt/decorative contract and `:figure` caption/credit.
   Child policy is registry data: `:tabs` / `:card-grid` exclusive children,
   asides forbid `:tabs`, and `:steps` / `:figure` keep named predicates

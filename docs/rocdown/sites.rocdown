@@ -76,6 +76,8 @@ omitted from navigation emit `RD2202`. Use `[[nav.groups]]` under a
 top-level `[[nav]]` for curated lanes. Directory landings, Overview rows,
 and `RD2205` live on the
 [contributor checklist](/docs/reference/contributor/checklist/).
+Prose hrefs are published routes, not these ids; see
+[Write a Rocdown page](/docs/rocdown/pages/).
 
 A static catalog is Markdown, `@page`, and article blocks. Hydrate and
 live pages, `service_origin`, and `--cdn-only` are

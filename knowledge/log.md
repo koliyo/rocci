@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-10
+
+- Revised [Rocdown documentation generator](architecture/rocdown-documentation-compiler.md) and [Rocdown format](architecture/rocdown-format.md): mounted catalogs prefix ids/routes; prose uses `/docs/…`; wiki targets with `/` are relative paths (`RD2101`). Descriptive; do not log complete until CI and Knowledge succeed.
+
 ## 2026-09-09
 
 - Recorded [hosted glue for the Rust template parser](plans/rocci/template-parser-roc-glue.md) Phase 4 on `template-parser-roc-glue`: `pf.Rocci` README, glue regen path, vendor-keep `hosted_rocci_*`, and native-compiler research distinguished from hosted compile/parse. Exploratory; do not log complete until CI and Knowledge succeed.

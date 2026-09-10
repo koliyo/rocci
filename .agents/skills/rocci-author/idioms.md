@@ -305,7 +305,9 @@ answer = 42
 
 - Document-root `<Byline date={published} />` is an HTML island, not raw HTML.
 - `@render MyComponent({ ... })` splices a PascalCase component call into the Markdown stream.
-- Links: `[[Page]]`, `[label](Page.rocdown)`, or stable `/route/` on sites.
+- Links: on a composed site, `[label](/docs/applications/)`. Wiki
+  `[[Page]]` is a unique title/stem/id in this catalog; a `/` in the
+  target is a relative path. Relative `[label](Page.rocdown)` is valid.
 - `:include` should prefer a named region over line numbers.
 - Knowledge records stay inert Markdown. Do not add Rocdown declarations there.
 

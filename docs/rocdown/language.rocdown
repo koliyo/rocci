@@ -203,6 +203,12 @@ labels are errors at the reference or definition span. This is not an OKF
 
 ## Links
 
+On a composed site, write `[label](/docs/applications/)` (the published
+route). Wiki `[[Page]]` is a unique title, file stem, or page id in this
+catalog. A target with `/` is a relative path (``[[docs/applications]]``
+is not a page id). Recommended forms:
+[Write a Rocdown page](/docs/rocdown/pages/).
+
 Sibling preview supports `[[Page]]`, `[[Page|label]]`, Rocdown and Markdown file
 paths (including nested relative paths such as `knowledge/decisions/foo.md`),
 and same-page heading validation. Absolute routes are checked when a page index

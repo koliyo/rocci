@@ -4,7 +4,7 @@ title: Rocdown format boundary
 description: Rocdown is Markdown-first content with explicit document-root Roc and Rocci regions, static defaults, and a separate static knowledge-body profile.
 tags: [domain/rocdown, concern/syntax, concern/rendering, concern/security]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T08:00:00Z }
+generated: { by: process:cursor, at: 2026-09-10T07:30:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -59,7 +59,7 @@ Article blocks use `:kind[params]`. Content is line-scope, a `{{ }}` section, or
 
 Article widgets have no family prefix. A short-lived experimental `@docs` / `@img` family is **removed** and is not a live syntax, alias, compatibility window, or design analogy. Line-start `@docs` and `@img` remain only as removal diagnostics that name `:note` and `:img[...]`.[^rocdown-readme][^parser]
 
-Markdown supports CommonMark plus tables, strikethrough, task lists, extended autolinks, heading IDs, footnotes, and Rocdown page-link forms. Raw inline HTML is disabled by default. Ordinary compilation and the OKF adapter share footnote parsing; OKF still validates keyed `sources[].id` separately.[^rocdown-readme][^parser][^compiler-tests]
+Markdown supports CommonMark plus tables, strikethrough, task lists, extended autolinks, heading IDs, footnotes, and Rocdown page-link forms. Wiki `[[Page]]` matches a unique title, file stem, or page id; a target that contains `/` is a relative path. Composed-site prose should use the published route (`[label](/docs/applications/)`). Raw inline HTML is disabled by default. Ordinary compilation and the OKF adapter share footnote parsing; OKF still validates keyed `sources[].id` separately.[^rocdown-readme][^parser][^compiler-tests]
 
 `:img` requires `alt` unless `decorative: True`. Nested `:img` inside `:figure` owns accessibility text; figure-level `alt` is not a figure field. Caption and credit remain figure metadata and do not substitute for image alt. Local image paths resolve against the source file directory.[^img][^compiler-tests]
 

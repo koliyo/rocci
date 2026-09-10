@@ -48,10 +48,33 @@ On a Rocdown site, prefer stable absolute routes:
 
 ```markdown
 Read the [Rocdown language](/docs/rocdown/language/).
+See [Applications](/docs/applications/).
 ```
 
-Sibling preview also understands `[[Page]]` and `[label](Page.rocdown)`.
-Do not point user docs at a knowledge bundle.
+Use the published URL, not a wiki path and not a `[[nav]]` page id.
+This repository mounts `docs/` into `site/` at prefix `docs`, so
+manual pages keep `/docs/…` even when the source file already lives
+under `docs/`. `rocdown view docs` strips that prefix; `rocdown view
+site` keeps it. Both catalogs accept `/docs/applications/` and
+`/docs/applications`.
+
+A target that contains `/` is a relative file path, not a wiki name.
+``[[docs/applications]]`` is therefore `RD2101`: it does not match
+`applications/index.rocdown`. Wiki `[[Page]]` matches a unique title,
+file stem, or page id in **this** catalog. Mounted ids include the
+prefix (`docs/applications/index`), so ``[[applications/index]]`` works
+in `view docs` and fails in `view site`.
+
+Directory landings are `index.rocdown`. Link `/docs/applications/`,
+not `/docs/applications/index/`. Relative files also work:
+`[Applications](../applications/index.rocdown)`.
+
+Sibling preview understands `[[Page]]` and `[label](Page.rocdown)`.
+Standalone `rocdown view FILE` only indexes siblings and relative
+documents; absolute `/docs/…` needs `view docs` or `view site`.
+`[[peer]]` routes such as `/examples/…` resolve in check and preview
+but are not emitted by `build docs`. Do not point user docs at a
+knowledge bundle.
 
 On a catalog site, `index.rocdown` is the section landing for its
 directory. Nested directories and Overview rows are in

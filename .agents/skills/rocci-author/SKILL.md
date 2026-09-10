@@ -114,6 +114,12 @@ path until island splicing lands.
   It hydrates the page. Do not put it on static `docs/` catalog pages.
   Headings and URL destinations are planned, not v1. Escape with `\@{` or a
   code span. `{@expr}` / `{{expr}}` are not aliases.
+- Site prose links: `[label](/docs/applications/)`. That `/docs/` route
+  works in both `rocdown view docs` and `view site`. Wiki `[[Page]]`
+  matches a unique title, stem, or page id in this catalog. A target
+  with `/` is a relative path (``[[docs/applications]]`` is `RD2101`).
+  Mounted ids include the prefix; do not put `docs/` in a wiki link.
+  Relative `[label](../applications/index.rocdown)` is also valid.
 
 ## Server apps
 

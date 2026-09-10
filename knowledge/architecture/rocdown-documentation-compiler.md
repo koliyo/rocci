@@ -4,7 +4,7 @@ title: Rocdown documentation generator
 description: Rocdown resolves static documentation in Rust, renders article HTML from the Rocdown AST, applies one compiled Rocci shell, and commits planned artifacts atomically.
 tags: [domain/rocdown, concern/rendering, concern/validation, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-08-31T11:20:00Z }
+generated: { by: process:cursor, at: 2026-09-10T07:30:00Z }
 verified:
   - { by: human:nils, at: 2026-08-16T18:14:13Z }
 stale_after: 2027-02-12
@@ -26,6 +26,11 @@ sources:
     title: Rocdown discovery and inspection implementation
     author: process:git
     last_modified: 2026-08-17
+  - id: graph
+    resource: ../../crates/rocci-rocdown/src/catalog/graph.rs
+    title: Rocdown catalog link resolution
+    author: process:git
+    last_modified: 2026-09-01
   - id: article
     resource: ../../crates/rocci-rocdown/src/article.rs
     title: Rocdown static article renderer and feature gate
@@ -64,6 +69,8 @@ sources:
 
 Rocdown discovers `.rocdown` pages, derives or reads stable identity and routes, resolves links, headings, assets, aliases, drafts, and explicit navigation, and reports catalog diagnostics before rendering.[^catalog][^site]
 
+`[[mount]]` prefixes page ids and routes. Absolute `/docs/…` hrefs resolve in both this repository’s standalone `docs/` catalog (the prefix is stripped) and `site/` (the prefix is kept). Wiki `[[name]]` matches a unique title, file stem, or page id in the current catalog; a target that contains `/` is a relative path from the source file, so ``[[docs/applications]]`` is not a mounted page id.[^graph][^site]
+
 The sidebar forest is derived from those listed ids plus `index.rocdown` files, not from title equality. A group's first listed root index becomes the heading href (peel-by-id). The reserved first child is Overview pointing at that href; the heading href is still the index. A nested `*/index` is a named subsection with the same Overview row. Two or more listed pages in a directory with no listed index warn `RD2205`. Visible depth is group, optional subsection, then pages.[^plan][^catalog]
 
 Static article bodies are rendered in Rust from Rocdown's semantic Markdown nodes. Line-start `:kind` article blocks become a typed article tree: includes and examples are catalog data, Markdown runs become fragment files, and documentation components are Rocci-rendered from scalar segment records. A structured page view plus composed article Html is passed to a Rocci-authored theme compiled once for the build; Roc is not asked to parse or type-check ordinary prose.[^refactor-plan]
@@ -100,6 +107,7 @@ Catalog checks do not require compiling Roc. Full builds additionally verify the
 
 [^refactor-plan]: Active ownership rule, implementation phases, testing, and remaining work.
 [^catalog]: Current page identity, graph, routes, navigation, and diagnostic resolution.
+[^graph]: Absolute `/docs/` dual-catalog lookup, wiki vs relative-path classification, and `RD2101`.
 [^site]: Current source discovery, static-feature gate, check, and inspection behavior.
 [^article]: Static feature classification plus escaping of Markdown text and attributes.
 [^docs]: Typed `:kind` article-block validation, rendering, and fragment planning.

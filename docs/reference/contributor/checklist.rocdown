@@ -63,6 +63,12 @@ repository (`docs/` into `site/`, `dist/example-docs` as a peer) stay here:
 directory is skipped; links to those routes are `RD2101`. Stage
 `dist/example-docs` before `rocdown check site`.
 
+Prose in `docs/` uses published `/docs/…` routes
+(`[Applications](/docs/applications/)`), not wiki paths such as
+``[[docs/applications]]`` and not `docs/rocdown.toml` nav ids. Nav items
+stay unprefixed in `docs/rocdown.toml` (`applications/index`) and
+prefixed in `site/rocdown.toml` (`docs/applications/index`).
+
 Historical News URLs return `410` at the production origin; do not encode that
 table in user site docs.
 
