@@ -1,3 +1,6 @@
 @component
 Hello = |{ name }|
     <p>Hello, <strong>{name}</strong></p>
+
+@fixture{target: Hello}
+helloTest = { name: "Ada" }

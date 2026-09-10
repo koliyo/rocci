@@ -7,8 +7,8 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rocci_template::{
-    ComponentInfo, Document, LowerOptions, ModuleItem, SourceFile, TemplateItem, camel_to_pascal,
-    compile, component_matches, format_diagnostic,
+    ComponentInfo, Document, FixtureInfo, LowerOptions, ModuleItem, SourceFile, TemplateItem,
+    camel_to_pascal, compile, component_matches, format_diagnostic,
 };
 use rocci_theme::{ColorSchemePolicy, ResolvedTheme, ThemeOptions};
 
@@ -53,6 +53,7 @@ pub fn view(
     let roc = compiled.roc;
     let diagnostics = compiled.diagnostics;
     let components = compiled.components;
+    let fixtures = compiled.fixtures;
     let segments = compiled.segments;
 
     for diagnostic in &diagnostics {
@@ -74,16 +75,10 @@ pub fn view(
 
     let info = select_show_component(&components, component)?;
     let wrap_in_shell = !component_is_html_document(&compiled.document, &info.name);
-
-    let provided = parse_view_args(raw_args)?;
-    let args = assign_args(&info.param_names, &info.optional_params, provided)?;
-    let encoded: HashMap<String, String> = args
-        .into_iter()
-        .map(|(key, value)| (key, encode_roc_value(&value)))
-        .collect();
-
     let type_name = type_name_from_path(input);
-    let call = build_component_call(&type_name, info, &encoded);
+    let fixture = first_fixture_for(&fixtures, info);
+    let provided = parse_view_args(raw_args)?;
+    let call = show_component_call(&type_name, info, fixture, provided)?;
     let src_dir = input.parent().unwrap_or_else(|| Path::new("."));
     let theme = resolve_show_theme(theme, color_scheme, src_dir)?;
     let sibling_assets = src_dir.join("assets");
@@ -212,6 +207,34 @@ pub(crate) fn select_show_component<'a>(
         None if components.len() == 1 => Ok(&components[0]),
         None => bail!("{}", missing_component_message(components, None)),
     }
+}
+
+fn first_fixture_for<'a>(
+    fixtures: &'a [FixtureInfo],
+    component: &ComponentInfo,
+) -> Option<&'a FixtureInfo> {
+    fixtures
+        .iter()
+        .find(|fixture| find_component(std::slice::from_ref(component), &fixture.target).is_some())
+}
+
+fn show_component_call(
+    type_name: &str,
+    info: &ComponentInfo,
+    fixture: Option<&FixtureInfo>,
+    provided: Vec<(String, String)>,
+) -> Result<String> {
+    if provided.is_empty()
+        && let Some(fixture) = fixture
+    {
+        return Ok(format!("{type_name}.{}({})", info.name, fixture.value));
+    }
+    let args = assign_args(&info.param_names, &info.optional_params, provided)?;
+    let encoded: HashMap<String, String> = args
+        .into_iter()
+        .map(|(key, value)| (key, encode_roc_value(&value)))
+        .collect();
+    Ok(build_component_call(type_name, info, &encoded))
 }
 
 fn missing_component_message(components: &[ComponentInfo], requested: Option<&str>) -> String {
@@ -874,5 +897,50 @@ mod tests {
         assert!(err.contains("Card"));
         let empty = select_show_component(&[], None).unwrap_err().to_string();
         assert!(empty.contains("file has no components"));
+    }
+
+    fn fixture(name: &str, target: &str, value: &str) -> FixtureInfo {
+        FixtureInfo {
+            name: name.to_string(),
+            target: target.to_string(),
+            value: value.to_string(),
+            span: Span::new(0, 0),
+        }
+    }
+
+    #[test]
+    fn show_uses_first_fixture_when_no_args() {
+        let hello = component("hello", &["name"], &[], &[], true);
+        let fixtures = [
+            fixture("other", "Card", r#"{ title: "Nope" }"#),
+            fixture("helloTest", "Hello", r#"{ name: "Ada" }"#),
+        ];
+        let call = show_component_call(
+            "Hello",
+            &hello,
+            first_fixture_for(&fixtures, &hello),
+            Vec::new(),
+        )
+        .unwrap();
+        assert_eq!(call, r#"Hello.hello({ name: "Ada" })"#);
+
+        let overridden = show_component_call(
+            "Hello",
+            &hello,
+            first_fixture_for(&fixtures, &hello),
+            vec![("name".into(), "Roc".into())],
+        )
+        .unwrap();
+        assert_eq!(overridden, r#"Hello.hello({ name: "Roc" })"#);
+    }
+
+    #[test]
+    fn show_still_requires_args_without_a_fixture() {
+        let hello = component("hello", &["name"], &[], &[], true);
+        let err = show_component_call("Hello", &hello, None, Vec::new())
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("missing argument"));
+        assert!(err.contains("name"));
     }
 }

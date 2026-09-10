@@ -38,7 +38,8 @@ rocci show INPUT [--component NAME] [--arg name=val] [--theme paper|rocci|none|P
 
 Preview one component. HTTP declarations are ignored. If the file has
 exactly one component, `--component` is optional. `--component Hello`
-and `--component hello` both work. Fragment components are wrapped in the
+and `--component hello` both work. With no `--arg`, the first `@fixture`
+for that component is used. Fragment components are wrapped in the
 default `paper` theme; pass `--theme none` for an unstyled shell. Full
 `<html>` documents are left as authored. This is not `rocdown view`, which
 serves a document or site the way `rocci run` does.
