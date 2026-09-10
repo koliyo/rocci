@@ -2618,11 +2618,7 @@ where
     tokio::select! {
         result = &mut connection => {
             if let Err(error) = result {
-                if let Some(diagnostic) = http1_connection_report(
-                    &error,
-                    false,
-                    activity.waiting_for_next_request(),
-                ) {
+                if let Some(diagnostic) = http1_connection_report(&error, false) {
                     eprintln!("{diagnostic}");
                 }
             }
@@ -2630,11 +2626,7 @@ where
         _ = context.shutdown.requested() => {
             connection.as_mut().graceful_shutdown();
             if let Err(error) = connection.await {
-                if let Some(diagnostic) = http1_connection_report(
-                    &error,
-                    true,
-                    activity.waiting_for_next_request(),
-                ) {
+                if let Some(diagnostic) = http1_connection_report(&error, true) {
                     eprintln!("{diagnostic}");
                 }
             }
@@ -2642,12 +2634,8 @@ where
     }
 }
 
-fn http1_connection_report(
-    error: &hyper::Error,
-    draining: bool,
-    waiting_for_next_request: bool,
-) -> Option<String> {
-    if error.is_incomplete_message() && waiting_for_next_request {
+fn http1_connection_report(error: &hyper::Error, draining: bool) -> Option<String> {
+    if error.is_incomplete_message() {
         return None;
     }
     Some(http1_connection_diagnostic(error, draining))
@@ -3672,13 +3660,7 @@ mod tests {
             http1_connection_diagnostic(&error, false),
             "Client disconnected before finishing an HTTP request. This can happen when a browser cancels a navigation. The incomplete request was not passed to the Roc application."
         );
-        assert_eq!(
-            http1_connection_report(&error, false, false).as_deref(),
-            Some(
-                "Client disconnected before finishing an HTTP request. This can happen when a browser cancels a navigation. The incomplete request was not passed to the Roc application."
-            )
-        );
-        assert_eq!(http1_connection_report(&error, false, true), None);
+        assert_eq!(http1_connection_report(&error, false), None);
     }
 
     async fn http1_error_from_failing_response_body(
