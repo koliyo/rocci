@@ -100,15 +100,7 @@ fn resolve_ref(
             indexes.files,
         );
     }
-    if path == "/sitemap.xml"
-        || path == "/robots.txt"
-        || path == "/llms.txt"
-        || path == "/pages.json"
-        || path == "/islands.json"
-        || path == "/404.html"
-        || path.ends_with("/feed.xml")
-        || path == "/feed.xml"
-    {
+    if super::resolve::is_site_service_href(path) {
         return Ok(Some(edge(page, raw, raw, EdgeKind::Asset)));
     }
     if path.starts_with('/') {

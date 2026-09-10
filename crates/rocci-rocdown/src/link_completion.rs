@@ -298,8 +298,18 @@ pub(crate) fn markdown_dest_keys(
 
 fn published_routes(page: &PageRef) -> Vec<String> {
     let collection = crate::catalog::is_collection_id(&page.id) || page.stem == "index";
-    let canonical = crate::catalog::canonical_route(&page.route, collection);
-    let mut routes = vec![canonical.clone()];
+    let mut routes = Vec::new();
+    for raw in std::iter::once(page.route.as_str()).chain(page.aliases.iter().map(String::as_str)) {
+        let canonical = crate::catalog::canonical_route(raw, collection);
+        push_published_route(&mut routes, &canonical);
+    }
+    routes.sort();
+    routes.dedup();
+    routes
+}
+
+fn push_published_route(routes: &mut Vec<String>, canonical: &str) {
+    routes.push(canonical.to_string());
     if canonical.starts_with('/') && !canonical.starts_with("/docs") {
         let docs = if canonical == "/" {
             "/docs/".to_string()
@@ -308,11 +318,8 @@ fn published_routes(page: &PageRef) -> Vec<String> {
         };
         routes.push(docs);
     } else if canonical.starts_with("/docs") {
-        routes.push(crate::catalog::with_trailing_slash(&canonical));
+        routes.push(crate::catalog::with_trailing_slash(canonical));
     }
-    routes.sort();
-    routes.dedup();
-    routes
 }
 
 fn relative_doc_path(from: &PageRef, to: &PageRef) -> Option<String> {
@@ -412,6 +419,7 @@ mod tests {
                 heading_ids: Vec::new(),
                 id: "applications/index".into(),
                 title: "Applications".into(),
+                aliases: Vec::new(),
             },
             PageRef {
                 stem: "index".into(),
@@ -422,6 +430,7 @@ mod tests {
                 heading_ids: Vec::new(),
                 id: "templates/index".into(),
                 title: "Templates".into(),
+                aliases: Vec::new(),
             },
         ];
         let keys: Vec<String> = wiki_page_keys(&pages, "A")
@@ -450,6 +459,7 @@ mod tests {
                 heading_ids: Vec::new(),
                 id: "applications/index".into(),
                 title: "Applications".into(),
+                aliases: Vec::new(),
             },
             PageRef {
                 stem: "handlers".into(),
@@ -460,6 +470,7 @@ mod tests {
                 heading_ids: Vec::new(),
                 id: "applications/handlers".into(),
                 title: "Handlers".into(),
+                aliases: Vec::new(),
             },
         ];
         let keys: Vec<String> = wiki_page_keys(&pages, "h")

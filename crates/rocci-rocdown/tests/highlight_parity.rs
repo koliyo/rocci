@@ -232,6 +232,7 @@ fn link_destination_uses_source_text_after_resolve() {
                 heading_ids: Vec::new(),
                 id: "handlers".into(),
                 title: String::new(),
+                aliases: Vec::new(),
             }],
             ..CompileOptions::default()
         },

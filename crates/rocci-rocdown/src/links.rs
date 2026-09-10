@@ -17,6 +17,7 @@ pub struct PageRef {
     pub heading_ids: Vec<String>,
     pub id: String,
     pub title: String,
+    pub aliases: Vec<String>,
 }
 
 pub fn page_ref_from_source(path: &Path, src: &str) -> PageRef {
@@ -32,6 +33,10 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
         _ => None,
     });
     let explicit_route = extracted.as_ref().and_then(|meta| meta.route.clone());
+    let aliases = extracted
+        .as_ref()
+        .map(|meta| meta.aliases.clone())
+        .unwrap_or_default();
     let title = extracted
         .and_then(|meta| meta.title)
         .or_else(|| parsed.headings.first().map(|heading| heading.text.clone()))
@@ -52,6 +57,7 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
         heading_ids: parsed.headings.iter().map(|h| h.id.clone()).collect(),
         id: stem.clone(),
         title,
+        aliases,
         stem,
     }
 }
@@ -91,6 +97,28 @@ impl PageRef {
             }
         }
         keys
+    }
+
+    pub(crate) fn apply_site_id(&mut self, id: &str) {
+        self.id = id.to_string();
+        let collection = crate::catalog::is_collection_id(id);
+        if !self.explicit_route {
+            self.route = crate::catalog::derived_route(id);
+        }
+        self.route = crate::catalog::canonical_route(&self.route, collection);
+        self.aliases = self
+            .aliases
+            .iter()
+            .map(|alias| crate::catalog::canonical_route(alias, collection))
+            .filter(|alias| alias != &self.route)
+            .collect();
+        self.aliases.sort();
+        self.aliases.dedup();
+    }
+
+    pub(crate) fn matches_route(&self, path: &str) -> bool {
+        routes_match(&self.route, path)
+            || self.aliases.iter().any(|alias| routes_match(alias, path))
     }
 }
 
@@ -330,6 +358,9 @@ fn resolve_absolute(
     if let Some(page) = page_for_route(path, &options.pages) {
         return page_destination(page, fragment, span);
     }
+    if crate::catalog::is_site_service_href(path) {
+        return Ok(decoded.to_string());
+    }
     if is_document_href(path) {
         if let Some(page) = page_for_absolute_document(path, options) {
             return page_destination(page, fragment, span);
@@ -346,7 +377,7 @@ fn resolve_absolute(
 }
 
 fn page_for_route<'a>(path: &str, pages: &'a [PageRef]) -> Option<&'a PageRef> {
-    pages.iter().find(|page| routes_match(&page.route, path))
+    pages.iter().find(|page| page.matches_route(path))
 }
 
 pub(crate) fn routes_match(left: &str, right: &str) -> bool {
@@ -383,7 +414,10 @@ fn page_for_absolute_document<'a>(path: &str, options: &'a CompileOptions) -> Op
 }
 
 fn page_href(page: &PageRef) -> String {
-    crate::catalog::canonical_route(&page.route, page.stem == "index")
+    crate::catalog::canonical_route(
+        &page.route,
+        crate::catalog::is_collection_id(&page.id) || page.stem == "index",
+    )
 }
 
 fn page_destination(
@@ -518,7 +552,7 @@ pub(crate) fn normalize_components(path: PathBuf) -> PathBuf {
     out
 }
 
-fn paths_eq(left: &Path, right: &Path) -> bool {
+pub(crate) fn paths_eq(left: &Path, right: &Path) -> bool {
     if left.as_os_str().is_empty() {
         return false;
     }

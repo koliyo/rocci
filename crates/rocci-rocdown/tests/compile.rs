@@ -42,6 +42,7 @@ fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {
         heading_ids: headings.iter().map(|id| id.to_string()).collect(),
         id: stem.to_string(),
         title: String::new(),
+        aliases: Vec::new(),
     }
 }
 
@@ -1024,6 +1025,7 @@ fn nested_markdown_page_links_resolve_to_preview_routes() {
             heading_ids: vec!["plan".to_string()],
             id: "Plan".to_string(),
             title: String::new(),
+            aliases: Vec::new(),
         },
         PageRef {
             stem: "About".to_string(),
@@ -1034,6 +1036,7 @@ fn nested_markdown_page_links_resolve_to_preview_routes() {
             heading_ids: vec!["about".to_string()],
             id: "docs/About".to_string(),
             title: String::new(),
+            aliases: Vec::new(),
         },
     ];
     let out = compile(
@@ -1078,6 +1081,7 @@ fn absolute_document_path_suffix_matches_page() {
         heading_ids: vec![],
         id: "boundary".to_string(),
         title: String::new(),
+        aliases: Vec::new(),
     }];
     let out = compile(
         SourceFile::new(
@@ -1196,6 +1200,17 @@ fn unknown_route_and_collision_are_errors() {
         "{:?}",
         collision.diagnostics
     );
+}
+
+#[test]
+fn alias_and_site_service_hrefs_are_known_routes() {
+    let mut pages = vec![page("guide", "/guide/", &[])];
+    pages[0].aliases.push("/old-guide".into());
+    let out = compile_ok_pages("[go](/old-guide/)\n", pages.clone());
+    assert!(out.roc.contains("\"/guide\""), "{}", out.roc);
+    let service = compile_ok_pages("[map](/sitemap.xml) and [og](/assets/og.png)\n", pages);
+    assert!(service.roc.contains("/sitemap.xml"), "{}", service.roc);
+    assert!(service.roc.contains("/assets/og.png"), "{}", service.roc);
 }
 
 #[test]

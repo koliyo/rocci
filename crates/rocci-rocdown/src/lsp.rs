@@ -220,9 +220,17 @@ fn document_pages(name: &str, text: &str) -> Vec<crate::PageRef> {
     let Some(path) = filesystem_path(name) else {
         return Vec::new();
     };
-    let current = page_ref_from_source(&path, text);
+    let mut current = page_ref_from_source(&path, text);
     let workspace = crate::site::workspace_pages(&path).unwrap_or_default();
-    let in_workspace = workspace.iter().any(|page| page.path == current.path);
+    let in_workspace = workspace
+        .iter()
+        .any(|page| crate::links::paths_eq(&page.path, &current.path));
+    if let Some(existing) = workspace
+        .iter()
+        .find(|page| crate::links::paths_eq(&page.path, &current.path))
+    {
+        current.apply_site_id(&existing.id);
+    }
     let mut pages = if in_workspace {
         workspace
     } else if let Some(dir) = path
@@ -233,7 +241,7 @@ fn document_pages(name: &str, text: &str) -> Vec<crate::PageRef> {
     } else {
         Vec::new()
     };
-    pages.retain(|page| page.path != current.path);
+    pages.retain(|page| !crate::links::paths_eq(&page.path, &current.path));
     pages.push(current);
     pages
 }
@@ -1210,7 +1218,7 @@ fn page_for_resolved_link(name: &str, url: &str) -> Option<crate::PageRef> {
         .filter(|dir| dir.is_dir())?;
     index_pages_in_dir(&dir)
         .into_iter()
-        .find(|page| crate::links::routes_match(&page.route, path))
+        .find(|page| page.matches_route(path))
 }
 
 fn uri_from_path(path: &Path) -> Option<Uri> {

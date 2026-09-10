@@ -683,6 +683,7 @@ fn peer_routes_resolve_and_undeclared_prefixes_error() {
                     heading_ids: Vec::new(),
                     id: "index".into(),
                     title: String::new(),
+                    aliases: Vec::new(),
                 },
                 crate::PageRef {
                     stem: "status".into(),
@@ -693,6 +694,7 @@ fn peer_routes_resolve_and_undeclared_prefixes_error() {
                     heading_ids: Vec::new(),
                     id: "status".into(),
                     title: String::new(),
+                    aliases: Vec::new(),
                 },
             ],
             ..ResolveOptions::default()

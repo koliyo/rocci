@@ -851,9 +851,7 @@ static WORKSPACE_INDEX: Mutex<Option<WorkspaceIndex>> = Mutex::new(None);
 
 pub(crate) fn workspace_page_for_route(source_name: &str, route: &str) -> Option<PageRef> {
     let pages = workspace_pages(Path::new(source_name))?;
-    pages
-        .into_iter()
-        .find(|page| crate::links::routes_match(&page.route, route))
+    pages.into_iter().find(|page| page.matches_route(route))
 }
 
 fn filesystem_source_path(path: &Path) -> PathBuf {
@@ -900,11 +898,42 @@ pub(crate) fn workspace_pages(from: &Path) -> Option<Vec<PageRef>> {
 
 fn workspace_stamp(root: &Path) -> Option<(SystemTime, u64)> {
     let toml = root.join(crate::config::CONFIG_FILE);
-    let meta = std::fs::metadata(&toml).ok()?;
-    let mtime = meta.modified().ok()?;
+    let toml_meta = std::fs::metadata(&toml).ok()?;
+    let mut max_mtime = toml_meta.modified().ok()?;
     let discovered = discover_site_page_paths(root).ok()?;
-    let count = discovered.len() as u64;
-    Some((mtime, count))
+    let mut fingerprint = discovered.len() as u64;
+    fingerprint = fingerprint
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add(toml_meta.len());
+    for (path, relative) in &discovered {
+        let meta = std::fs::metadata(path).ok()?;
+        let mtime = meta.modified().ok()?;
+        if mtime > max_mtime {
+            max_mtime = mtime;
+        }
+        fingerprint = fingerprint
+            .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+            .wrapping_add(meta.len())
+            .wrapping_add(mtime_fingerprint(mtime))
+            .wrapping_add(hash_bytes(relative.as_bytes()));
+    }
+    Some((max_mtime, fingerprint))
+}
+
+fn mtime_fingerprint(mtime: SystemTime) -> u64 {
+    mtime
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos() as u64)
+        .unwrap_or(0)
+}
+
+fn hash_bytes(bytes: &[u8]) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x1000_0000_01B3);
+    }
+    hash
 }
 
 fn prefixed_relative_name(rel_in_tree: &str, prefix: &str) -> String {
@@ -939,11 +968,7 @@ fn page_ref_from_relative(path: &Path, relative_name: &str) -> Option<PageRef> {
         .or_else(|| relative_name.strip_suffix(".md"))
         .unwrap_or(relative_name);
     page.id = id.to_string();
-    if !page.explicit_route {
-        page.route = catalog::derived_route(id);
-    } else {
-        page.route = catalog::canonical_route(&page.route, catalog::is_collection_id(id));
-    }
+    page.apply_site_id(id);
     Some(page)
 }
 

@@ -985,6 +985,176 @@ fn compile_text_resolves_docs_prefixed_link_from_docs_tree() {
     let _ = fs::remove_dir_all(root);
 }
 
+fn compile_text_messages(uri: &str, src: &str) -> Vec<String> {
+    use rocci_rocdown::lsp::compile_text;
+    compile_text(uri, src)
+        .diagnostics
+        .iter()
+        .map(|d| d.message.clone())
+        .collect()
+}
+
+#[test]
+fn compile_text_resolves_docs_prefixed_index_link() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "docs-index-link"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("templates")).unwrap();
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(root.join("applications/index.rocdown"), "# Applications\n").unwrap();
+    let templates = root.join("templates/index.rocdown");
+    let src = "See [Applications](/docs/applications).\n";
+    fs::write(&templates, src).unwrap();
+    let compiled = compile_text(&format!("file://{}", templates.display()), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compile_text_messages(&format!("file://{}", templates.display()), src)
+    );
+
+    let bad = "See [Applications](/docs/aplications).\n";
+    fs::write(&templates, bad).unwrap();
+    let messages = compile_text_messages(&format!("file://{}", templates.display()), bad);
+    assert!(
+        messages
+            .iter()
+            .any(|msg| msg.contains("unknown Rocdown route") && msg.contains("/docs/aplications")),
+        "{messages:?}"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn compile_text_resolves_page_alias() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "alias-link"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(
+        root.join("tree.rocdown"),
+        "@page {\n    aliases: [\"/old-tree/\"],\n}\n\n# Tree\n",
+    )
+    .unwrap();
+    let home = root.join("index.rocdown");
+    let src = "See [tree](/old-tree/).\n";
+    fs::write(&home, src).unwrap();
+    let compiled = compile_text(&format!("file://{}", home.display()), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compile_text_messages(&format!("file://{}", home.display()), src)
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn compile_text_overlay_keeps_derived_index_route() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "overlay-index"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(root.join("applications/index.rocdown"), "# Applications\n").unwrap();
+    let page = root.join("applications/index.rocdown");
+    let src = "# Applications\n\nSee [self](/docs/applications).\n";
+    let compiled = compile_text(&format!("file://{}", page.display()), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compile_text_messages(&format!("file://{}", page.display()), src)
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn compile_text_accepts_site_service_hrefs() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "service-href"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    let home = root.join("index.rocdown");
+    let src = "[map](/sitemap.xml) and [og](/assets/og.png).\n";
+    fs::write(&home, src).unwrap();
+    let compiled = compile_text(&format!("file://{}", home.display()), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compile_text_messages(&format!("file://{}", home.display()), src)
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn compile_text_refreshes_workspace_headings_after_edit() {
+    use rocci_rocdown::lsp::compile_text;
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-workspace-{}-{}",
+        std::process::id(),
+        "heading-cache"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::create_dir_all(root.join("templates")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(
+        root.join("applications/index.rocdown"),
+        "# Applications\n\n## Hello\n",
+    )
+    .unwrap();
+    let templates = root.join("templates/index.rocdown");
+    let src = "See [hello](/docs/applications#hello).\n";
+    fs::write(&templates, src).unwrap();
+    let compiled = compile_text(&format!("file://{}", templates.display()), src);
+    assert!(
+        !compiled.has_errors(),
+        "{:?}",
+        compile_text_messages(&format!("file://{}", templates.display()), src)
+    );
+
+    fs::write(
+        root.join("applications/index.rocdown"),
+        "# Applications\n\n## Other\n",
+    )
+    .unwrap();
+    let messages = compile_text_messages(&format!("file://{}", templates.display()), src);
+    assert!(
+        messages
+            .iter()
+            .any(|msg| msg.contains("unknown heading `hello`")),
+        "{messages:?}"
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
 #[test]
 fn completes_wiki_targets_from_sibling_index() {
     use std::{env, fs};

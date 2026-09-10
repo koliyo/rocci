@@ -33,6 +33,18 @@ pub fn without_trailing_slash(route: &str) -> String {
     route.strip_suffix('/').unwrap_or(route).to_string()
 }
 
+pub fn is_site_service_href(path: &str) -> bool {
+    path.starts_with("/assets/")
+        || path == "/sitemap.xml"
+        || path == "/robots.txt"
+        || path == "/llms.txt"
+        || path == "/pages.json"
+        || path == "/islands.json"
+        || path == "/404.html"
+        || path == "/feed.xml"
+        || path.ends_with("/feed.xml")
+}
+
 pub fn routes_match(left: &str, right: &str) -> bool {
     let left = with_trailing_slash(left);
     let right = with_trailing_slash(right);
