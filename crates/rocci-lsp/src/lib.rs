@@ -151,6 +151,7 @@ impl LanguageServer {
                         "@".to_string(),
                         "[".to_string(),
                         "#".to_string(),
+                        "(".to_string(),
                     ]),
                     ..CompletionOptions::default()
                 }),

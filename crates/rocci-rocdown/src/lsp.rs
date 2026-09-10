@@ -243,7 +243,10 @@ fn filesystem_path(name: &str) -> Option<PathBuf> {
     } else {
         PathBuf::from(name)
     };
-    if path.extension().is_some_and(|ext| ext == "rocdown") {
+    if path
+        .extension()
+        .is_some_and(|ext| matches!(ext.to_str(), Some("rocdown" | "md" | "markdown")))
+    {
         Some(path)
     } else {
         None
@@ -507,10 +510,16 @@ pub fn completion(
                 .collect(),
         );
     }
-    if let Some(dest) = crate::link_completion::markdown_dest_context(text, offset)
-        && let Some(heading_prefix) = dest.heading_prefix.as_deref()
-    {
-        return heading_completion(compiled, pages, &dest.path_prefix, heading_prefix);
+    if let Some(dest) = crate::link_completion::markdown_dest_context(text, offset) {
+        if let Some(heading_prefix) = dest.heading_prefix.as_deref() {
+            return heading_completion(compiled, pages, &dest.path_prefix, heading_prefix);
+        }
+        return CompletionResponse::Array(
+            crate::link_completion::markdown_dest_keys(pages, pages.last(), &dest.path_prefix)
+                .into_iter()
+                .map(|(key, route)| completion_item(&key, CompletionItemKind::FILE, Some(route)))
+                .collect(),
+        );
     }
     CompletionResponse::Array(Vec::new())
 }

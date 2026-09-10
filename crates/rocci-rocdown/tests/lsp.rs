@@ -1109,3 +1109,94 @@ fn completes_wiki_heading_fragments_from_target_page() {
     assert!(found.contains(&"heading"), "{found:?}");
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn completes_markdown_routes_and_relative_paths() {
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-md-dest-{}-{}",
+        std::process::id(),
+        "site"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(root.join("applications/handlers.rocdown"), "# Handlers\n").unwrap();
+    let standalone = root.join("applications/standalone.rocdown");
+    let src = "[x](/do";
+    fs::write(&standalone, src).unwrap();
+    let uri: Uri = format!("file://{}", standalone.display())
+        .parse()
+        .expect("route uri");
+
+    let mut server = initialize_server();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open route buffer");
+    let (line, character) = line_col(src, src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("route completion")
+    else {
+        panic!("expected completion array");
+    };
+    let found = labels(&items);
+    assert!(
+        found.iter().any(|label| label.starts_with("/docs/")),
+        "{found:?}"
+    );
+
+    let siblings = env::temp_dir().join(format!(
+        "rocdown-lsp-md-dest-{}-{}",
+        std::process::id(),
+        "rel"
+    ));
+    let _ = fs::remove_dir_all(&siblings);
+    fs::create_dir_all(&siblings).unwrap();
+    fs::write(siblings.join("Foo.rocdown"), "# Foo\n").unwrap();
+    let home = siblings.join("home.rocdown");
+    let src = "[x](Foo.";
+    fs::write(&home, src).unwrap();
+    let uri: Uri = format!("file://{}", home.display())
+        .parse()
+        .expect("rel uri");
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open relative buffer");
+    let (line, character) = line_col(src, src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("relative completion")
+    else {
+        panic!("expected completion array");
+    };
+    let found = labels(&items);
+    assert!(found.contains(&"Foo.rocdown"), "{found:?}");
+    let _ = fs::remove_dir_all(root);
+    let _ = fs::remove_dir_all(siblings);
+}

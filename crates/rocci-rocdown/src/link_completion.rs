@@ -205,7 +205,11 @@ pub(crate) fn markdown_dest_context(src: &str, offset: usize) -> Option<Markdown
         return None;
     }
     let typed = &src[dest_start..offset];
-    if typed.contains('\n') || typed.chars().any(|ch| ch.is_whitespace()) || typed.contains(')') {
+    if typed.contains('\n')
+        || typed.contains('?')
+        || typed.chars().any(|ch| ch.is_whitespace())
+        || typed.contains(')')
+    {
         return None;
     }
     let (path_prefix, heading_prefix) = split_heading(typed);
@@ -257,6 +261,68 @@ pub(crate) fn heading_keys(
     items.sort();
     items.dedup();
     items
+}
+
+pub(crate) fn markdown_dest_keys(
+    pages: &[PageRef],
+    current: Option<&PageRef>,
+    prefix: &str,
+) -> Vec<(String, String)> {
+    let mut items = Vec::new();
+    for page in pages {
+        for route in published_routes(page) {
+            if route.starts_with(prefix) {
+                items.push((route, page.route.clone()));
+            }
+        }
+        if let Some(from) = current
+            && let Some(rel) = relative_doc_path(from, page)
+            && rel.starts_with(prefix)
+        {
+            items.push((rel, page.route.clone()));
+        }
+    }
+    items.sort_by(|a, b| a.0.cmp(&b.0));
+    items.dedup_by(|a, b| a.0 == b.0);
+    items
+}
+
+fn published_routes(page: &PageRef) -> Vec<String> {
+    let collection = crate::catalog::is_collection_id(&page.id) || page.stem == "index";
+    let canonical = crate::catalog::canonical_route(&page.route, collection);
+    let mut routes = vec![canonical.clone()];
+    if canonical.starts_with('/') && !canonical.starts_with("/docs") {
+        let docs = if canonical == "/" {
+            "/docs/".to_string()
+        } else {
+            crate::catalog::with_trailing_slash(&format!("/docs{canonical}"))
+        };
+        routes.push(docs);
+    } else if canonical.starts_with("/docs") {
+        routes.push(crate::catalog::with_trailing_slash(&canonical));
+    }
+    routes.sort();
+    routes.dedup();
+    routes
+}
+
+fn relative_doc_path(from: &PageRef, to: &PageRef) -> Option<String> {
+    if from.path == to.path {
+        return None;
+    }
+    let from_dir = from.path.parent()?;
+    let rel = to.path.strip_prefix(from_dir).ok()?;
+    let mut text = rel.to_string_lossy().replace('\\', "/");
+    if text.is_empty() || text == "." {
+        return None;
+    }
+    if text.contains("..") {
+        return None;
+    }
+    if text.contains('/') && !text.starts_with("./") {
+        text = format!("./{text}");
+    }
+    Some(text)
 }
 
 pub(crate) fn page_for_wiki_key<'a>(pages: &'a [PageRef], key: &str) -> Option<&'a PageRef> {
