@@ -41,6 +41,7 @@ fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {
         explicit_route: true,
         heading_ids: headings.iter().map(|id| id.to_string()).collect(),
         id: stem.to_string(),
+        title: String::new(),
     }
 }
 
@@ -980,6 +981,38 @@ And [ref text][ref].
 }
 
 #[test]
+fn wiki_title_resolves_when_file_stem_is_index() {
+    let mut apps = page("index", "/applications/", &[]);
+    apps.id = "applications/index".to_string();
+    apps.title = "Applications".to_string();
+    apps.path = PathBuf::from("applications/index.rocdown");
+    let mut other = page("index", "/templates/", &[]);
+    other.id = "templates/index".to_string();
+    other.title = "Templates".to_string();
+    other.path = PathBuf::from("templates/index.rocdown");
+    let out = compile_ok_pages("See [[Applications]].\n", vec![apps, other]);
+    assert!(out.roc.contains("\"/applications/\""), "{}", out.roc);
+}
+
+#[test]
+fn wiki_unique_file_stem_resolves() {
+    let mut apps = page("index", "/applications/", &[]);
+    apps.id = "applications/index".to_string();
+    apps.title = "Applications".to_string();
+    apps.path = PathBuf::from("applications/index.rocdown");
+    let mut handlers = page("handlers", "/applications/handlers", &[]);
+    handlers.id = "applications/handlers".to_string();
+    handlers.title = "Handlers".to_string();
+    handlers.path = PathBuf::from("applications/handlers.rocdown");
+    let out = compile_ok_pages("See [[handlers]] and [[Handlers]].\n", vec![apps, handlers]);
+    assert!(
+        out.roc.contains("\"/applications/handlers\""),
+        "{}",
+        out.roc
+    );
+}
+
+#[test]
 fn nested_markdown_page_links_resolve_to_preview_routes() {
     let pages = vec![
         PageRef {
@@ -990,6 +1023,7 @@ fn nested_markdown_page_links_resolve_to_preview_routes() {
             explicit_route: false,
             heading_ids: vec!["plan".to_string()],
             id: "Plan".to_string(),
+            title: String::new(),
         },
         PageRef {
             stem: "About".to_string(),
@@ -999,6 +1033,7 @@ fn nested_markdown_page_links_resolve_to_preview_routes() {
             explicit_route: false,
             heading_ids: vec!["about".to_string()],
             id: "docs/About".to_string(),
+            title: String::new(),
         },
     ];
     let out = compile(
@@ -1042,6 +1077,7 @@ fn absolute_document_path_suffix_matches_page() {
         explicit_route: false,
         heading_ids: vec![],
         id: "boundary".to_string(),
+        title: String::new(),
     }];
     let out = compile(
         SourceFile::new(

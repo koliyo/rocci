@@ -275,8 +275,10 @@ are errors. Duplicate `@page.route` values across siblings are errors.
 
 The language server completes wiki `[[` targets and Markdown internal
 destinations (published routes, relative `.rocdown` / `.md` paths, and `#`
-heading ids) from that same site or sibling page index. Completions are not
-offered inside fenced or inline code.
+heading ids) from that same site or sibling page index. Wiki labels are the
+same unique titles, file stems, and page ids the catalog resolver accepts
+(ambiguous stems such as `index` are omitted). Completions are not offered
+inside fenced or inline code.
 
 **Raw HTML** in a Markdown paragraph is an error by default (`raw HTML is
 disabled in Rocdown; use Markdown, a document-root tag, or @render MyComponent({ ... })`). `CompileOptions.raw_html`

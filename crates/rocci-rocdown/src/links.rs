@@ -16,6 +16,7 @@ pub struct PageRef {
     pub explicit_route: bool,
     pub heading_ids: Vec<String>,
     pub id: String,
+    pub title: String,
 }
 
 pub fn page_ref_from_source(path: &Path, src: &str) -> PageRef {
@@ -26,10 +27,15 @@ pub fn page_ref_from_source(path: &Path, src: &str) -> PageRef {
 
 fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef {
     let mut diagnostics = Vec::new();
-    let explicit_route = parsed.document.items.iter().find_map(|item| match item {
-        Item::Page(page) => extract_page(src, page.body, &mut diagnostics).route,
+    let extracted = parsed.document.items.iter().find_map(|item| match item {
+        Item::Page(page) => Some(extract_page(src, page.body, &mut diagnostics)),
         _ => None,
     });
+    let explicit_route = extracted.as_ref().and_then(|meta| meta.route.clone());
+    let title = extracted
+        .and_then(|meta| meta.title)
+        .or_else(|| parsed.headings.first().map(|heading| heading.text.clone()))
+        .unwrap_or_default();
     let route = explicit_route.clone().unwrap_or_else(|| "/".to_string());
     let stem = path
         .file_stem()
@@ -45,17 +51,94 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
         explicit_route: explicit_route.is_some(),
         heading_ids: parsed.headings.iter().map(|h| h.id.clone()).collect(),
         id: stem.clone(),
+        title,
         stem,
     }
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct WikiIdentity<'a> {
+    pub id: &'a str,
+    pub file_stem: &'a str,
+    pub title: &'a str,
+}
+
+pub(crate) enum WikiMatch<T> {
+    None,
+    One(T),
+    Ambiguous(Vec<T>),
+}
+
 impl PageRef {
-    pub(crate) fn wiki_key(&self) -> &str {
-        if self.id.is_empty() || self.id.contains('/') {
-            &self.stem
-        } else {
-            &self.id
+    pub(crate) fn wiki_identity(&self) -> WikiIdentity<'_> {
+        WikiIdentity {
+            id: self.id.as_str(),
+            file_stem: self.stem.as_str(),
+            title: self.title.as_str(),
         }
+    }
+
+    pub(crate) fn wiki_candidate_keys(&self) -> Vec<&str> {
+        let ident = self.wiki_identity();
+        let id_stem = ident.id.rsplit('/').next().unwrap_or(ident.id);
+        let mut keys = Vec::new();
+        for key in [ident.title, ident.file_stem, id_stem, ident.id] {
+            if key.is_empty() || key.contains('/') {
+                continue;
+            }
+            if !keys.contains(&key) {
+                keys.push(key);
+            }
+        }
+        keys
+    }
+}
+
+pub(crate) fn match_wiki<'a, T>(
+    name: &str,
+    pages: &'a [T],
+    identity: impl Fn(&'a T) -> WikiIdentity<'a>,
+) -> WikiMatch<&'a T> {
+    if name.is_empty() || name.contains('/') {
+        return WikiMatch::None;
+    }
+    let stem = name.strip_suffix(".rocdown").unwrap_or(name);
+    let mut id_hits: Vec<&T> = pages
+        .iter()
+        .filter(|page| identity(page).id == stem)
+        .collect();
+    if id_hits.len() == 1 {
+        return WikiMatch::One(id_hits.remove(0));
+    }
+    if id_hits.len() > 1 {
+        return WikiMatch::Ambiguous(id_hits);
+    }
+    let mut matches = Vec::new();
+    for page in pages {
+        let ident = identity(page);
+        let id_stem = ident.id.rsplit('/').next().unwrap_or(ident.id);
+        if ident.id == stem
+            || id_stem == stem
+            || ident.file_stem == stem
+            || ident.title == stem
+            || ident.title == name
+        {
+            matches.push(page);
+        }
+    }
+    matches.sort_by_key(|page| identity(page).id);
+    matches.dedup_by(|a, b| identity(a).id == identity(b).id);
+    match matches.len() {
+        0 => WikiMatch::None,
+        1 => WikiMatch::One(matches.remove(0)),
+        _ => WikiMatch::Ambiguous(matches),
+    }
+}
+
+pub(crate) fn unique_wiki_page<'a>(pages: &'a [PageRef], key: &str) -> Option<&'a PageRef> {
+    match match_wiki(key, pages, PageRef::wiki_identity) {
+        WikiMatch::One(page) => Some(page),
+        _ => None,
     }
 }
 
@@ -342,13 +425,7 @@ fn resolve_page(
     span: Span,
     options: &CompileOptions,
 ) -> Result<String, Diagnostic> {
-    let Some(page) = options.pages.iter().find(|page| {
-        page.stem == stem
-            || (!page.id.contains('/') && page.id == stem)
-            || page.file_name == format!("{stem}.rocdown")
-            || page.file_name == format!("{stem}.md")
-            || page.file_name == format!("{stem}.markdown")
-    }) else {
+    let Some(page) = unique_wiki_page(&options.pages, stem) else {
         return Err(Diagnostic::error(
             span,
             format!("unknown Rocdown page `{stem}`"),

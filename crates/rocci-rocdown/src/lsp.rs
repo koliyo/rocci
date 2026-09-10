@@ -233,7 +233,7 @@ fn document_pages(name: &str, text: &str) -> Vec<crate::PageRef> {
     } else {
         Vec::new()
     };
-    pages.retain(|page| page.path != current.path && page.file_name != current.file_name);
+    pages.retain(|page| page.path != current.path);
     pages.push(current);
     pages
 }
@@ -503,10 +503,20 @@ pub fn completion(
         && wiki.label_prefix.is_none()
     {
         if let Some(heading_prefix) = wiki.heading_prefix.as_deref() {
+            rocci_lsp::log::verbose(format!(
+                "rocdown wiki heading prefix={heading_prefix:?} page={:?}",
+                wiki.prefix
+            ));
             return heading_completion(compiled, pages, &wiki.prefix, heading_prefix);
         }
+        let items = crate::link_completion::wiki_page_keys(pages, &wiki.prefix);
+        rocci_lsp::log::verbose(format!(
+            "rocdown wiki prefix={:?} items={}",
+            wiki.prefix,
+            items.len()
+        ));
         return CompletionResponse::Array(
-            crate::link_completion::wiki_page_keys(pages, &wiki.prefix)
+            items
                 .into_iter()
                 .map(|(key, route)| completion_item(&key, CompletionItemKind::FILE, Some(route)))
                 .collect(),

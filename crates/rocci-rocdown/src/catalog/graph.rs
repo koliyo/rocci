@@ -32,7 +32,6 @@ pub(crate) fn resolve_graph(
                 &RefIndexes {
                     pages,
                     peer_pages,
-                    by_id: &by_id,
                     by_route: &by_route,
                     files,
                 },
@@ -69,7 +68,6 @@ pub(crate) fn resolve_graph(
 struct RefIndexes<'a> {
     pages: &'a [ResolvedPage],
     peer_pages: &'a [PageRef],
-    by_id: &'a BTreeMap<&'a str, &'a ResolvedPage>,
     by_route: &'a BTreeMap<&'a str, &'a ResolvedPage>,
     files: &'a BTreeSet<String>,
 }
@@ -165,63 +163,36 @@ fn resolve_ref(
     if is_image {
         return asset_edge(page, raw, path, indexes.files);
     }
-    match wiki_target(path, indexes.pages, indexes.by_id) {
-        WikiMatch::One(target) => page_or_heading_edge(page, raw, target, fragment),
-        WikiMatch::None => Err(CatalogDiagnostic::error(
+    match crate::links::match_wiki(path, indexes.pages, resolved_wiki_identity) {
+        crate::links::WikiMatch::One(target) => page_or_heading_edge(page, raw, target, fragment),
+        crate::links::WikiMatch::None => Err(CatalogDiagnostic::error(
             "RD2101",
             &page.source_path,
             format!("broken internal link `{raw}`"),
         )),
-        WikiMatch::Ambiguous(paths) => Err(CatalogDiagnostic::error(
+        crate::links::WikiMatch::Ambiguous(matches) => Err(CatalogDiagnostic::error(
             "RD2105",
             &page.source_path,
-            format!("ambiguous wiki link `{raw}` matches {paths}"),
+            format!(
+                "ambiguous wiki link `{raw}` matches {}",
+                matches
+                    .iter()
+                    .map(|page| page.source_path.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
         )),
     }
 }
 
-enum WikiMatch<'a> {
-    None,
-    One(&'a ResolvedPage),
-    Ambiguous(String),
-}
-
-fn wiki_target<'a>(
-    name: &str,
-    pages: &'a [ResolvedPage],
-    by_id: &BTreeMap<&str, &'a ResolvedPage>,
-) -> WikiMatch<'a> {
-    let stem = name.strip_suffix(".rocdown").unwrap_or(name);
-    if let Some(page) = by_id.get(stem) {
-        return WikiMatch::One(page);
-    }
-    let mut matches = Vec::new();
-    for page in pages {
-        let file_stem = Path::new(&page.source_path)
+fn resolved_wiki_identity(page: &ResolvedPage) -> crate::links::WikiIdentity<'_> {
+    crate::links::WikiIdentity {
+        id: page.id.as_str(),
+        file_stem: Path::new(&page.source_path)
             .file_stem()
             .and_then(|value| value.to_str())
-            .unwrap_or_default();
-        let id_stem = page.id.rsplit('/').next().unwrap_or(&page.id);
-        if page.id == stem
-            || id_stem == stem
-            || file_stem == stem
-            || page.title == stem
-            || page.title == name
-        {
-            matches.push(page);
-        }
-    }
-    matches.sort_by(|a, b| a.id.cmp(&b.id));
-    matches.dedup_by(|a, b| a.id == b.id);
-    match matches.as_slice() {
-        [] => WikiMatch::None,
-        [page] => WikiMatch::One(page),
-        many => WikiMatch::Ambiguous(
-            many.iter()
-                .map(|page| page.source_path.as_str())
-                .collect::<Vec<_>>()
-                .join(", "),
-        ),
+            .unwrap_or_default(),
+        title: page.title.as_str(),
     }
 }
 

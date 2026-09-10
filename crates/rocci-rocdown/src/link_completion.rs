@@ -23,7 +23,7 @@ pub(crate) fn wiki_link_context(src: &str, offset: usize) -> Option<WikiLinkCont
     }
     if let Some(close) = src[inner_start..].find("]]") {
         let close_at = inner_start + close;
-        if offset >= close_at {
+        if offset > close_at {
             return None;
         }
     }
@@ -172,19 +172,32 @@ fn find_closing_backticks(bytes: &[u8], n: usize) -> Option<usize> {
 }
 
 pub(crate) fn wiki_page_keys(pages: &[PageRef], prefix: &str) -> Vec<(String, String)> {
-    let mut counts = std::collections::HashMap::<&str, usize>::new();
+    let mut items: Vec<(String, String)> = Vec::new();
     for page in pages {
-        *counts.entry(page.wiki_key()).or_insert(0) += 1;
+        for key in page.wiki_candidate_keys() {
+            if !starts_with_ignore_ascii(key, prefix) {
+                continue;
+            }
+            let crate::links::WikiMatch::One(hit) =
+                crate::links::match_wiki(key, pages, PageRef::wiki_identity)
+            else {
+                continue;
+            };
+            if hit.path != page.path {
+                continue;
+            }
+            items.push((key.to_string(), page.route.clone()));
+        }
     }
-    let mut items: Vec<(String, String)> = pages
-        .iter()
-        .filter(|page| counts.get(page.wiki_key()).copied().unwrap_or(0) == 1)
-        .filter(|page| page.wiki_key().starts_with(prefix))
-        .map(|page| (page.wiki_key().to_string(), page.route.clone()))
-        .collect();
     items.sort_by(|a, b| a.0.cmp(&b.0));
     items.dedup_by(|a, b| a.0 == b.0);
     items
+}
+
+fn starts_with_ignore_ascii(value: &str, prefix: &str) -> bool {
+    value
+        .get(..prefix.len())
+        .is_some_and(|head| head.eq_ignore_ascii_case(prefix))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -322,21 +335,7 @@ fn relative_doc_path(from: &PageRef, to: &PageRef) -> Option<String> {
 }
 
 pub(crate) fn page_for_wiki_key<'a>(pages: &'a [PageRef], key: &str) -> Option<&'a PageRef> {
-    if key.is_empty() {
-        return None;
-    }
-    let file = format!("{key}.rocdown");
-    let md = format!("{key}.md");
-    let markdown = format!("{key}.markdown");
-    pages.iter().find(|page| {
-        page.wiki_key() == key
-            || page.stem == key
-            || (!page.id.contains('/') && page.id == key)
-            || page.file_name == key
-            || page.file_name == file
-            || page.file_name == md
-            || page.file_name == markdown
-    })
+    crate::links::unique_wiki_page(pages, key)
 }
 
 #[cfg(test)]
@@ -390,7 +389,85 @@ mod tests {
         let at_pa = start + 2;
         let found = wiki_link_context(src, at_pa).expect("inside closed wiki");
         assert_eq!(found.prefix, "Pa");
-        assert!(wiki_link_context(src, src.find("]]").expect("close")).is_none());
+        let after_close = src.find("]]").expect("close") + 2;
+        assert!(wiki_link_context(src, after_close).is_none());
+    }
+
+    #[test]
+    fn empty_closed_wiki_completes_inside() {
+        let src = "[[]]";
+        let found = wiki_link_context(src, 2).expect("empty wiki");
+        assert_eq!(found.prefix, "");
+    }
+
+    #[test]
+    fn wiki_keys_include_unique_title_for_index_pages() {
+        let pages = vec![
+            PageRef {
+                stem: "index".into(),
+                file_name: "index.rocdown".into(),
+                path: "applications/index.rocdown".into(),
+                route: "/applications/".into(),
+                explicit_route: false,
+                heading_ids: Vec::new(),
+                id: "applications/index".into(),
+                title: "Applications".into(),
+            },
+            PageRef {
+                stem: "index".into(),
+                file_name: "index.rocdown".into(),
+                path: "templates/index.rocdown".into(),
+                route: "/templates/".into(),
+                explicit_route: false,
+                heading_ids: Vec::new(),
+                id: "templates/index".into(),
+                title: "Templates".into(),
+            },
+        ];
+        let keys: Vec<String> = wiki_page_keys(&pages, "A")
+            .into_iter()
+            .map(|(k, _)| k)
+            .collect();
+        assert_eq!(keys, vec!["Applications".to_string()]);
+        let all: Vec<String> = wiki_page_keys(&pages, "")
+            .into_iter()
+            .map(|(k, _)| k)
+            .collect();
+        assert!(all.contains(&"Applications".to_string()), "{all:?}");
+        assert!(all.contains(&"Templates".to_string()), "{all:?}");
+        assert!(!all.iter().any(|key| key == "index"), "{all:?}");
+    }
+
+    #[test]
+    fn wiki_keys_include_unique_file_stem() {
+        let pages = vec![
+            PageRef {
+                stem: "index".into(),
+                file_name: "index.rocdown".into(),
+                path: "applications/index.rocdown".into(),
+                route: "/applications/".into(),
+                explicit_route: false,
+                heading_ids: Vec::new(),
+                id: "applications/index".into(),
+                title: "Applications".into(),
+            },
+            PageRef {
+                stem: "handlers".into(),
+                file_name: "handlers.rocdown".into(),
+                path: "applications/handlers.rocdown".into(),
+                route: "/applications/handlers".into(),
+                explicit_route: false,
+                heading_ids: Vec::new(),
+                id: "applications/handlers".into(),
+                title: "Handlers".into(),
+            },
+        ];
+        let keys: Vec<String> = wiki_page_keys(&pages, "h")
+            .into_iter()
+            .map(|(k, _)| k)
+            .collect();
+        assert!(keys.contains(&"handlers".to_string()), "{keys:?}");
+        assert!(keys.contains(&"Handlers".to_string()), "{keys:?}");
     }
 
     #[test]

@@ -28,11 +28,11 @@ use lsp_types::request::{
 };
 use lsp_types::{
     CompletionItem, CompletionOptions, CompletionParams, CompletionResponse, CompletionTextEdit,
-    Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
-    DocumentSymbolParams, GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams,
-    HoverProviderCapability, InitializeParams, InitializeResult, Location, LocationLink, OneOf,
-    Position, PositionEncodingKind, PublishDiagnosticsParams, Range, ReferenceParams,
-    SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams,
+    CompletionTriggerKind, Diagnostic, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, DocumentSymbolParams, GotoDefinitionParams, GotoDefinitionResponse,
+    Hover, HoverParams, HoverProviderCapability, InitializeParams, InitializeResult, Location,
+    LocationLink, OneOf, Position, PositionEncodingKind, PublishDiagnosticsParams, Range,
+    ReferenceParams, SemanticTokensFullOptions, SemanticTokensOptions, SemanticTokensParams,
     SemanticTokensRangeParams, SemanticTokensServerCapabilities, ServerCapabilities, ServerInfo,
     TextDocumentSyncCapability, TextDocumentSyncKind, TextEdit, Uri,
 };
@@ -273,11 +273,27 @@ impl LanguageServer {
 
     pub fn completion(&self, params: CompletionParams) -> Option<lsp_types::CompletionResponse> {
         let uri = &params.text_document_position.text_document.uri;
+        let position = params.text_document_position.position;
+        crate::log::verbose(format!(
+            "completion trigger={} char={} {}:{}:{}",
+            completion_trigger_kind(&params),
+            completion_trigger_char(&params),
+            uri.as_str(),
+            position.line,
+            position.character
+        ));
         let (executable, offset) = self.cursor_at(uri, params.text_document_position.position)?;
-        if executable && let Some(response) = self.mapped_roc_completion(uri, offset) {
-            return Some(response);
-        }
-        self.document(uri)?.completion(&params)
+        let response = if executable && let Some(response) = self.mapped_roc_completion(uri, offset)
+        {
+            Some(response)
+        } else {
+            self.document(uri)?.completion(&params)
+        };
+        crate::log::verbose(format!(
+            "completion items={}",
+            completion_item_count(response.as_ref())
+        ));
+        response
     }
 
     pub fn references(&self, params: ReferenceParams) -> Option<Vec<Location>> {
@@ -667,6 +683,31 @@ fn position_encoding_kind(encoding: PositionEncoding) -> PositionEncodingKind {
     match encoding {
         PositionEncoding::Utf8 => PositionEncodingKind::UTF8,
         PositionEncoding::Utf16 => PositionEncodingKind::UTF16,
+    }
+}
+
+fn completion_trigger_kind(params: &CompletionParams) -> &'static str {
+    match params.context.as_ref().map(|context| context.trigger_kind) {
+        Some(CompletionTriggerKind::INVOKED) => "invoked",
+        Some(CompletionTriggerKind::TRIGGER_CHARACTER) => "character",
+        Some(CompletionTriggerKind::TRIGGER_FOR_INCOMPLETE_COMPLETIONS) => "incomplete",
+        _ => "none",
+    }
+}
+
+fn completion_trigger_char(params: &CompletionParams) -> String {
+    params
+        .context
+        .as_ref()
+        .and_then(|context| context.trigger_character.clone())
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn completion_item_count(response: Option<&CompletionResponse>) -> usize {
+    match response {
+        Some(CompletionResponse::Array(items)) => items.len(),
+        Some(CompletionResponse::List(list)) => list.items.len(),
+        None => 0,
     }
 }
 

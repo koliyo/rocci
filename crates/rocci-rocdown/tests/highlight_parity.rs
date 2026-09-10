@@ -231,6 +231,7 @@ fn link_destination_uses_source_text_after_resolve() {
                 explicit_route: false,
                 heading_ids: Vec::new(),
                 id: "handlers".into(),
+                title: String::new(),
             }],
             ..CompileOptions::default()
         },

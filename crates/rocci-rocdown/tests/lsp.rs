@@ -1064,6 +1064,125 @@ fn completes_wiki_targets_from_sibling_index() {
 }
 
 #[test]
+fn completes_wiki_title_from_nested_index_page() {
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-wiki-{}-{}",
+        std::process::id(),
+        "title"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::create_dir_all(root.join("templates")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(
+        root.join("applications/index.rocdown"),
+        "@page { meta: { title: \"Applications\" } }\n\n# Applications\n",
+    )
+    .unwrap();
+    let home = root.join("templates/index.rocdown");
+    let src = "See [[A";
+    fs::write(&home, src).unwrap();
+    let uri: Uri = format!("file://{}", home.display())
+        .parse()
+        .expect("title uri");
+
+    let mut server = initialize_server();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open title buffer");
+    let (line, character) = line_col(src, src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: Some(lsp_types::CompletionContext {
+                trigger_kind: lsp_types::CompletionTriggerKind::TRIGGER_CHARACTER,
+                trigger_character: Some("[".to_string()),
+            }),
+        })
+        .expect("title completion")
+    else {
+        panic!("expected completion array");
+    };
+    let found = labels(&items);
+    assert!(found.contains(&"Applications"), "{found:?}");
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn completes_wiki_unique_file_stem() {
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-wiki-{}-{}",
+        std::process::id(),
+        "stem"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("applications")).unwrap();
+    fs::create_dir_all(root.join("templates")).unwrap();
+    fs::write(root.join("rocdown.toml"), "[site]\ntitle = \"Docs\"\n").unwrap();
+    fs::write(
+        root.join("applications/index.rocdown"),
+        "@page { meta: { title: \"Applications\" } }\n\n# Applications\n",
+    )
+    .unwrap();
+    fs::write(
+        root.join("applications/handlers.rocdown"),
+        "@page { meta: { title: \"Handlers\" } }\n\n# Handlers\n",
+    )
+    .unwrap();
+    let home = root.join("templates/index.rocdown");
+    let src = "See [[h";
+    fs::write(&home, src).unwrap();
+    let uri: Uri = format!("file://{}", home.display())
+        .parse()
+        .expect("stem uri");
+
+    let mut server = initialize_server();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open stem buffer");
+    let (line, character) = line_col(src, src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: Some(lsp_types::CompletionContext {
+                trigger_kind: lsp_types::CompletionTriggerKind::TRIGGER_CHARACTER,
+                trigger_character: Some("[".to_string()),
+            }),
+        })
+        .expect("stem completion")
+    else {
+        panic!("expected completion array");
+    };
+    let found = labels(&items);
+    assert!(found.contains(&"handlers"), "{found:?}");
+    assert!(found.contains(&"Handlers"), "{found:?}");
+    assert!(!found.contains(&"index"), "{found:?}");
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn completes_wiki_heading_fragments_from_target_page() {
     use std::{env, fs};
 
