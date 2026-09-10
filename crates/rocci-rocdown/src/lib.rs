@@ -16,6 +16,7 @@ mod imports;
 mod inspect_snapshot;
 #[cfg(not(target_arch = "wasm32"))]
 mod islands;
+mod link_completion;
 mod links;
 mod lower;
 #[cfg(not(target_arch = "wasm32"))]
