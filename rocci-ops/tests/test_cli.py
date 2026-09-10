@@ -4,6 +4,7 @@ from rocci_ops.cli import CHECK_USAGE, USAGE, check_main, main
 def test_top_level_usage_lists_grouped_commands() -> None:
     assert "build         cargo release build of rocci, rocdown, and language-server; playground | lsp" in USAGE
     assert "check         deps | docs | zed" in USAGE
+    assert "clean         cursor-sandbox-cache" in USAGE
     assert "install       cli | vscode | cursor" in USAGE
     assert "package       macos, vscode, zed, site, icons" in USAGE
     assert "promote       staging | production" in USAGE

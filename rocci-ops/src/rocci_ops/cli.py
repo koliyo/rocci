@@ -4,6 +4,7 @@ from rocci_ops import (
     archive,
     build,
     ci,
+    clean,
     deploy,
     docs_coverage,
     install,
@@ -25,6 +26,7 @@ commands:
   build         cargo release build of rocci, rocdown, and language-server; playground | lsp
   ci            run GitHub Actions validation jobs on this machine
   check         deps | docs | zed
+  clean         cursor-sandbox-cache
   install       cli | vscode | cursor
   package       macos, vscode, zed, site, icons
   site          stage generated examples, check, test, and build rocci.dev
@@ -63,6 +65,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(check_main(rest))
     if command == "ci":
         raise SystemExit(ci.main(rest))
+    if command == "clean":
+        raise SystemExit(clean.main(rest))
     if command == "archive":
         raise SystemExit(archive.main(rest))
     if command == "release":
