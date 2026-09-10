@@ -146,6 +146,10 @@ impl Http1Activity {
         self.state.phase.store(IN_REQUEST, Ordering::Release);
     }
 
+    pub(crate) fn waiting_for_next_request(&self) -> bool {
+        self.phase() == KEEP_ALIVE
+    }
+
     pub(crate) fn response_body_finished(&self) {
         self.state
             .response_body_finished
