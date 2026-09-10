@@ -248,6 +248,9 @@ where
                 format!("{}: {err:#}", config.log_prefix),
             );
             *last_error.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("{err:#}"));
+            if output_has_html(&output) {
+                has_build.store(true, Ordering::Relaxed);
+            }
         }
     }
 
@@ -635,6 +638,9 @@ fn watch_loop<F>(
                 );
                 *ctl.last_error.lock().unwrap_or_else(|e| e.into_inner()) =
                     Some(format!("{err:#}"));
+                if output_has_html(&output) {
+                    ctl.has_build.store(true, Ordering::Relaxed);
+                }
                 ctl.hub.broadcast();
             }
         }
@@ -679,6 +685,10 @@ fn path_is_relevant(
         return filter(path);
     }
     true
+}
+
+fn output_has_html(output: &Path) -> bool {
+    output.join("index.html").is_file() || output.join("404.html").is_file()
 }
 
 mod http;

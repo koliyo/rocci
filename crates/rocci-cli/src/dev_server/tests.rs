@@ -124,6 +124,10 @@ fn test_resolve_request_routing() {
         ServeTarget::LogClear
     );
     assert_eq!(
+        resolve_request(&temp, "/__rocci/error.css"),
+        ServeTarget::ErrorCss
+    );
+    assert_eq!(
         resolve_request(&temp, "/__rocci/reload.js"),
         ServeTarget::ReloadJs
     );
@@ -720,6 +724,56 @@ fn static_server_serves_rebuild_error_over_stale_html() {
 }
 
 #[test]
+fn static_server_serves_rebuild_error_over_fresh_html() {
+    let output = std::env::temp_dir().join(format!(
+        "rocci-rebuild-fresh-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    ));
+    fs::create_dir_all(&output).unwrap();
+    fs::write(output.join("index.html"), "<h1>last-good</h1>").unwrap();
+    let port = crate::serve::free_port().unwrap();
+    let server = serve_static_site(
+        StaticDevServerConfig {
+            title: "rebuild-fresh".into(),
+            port,
+            open_path: "/".into(),
+            output: Some(output.clone()),
+            watch_paths: Vec::new(),
+            custom_filter: None,
+            log_prefix: "test".into(),
+            backend_port: None,
+            log_handlers: false,
+            on_stop: None,
+            public: false,
+            extra_http: None,
+        },
+        |out, _| {
+            fs::write(out.join("index.html"), "<h1>CURRENT-DRAFT-BODY</h1>").unwrap();
+            anyhow::bail!("RD2101 error docs/templates/index.rocdown: broken internal link")
+        },
+    )
+    .unwrap();
+
+    let mut home = TcpStream::connect(("127.0.0.1", port)).unwrap();
+    home.write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+        .unwrap();
+    let mut html = String::new();
+    home.read_to_string(&mut html).unwrap();
+    assert!(html.contains("HTTP/1.1 200"), "{html}");
+    assert!(html.contains("<h1>CURRENT-DRAFT-BODY</h1>"), "{html}");
+    assert!(!html.contains("last-good"), "{html}");
+    assert!(html.contains("rocci-build-error"), "{html}");
+    assert!(html.contains("RD2101"), "{html}");
+
+    drop(server);
+    let _ = fs::remove_dir_all(&output);
+}
+
+#[test]
 fn static_server_serves_build_error_shell_when_no_html_exists() {
     let output = std::env::temp_dir().join(format!(
         "rocci-rebuild-shell-{}-{}",
@@ -756,8 +810,10 @@ fn static_server_serves_build_error_shell_when_no_html_exists() {
     let mut html = String::new();
     home.read_to_string(&mut html).unwrap();
     assert!(html.contains("HTTP/1.1 200"), "{html}");
-    assert!(html.contains("rocci-build-error"), "{html}");
+    assert!(html.contains("class=\"brand\""), "{html}");
+    assert!(html.contains("Build error"), "{html}");
     assert!(html.contains("catalog resolve failed"), "{html}");
+    assert!(html.contains("--accent"), "{html}");
 
     drop(server);
     let _ = fs::remove_dir_all(&output);

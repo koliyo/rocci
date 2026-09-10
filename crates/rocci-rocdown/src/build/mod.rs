@@ -97,7 +97,8 @@ fn build_loaded_with_host(
     cdn_only: bool,
 ) -> Result<BuildReport> {
     let plan_started = Instant::now();
-    let plan = prepare_plan(loaded, cdn_only, false)?;
+    let prepared = prepare_plan(loaded, cdn_only, false)?;
+    let plan = prepared.plan;
     let plan_ms = plan_started.elapsed().as_millis();
     let workspace = unique_temp("ws")?;
     let staging = unique_temp("stage")?;
@@ -269,7 +270,8 @@ impl BuildSession {
         host: rocci_roc_host::HostChoice,
     ) -> Result<BuildReport> {
         let plan_started = Instant::now();
-        let plan = prepare_plan(loaded, false, true)?;
+        let prepared = prepare_plan(loaded, false, true)?;
+        let plan = prepared.plan;
         let plan_ms = plan_started.elapsed().as_millis();
         let staging = unique_temp("stage")?;
         let is_wasm = host == rocci_roc_host::HostChoice::Wasm;
@@ -383,6 +385,9 @@ impl BuildSession {
         commit_output(&staging, output)?;
         let write_ms = write_started.elapsed().as_millis();
         self.snippet_paths = plan.snippet_paths.clone();
+        if let Some(error) = prepared.catalog_error {
+            bail!("{error}");
+        }
 
         Ok(report_from_plan(
             &plan,
@@ -404,16 +409,29 @@ impl Drop for BuildSession {
     }
 }
 
-fn prepare_plan(loaded: &LoadedSite, cdn_only: bool, preview: bool) -> Result<BuildPlan> {
+#[derive(Debug)]
+struct PreparedPlan {
+    plan: BuildPlan,
+    catalog_error: Option<String>,
+}
+
+fn prepare_plan(loaded: &LoadedSite, cdn_only: bool, preview: bool) -> Result<PreparedPlan> {
     let mut result = resolve_loaded(loaded);
     for diagnostic in &result.diagnostics {
         if diagnostic.severity == catalog::Severity::Warning {
             eprintln!("{diagnostic}");
         }
     }
-    if result.has_errors() {
-        bail!("{}", result.error_summary());
-    }
+    let catalog_error = if result.has_errors() {
+        let summary = result.error_summary();
+        if preview && !result.site.pages.is_empty() {
+            Some(summary)
+        } else {
+            bail!("{summary}");
+        }
+    } else {
+        None
+    };
     if cdn_only {
         let live_errors = crate::site::cdn_only_live_errors(&result.site);
         if !live_errors.is_empty() {
@@ -431,11 +449,15 @@ fn prepare_plan(loaded: &LoadedSite, cdn_only: bool, preview: bool) -> Result<Bu
         }
     }
     splice_islands(loaded, &mut result.site)?;
-    if preview {
-        plan::plan_preview(&loaded.root, &loaded.config, &result.site)
+    let plan = if preview {
+        plan::plan_preview(&loaded.root, &loaded.config, &result.site)?
     } else {
-        plan::plan(&loaded.root, &loaded.config, &result.site)
-    }
+        plan::plan(&loaded.root, &loaded.config, &result.site)?
+    };
+    Ok(PreparedPlan {
+        plan,
+        catalog_error,
+    })
 }
 
 fn splice_islands(loaded: &LoadedSite, site: &mut catalog::ResolvedSite) -> Result<()> {

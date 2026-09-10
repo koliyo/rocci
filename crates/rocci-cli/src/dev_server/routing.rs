@@ -13,6 +13,7 @@ use super::{LIVE_RELOAD_TAG, PREVIEW_HTML_CSP, ReloadHub};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ServeTarget {
     ReloadJs,
+    ErrorCss,
     Events,
     Logs,
     LogEvents,
@@ -33,6 +34,12 @@ pub fn resolve_request(output: &Path, url_path: &str) -> ServeTarget {
         || path == "/__rocci_okf/reload.js"
     {
         return ServeTarget::ReloadJs;
+    }
+    if path == "/__rocci/error.css"
+        || path == "/__rocdown/error.css"
+        || path == "/__rocci_okf/error.css"
+    {
+        return ServeTarget::ErrorCss;
     }
     if path == "/__rocci/events" || path == "/__rocdown/events" || path == "/__rocci_okf/events" {
         return ServeTarget::Events;
@@ -158,7 +165,7 @@ pub(crate) fn relax_csp(html: &str) -> String {
 }
 
 pub(crate) fn write_error_html(stream: &mut TcpStream, message: &str) -> io::Result<()> {
-    let html = inject_live_reload(&error_page(message));
+    let html = inject_live_reload(&error_page::render_build_error_shell(message));
     write_response(
         stream,
         500,
@@ -177,66 +184,6 @@ pub(crate) fn write_build_error_shell(stream: &mut TcpStream, message: &str) -> 
         true,
         html.as_bytes(),
     )
-}
-
-pub(crate) fn error_page(message: &str) -> String {
-    format!(
-        r#"<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Build error</title>
-  <style>
-    body {{
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #111418;
-      color: #f1f3f5;
-      margin: 0;
-      padding: 3rem 2rem;
-    }}
-    .box {{
-      max-width: 48rem;
-      margin: 0 auto;
-      background: #1c2128;
-      border: 1px solid #e06c75;
-      border-radius: 8px;
-      padding: 2rem;
-    }}
-    h1 {{
-      margin: 0 0 1rem;
-      font-size: 1.25rem;
-      color: #e06c75;
-    }}
-    pre {{
-      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-      font-size: 0.9rem;
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #15181e;
-      border-radius: 4px;
-      padding: 1rem;
-      margin: 0;
-      line-height: 1.5;
-    }}
-  </style>
-</head>
-<body>
-  <div class="box">
-    <h1>Build error</h1>
-    <pre>{}</pre>
-  </div>
-</body>
-</html>"#,
-        html_escape(message)
-    )
-}
-
-pub(crate) fn html_escape(input: &str) -> String {
-    input
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
 }
 
 pub(crate) fn write_response(

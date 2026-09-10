@@ -148,6 +148,13 @@ pub(crate) fn handle_client(req: HandleClient<'_>) -> io::Result<()> {
             false,
             RELOAD_JS.as_bytes(),
         ),
+        ServeTarget::ErrorCss => write_response(
+            &mut stream,
+            200,
+            "text/css; charset=utf-8",
+            false,
+            crate::error_page::ERROR_OVERLAY_CSS.as_bytes(),
+        ),
         ServeTarget::Events => write_sse(&mut stream, hub),
         ServeTarget::Logs => write_response(
             &mut stream,

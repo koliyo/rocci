@@ -174,44 +174,98 @@ pub fn render_handler_overlay(method: &str, path: &str, handler: &str, error: &s
     )
 }
 
+pub const ERROR_OVERLAY_CSS: &str = r#"
+#rocci-build-error-close {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+#rocci-build-error-close:checked + #rocci-build-error {
+  display: none !important;
+}
+#rocci-build-error {
+  position: fixed;
+  inset: auto 1rem 1rem 1rem;
+  z-index: 2147483647;
+  max-height: 45vh;
+  overflow: auto;
+  padding: 1rem 1.1rem;
+  border: 1px solid #5c2a32;
+  border-radius: 12px;
+  background: #1b1416;
+  color: #f4e8ea;
+  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .45);
+}
+#rocci-build-error .rocci-error-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .55rem;
+}
+#rocci-build-error .rocci-error-title {
+  font: 700 11px/1.2 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #ff7b8a;
+}
+#rocci-build-error .rocci-error-close {
+  font: 700 11px/1.2 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #f4e8ea;
+  border: 1px solid #5c2a32;
+  border-radius: 8px;
+  padding: .25rem .55rem;
+  cursor: pointer;
+}
+#rocci-build-error pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+"#;
+
 pub fn render_build_error_dialog(message: &str) -> String {
     format!(
-        r#"<dialog id="rocci-build-error" open style="max-width:48rem;width:calc(100% - 2rem);margin:auto;padding:0;border:1px solid #e06c75;border-radius:8px;background:#1c2128;color:#f1f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.45)">
-<form method="dialog" style="margin:0;padding:2rem">
-<h1 style="margin:0 0 1rem;font-size:1.25rem;color:#e06c75">Build error</h1>
-<pre style="font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:0.9rem;white-space:pre-wrap;word-break:break-word;background:#15181e;border-radius:4px;padding:1rem;margin:0 0 1rem;line-height:1.5">{message}</pre>
-<button type="submit" style="font:inherit;padding:0.45rem 0.9rem;border:1px solid #3d444d;border-radius:6px;background:#21262d;color:#f1f3f5;cursor:pointer">Close</button>
-</form></dialog>"#,
+        "<link rel=\"stylesheet\" href=\"/__rocci/error.css\">\
+         <input type=\"checkbox\" id=\"rocci-build-error-close\">\
+         <div id=\"rocci-build-error\">\
+         <div class=\"rocci-error-head\">\
+         <div class=\"rocci-error-title\">Build error</div>\
+         <label class=\"rocci-error-close\" for=\"rocci-build-error-close\">Close</label>\
+         </div>\
+         <pre>{message}</pre></div>",
         message = html_escape(message),
     )
 }
 
 pub fn inject_build_error_dialog(html: &str, message: &str) -> String {
-    let dialog = render_build_error_dialog(message);
-    if let Some(idx) = html.rfind("</body>") {
-        let mut out = String::with_capacity(html.len() + dialog.len());
+    let overlay = render_build_error_dialog(message);
+    if let Some(idx) = html.to_ascii_lowercase().rfind("</body>") {
+        let mut out = String::with_capacity(html.len() + overlay.len());
         out.push_str(&html[..idx]);
-        out.push_str(&dialog);
+        out.push_str(&overlay);
         out.push_str(&html[idx..]);
         out
     } else {
-        format!("{html}{dialog}")
+        format!("{html}{overlay}")
     }
 }
 
 pub fn render_build_error_shell(message: &str) -> String {
-    format!(
-        r#"<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Build error</title>
-</head>
-<body>
-{dialog}
-</body>
-</html>"#,
-        dialog = render_build_error_dialog(message),
+    let body = format!(
+        "<p class=\"lead\">Preview rebuild reported diagnostics. The next successful rebuild clears this page.</p><pre>{}</pre>",
+        html_escape(message),
+    );
+    document(
+        "Build",
+        "Build error",
+        "The documentation preview could not finish a clean rebuild.",
+        &body,
+        "compile",
     )
 }
 
@@ -663,12 +717,27 @@ mod tests {
     fn build_error_dialog_does_not_emit_line_continuation_slashes() {
         let html = render_build_error_dialog("RD2201 boom");
         assert!(html.contains("rocci-build-error"));
+        assert!(html.contains("<div id=\"rocci-build-error\""));
+        assert!(!html.contains("<dialog"));
+        assert!(html.contains("/__rocci/error.css"));
         assert!(html.contains("Build error"));
+        assert!(ERROR_OVERLAY_CSS.contains("#ff7b8a"));
         assert!(html.contains("RD2201 boom"));
         assert!(
             !html.contains('\\'),
-            "raw-string `\\` line continuations must not appear in the dialog: {html}"
+            "raw-string `\\` line continuations must not appear in the overlay: {html}"
         );
+    }
+
+    #[test]
+    fn build_error_shell_uses_shared_error_document() {
+        let html = render_build_error_shell("RD2101 broken internal link");
+        assert!(html.contains("class=\"brand\""));
+        assert!(html.contains("rocci"));
+        assert!(html.contains("Build error"));
+        assert!(html.contains("RD2101 broken internal link"));
+        assert!(html.contains("--accent"));
+        assert!(!html.contains("<dialog"));
     }
 
     #[test]

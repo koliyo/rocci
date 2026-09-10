@@ -934,26 +934,69 @@ fn session_reuses_apply_binary_when_roc_sources_are_unchanged() {
 #[test]
 fn session_rebuild_failure_preserves_output() {
     let root = temp_dir("session-fail-src");
-    write_page(
-        &root,
-        "alpha.rocdown",
-        "@page { route: \"/same/\", meta: { title: \"Alpha\" } }\n\n# Alpha\n",
-    );
-    write_page(
-        &root,
-        "beta.rocdown",
-        "@page { route: \"/same/\", meta: { title: \"Beta\" } }\n\n# Beta\n",
-    );
+    write_page(&root, "index.rocdown", ":note {{ Hello @{name}. }}\n");
     let output = temp_dir("session-fail-out");
     fs::write(output.join("keep.txt"), "preserve me").unwrap();
     let mut session = BuildSession::create().unwrap();
     let err = session.rebuild(&root, &output).unwrap_err();
     let message = format!("{err:#}");
-    assert!(message.contains("duplicate route"), "{message}");
+    assert!(message.contains("RD2303"), "{message}");
     assert_eq!(
         fs::read_to_string(output.join("keep.txt")).unwrap(),
         "preserve me"
     );
+    let _ = fs::remove_dir_all(&root);
+    let _ = fs::remove_dir_all(&output);
+}
+
+#[test]
+fn preview_plan_keeps_page_when_internal_link_is_broken() {
+    let root = temp_dir("preview-rd2101-src");
+    write_page(
+        &root,
+        "index.rocdown",
+        "# Home\n\nCURRENT-DRAFT-BODY See [[no-such-page]].\n",
+    );
+    let loaded = load_site(&root).unwrap();
+    let release = prepare_plan(&loaded, false, false).unwrap_err();
+    let release_message = format!("{release:#}");
+    assert!(release_message.contains("RD2101"), "{release_message}");
+    let prepared = prepare_plan(&loaded, false, true).unwrap();
+    let home = prepared
+        .plan
+        .pages
+        .iter()
+        .find(|page| page.output_path == "index.html")
+        .expect("home page planned");
+    assert!(
+        home.article_html.contains("CURRENT-DRAFT-BODY"),
+        "{}",
+        home.article_html
+    );
+    let catalog_error = prepared.catalog_error.expect("catalog error");
+    assert!(catalog_error.contains("RD2101"), "{catalog_error}");
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn session_rebuild_commits_html_then_reports_rd2101() {
+    if skip_without_roc() {
+        return;
+    }
+    let _lock = lock_roc();
+    let root = temp_dir("preview-rd2101-rebuild-src");
+    write_page(
+        &root,
+        "index.rocdown",
+        "# Home\n\nCURRENT-DRAFT-BODY See [[no-such-page]].\n",
+    );
+    let output = temp_dir("preview-rd2101-rebuild-out");
+    let mut session = BuildSession::create().unwrap();
+    let err = session.rebuild(&root, &output).unwrap_err();
+    let message = format!("{err:#}");
+    assert!(message.contains("RD2101"), "{message}");
+    let html = fs::read_to_string(output.join("index.html")).unwrap();
+    assert!(html.contains("CURRENT-DRAFT-BODY"), "{html}");
     let _ = fs::remove_dir_all(&root);
     let _ = fs::remove_dir_all(&output);
 }
