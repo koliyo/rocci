@@ -1,0 +1,15 @@
+<div class="source-chrome">
+<form class="source-form" method="get" action="{{action}}">
+<input type="hidden" name="route" value="{{route}}" />
+<input type="hidden" name="tab" value="source" />
+<label class="view-label">
+<span class="visually-hidden">View</span>
+<select name="view" aria-label="View" onchange="this.form.submit()">{{view_options}}</select>
+</label>
+<label class="wrap-label">
+<input type="checkbox" id="source-wrap" checked="" aria-label="Wrap lines" /> Wrap
+</label>
+<p class="file-path">{{path}}</p>
+<noscript><button type="submit">Show</button></noscript>
+</form>{{reason_html}}</div>{{pane_html}}
+<script>{{source_wrap_js}}</script>

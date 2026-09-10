@@ -18,14 +18,17 @@ use crate::logs::{LogHub, LogLine};
 use crate::profile::ProfileSnapshot;
 
 const METRICS_PANEL: &str = include_str!("../templates/dev/MetricsPanel.rocci");
-
-const DOCUMENT_CSS: &str = "html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; } body { display: flex; flex-direction: column; min-height: 0; }";
-
-const SOURCE_WRAP_JS: &str = r#"<script>(function(){var key="rocci-dev-wrap";var pane=document.querySelector(".code-pane");var box=document.getElementById("source-wrap");if(!pane||!box)return;function apply(on){pane.classList.toggle("no-wrap",!on);try{sessionStorage.setItem(key,on?"1":"0");}catch(err){}}var stored=null;try{stored=sessionStorage.getItem(key);}catch(err){}var wrap=stored!=="0";box.checked=wrap;apply(wrap);box.addEventListener("change",function(){apply(box.checked);});})();</script>"#;
-
-const INSPECTOR_NOTIFY: &str = r#"<script>(function(){var p=new URLSearchParams(location.search);var msg={type:"h35-inspector",tab:p.get("tab")||"performance",view:p.get("view")||"source"};parent.postMessage(msg,"*");})();</script>"#;
-
-const CONSOLE_JS: &str = r#"<script>(function(){var root=document.querySelector("[data-logs-root]");if(!root)return;var api=root.getAttribute("data-logs-root")||"/__rocci";var pane=document.getElementById("console-log");var body=pane&&pane.querySelector("tbody");if(!pane||!body)return;var levels={debug:true,info:true,warn:true,error:true};var stick=true;function near(){return pane.scrollHeight-pane.scrollTop-pane.clientHeight<32;}function apply(){var rows=body.querySelectorAll("tr[data-level]");for(var i=0;i<rows.length;i++){rows[i].hidden=!levels[rows[i].getAttribute("data-level")];}}function row(line){var tr=document.createElement("tr");tr.setAttribute("data-level",line.level||"info");var t=new Date(Number(line.t)||0);var time=isNaN(t.getTime())?String(line.t||""):t.toLocaleTimeString();tr.innerHTML="<td>"+time+"</td><td>"+esc(line.level)+"</td><td>"+esc(line.source)+"</td><td>"+esc(line.text)+"</td>";return tr;}function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(ch){return ch==="&"?"&amp;":ch==="<"?"&lt;":ch===">"?"&gt;":"&quot;";});}pane.addEventListener("scroll",function(){stick=near();});var chips=root.querySelectorAll(".console-filters button[data-level]");for(var c=0;c<chips.length;c++){(function(btn){btn.addEventListener("click",function(){var level=btn.getAttribute("data-level");levels[level]=!levels[level];btn.setAttribute("aria-pressed",levels[level]?"true":"false");apply();});})(chips[c]);}var clear=root.querySelector(".console-clear");if(clear){clear.addEventListener("click",function(){fetch(api+"/logs/clear",{method:"POST"}).then(function(){body.innerHTML="";});});}try{var es=new EventSource(api+"/logs/events");es.addEventListener("log",function(ev){var keep=stick||near();try{body.appendChild(row(JSON.parse(ev.data)));}catch(err){}apply();if(keep){pane.scrollTop=pane.scrollHeight;}});}catch(err){}})();</script>"#;
+const DOCUMENT_HTML: &str = include_str!("../templates/dev/document.html");
+const DOCUMENT_CSS: &str = include_str!("../templates/dev/document.css");
+const TABS_HTML: &str = include_str!("../templates/dev/tabs.html");
+const SOURCE_PANE_HTML: &str = include_str!("../templates/dev/source-pane.html");
+const SOURCE_BODY_HTML: &str = include_str!("../templates/dev/source-body.html");
+const CONSOLE_HTML: &str = include_str!("../templates/dev/console.html");
+const PERFORMANCE_HTML: &str = include_str!("../templates/dev/performance.html");
+const SPANS_HTML: &str = include_str!("../templates/dev/spans.html");
+const SOURCE_WRAP_JS: &str = include_str!("../templates/dev/source-wrap.js");
+const INSPECTOR_NOTIFY: &str = include_str!("../templates/dev/notify.js");
+const CONSOLE_JS: &str = include_str!("../templates/dev/console.js");
 
 #[cfg(test)]
 pub fn render_panel_html(snapshot: Option<&InspectSnapshot>, target: &str) -> String {
@@ -45,18 +48,29 @@ pub fn render_panel_with_logs(
     let route = query.route.as_deref().unwrap_or("/");
     let tabs = render_tablist(tab, action, route, query.view.as_str());
     let body = match tab {
-        "source" => format!(
-            "<div class=\"inspector-body tab-source\">{}</div>",
-            render_source_pane(snapshot, &query, target)
+        "source" => error_page::fill_template(
+            SOURCE_BODY_HTML,
+            &[("pane", &render_source_pane(snapshot, &query, target))],
         ),
         "console" => render_console_pane(target, logs),
-        _ => format!(
-            "<div class=\"inspector-body tab-performance\"><h1>Profiling</h1>{}</div>",
-            render_performance(snapshot.map(|snapshot| &snapshot.profile))
+        _ => error_page::fill_template(
+            PERFORMANCE_HTML,
+            &[(
+                "content",
+                &render_performance(snapshot.map(|snapshot| &snapshot.profile)),
+            )],
         ),
     };
-    format!(
-        "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"color-scheme\" content=\"light dark\"><title>Inspector</title><style>{DOCUMENT_CSS}{css}</style></head><body><section class=\"inspector-panel\" data-rocci-css=\"{scope}\">{tabs}{body}</section>{INSPECTOR_NOTIFY}</body></html>\n"
+    let css = format!("{DOCUMENT_CSS}{css}");
+    error_page::fill_template(
+        DOCUMENT_HTML,
+        &[
+            ("css", &css),
+            ("scope", &scope),
+            ("tabs", &tabs),
+            ("body", &body),
+            ("notify_js", INSPECTOR_NOTIFY),
+        ],
     )
 }
 
@@ -113,11 +127,17 @@ fn render_source_pane(
     } else {
         "<div class=\"code-pane\"></div>".to_string()
     };
-    format!(
-        "<div class=\"source-chrome\"><form class=\"source-form\" method=\"get\" action=\"{action}\"><input type=\"hidden\" name=\"route\" value=\"{}\" /><input type=\"hidden\" name=\"tab\" value=\"source\" /><label class=\"view-label\"><span class=\"visually-hidden\">View</span><select name=\"view\" aria-label=\"View\" onchange=\"this.form.submit()\">{}</select></label><label class=\"wrap-label\"><input type=\"checkbox\" id=\"source-wrap\" checked=\"\" aria-label=\"Wrap lines\" /> Wrap</label><p class=\"file-path\">{}</p><noscript><button type=\"submit\">Show</button></noscript></form>{reason_html}</div>{pane_html}{SOURCE_WRAP_JS}",
-        error_page::html_escape(route),
-        view_options(view, page),
-        error_page::html_escape(path),
+    error_page::fill_template(
+        SOURCE_PANE_HTML,
+        &[
+            ("action", action),
+            ("route", &error_page::html_escape(route)),
+            ("view_options", &view_options(view, page)),
+            ("path", &error_page::html_escape(path)),
+            ("reason_html", &reason_html),
+            ("pane_html", &pane_html),
+            ("source_wrap_js", SOURCE_WRAP_JS),
+        ],
     )
 }
 
@@ -149,7 +169,7 @@ fn render_tablist(selected: &str, action: &str, route: &str, view: &str) -> Stri
         ("source", "Source"),
         ("console", "Console"),
     ];
-    let mut html = String::from("<nav class=\"inspector-tabs\" role=\"tablist\">");
+    let mut html = String::new();
     for (id, label) in TABS {
         let selected_attr = if selected == id { "true" } else { "false" };
         let href = format!(
@@ -162,8 +182,7 @@ fn render_tablist(selected: &str, action: &str, route: &str, view: &str) -> Stri
             error_page::html_escape(&href)
         ));
     }
-    html.push_str("</nav>");
-    html
+    error_page::fill_template(TABS_HTML, &[("tabs", &html)])
 }
 
 fn panel_api_root(target: &str) -> &'static str {
@@ -192,8 +211,9 @@ fn render_console_pane(target: &str, logs: &[LogLine]) -> String {
             "<tr class=\"console-empty\"><td colspan=\"4\">No runtime messages yet.</td></tr>",
         );
     }
-    format!(
-        "<div class=\"inspector-body tab-console\" data-logs-root=\"{root}\"><div class=\"console-toolbar\"><div class=\"console-filters\" role=\"group\" aria-label=\"Log level\"><button type=\"button\" data-level=\"debug\" aria-pressed=\"true\">debug</button><button type=\"button\" data-level=\"info\" aria-pressed=\"true\">info</button><button type=\"button\" data-level=\"warn\" aria-pressed=\"true\">warn</button><button type=\"button\" data-level=\"error\" aria-pressed=\"true\">error</button></div><button type=\"button\" class=\"console-clear\">Clear</button></div><div class=\"console-log\" id=\"console-log\"><table><thead><tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr></thead><tbody>{rows}</tbody></table></div></div>{CONSOLE_JS}"
+    error_page::fill_template(
+        CONSOLE_HTML,
+        &[("root", root), ("rows", &rows), ("console_js", CONSOLE_JS)],
     )
 }
 
@@ -293,9 +313,12 @@ fn render_spans(snapshot: &ProfileSnapshot) -> String {
             span.duration_ms
         ));
     }
-    format!(
-        "<p class=\"total\"><span class=\"value\">{}</span><span class=\"unit\">ms total</span></p><table><thead><tr><th>Stage</th><th>ms</th><th></th></tr></thead><tbody>{rows}</tbody></table>",
-        snapshot.total_ms
+    error_page::fill_template(
+        SPANS_HTML,
+        &[
+            ("total_ms", &snapshot.total_ms.to_string()),
+            ("rows", &rows),
+        ],
     )
 }
 

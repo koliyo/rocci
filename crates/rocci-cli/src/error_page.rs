@@ -6,6 +6,30 @@ const METHOD_PLACEHOLDER: &str = "ROCCI_DEV_METHOD";
 const PATH_PLACEHOLDER: &str = "ROCCI_DEV_PATH";
 const HANDLER_PLACEHOLDER: &str = "ROCCI_DEV_HANDLER";
 const ERROR_PLACEHOLDER: &str = "ROCCI_DEV_ERROR";
+const HINT_PLACEHOLDER: &str = "ROCCI_DEV_HINT";
+
+const DOCUMENT_HTML: &str = include_str!("../templates/error/document.html");
+const DOCUMENT_CSS: &str = include_str!("../templates/error/document.css");
+const BUILD_DIALOG_HTML: &str = include_str!("../templates/error/build-dialog.html");
+const HANDLER_OVERLAY_HTML: &str = include_str!("../templates/error/handler-overlay.html");
+const HANDLER_ERROR_BODY: &str = include_str!("../templates/error/handler-error-body.html");
+const NOT_FOUND_BODY: &str = include_str!("../templates/error/not-found-body.html");
+const FRAME_HTML: &str = include_str!("../templates/error/frame.html");
+const TEMPLATE_ERROR_BODY: &str = include_str!("../templates/error/template-error-body.html");
+const ROC_COMPILE_BODY: &str = include_str!("../templates/error/roc-compile-body.html");
+const BUILD_SHELL_BODY: &str = include_str!("../templates/error/build-shell-body.html");
+const HINT_HTML: &str = include_str!("../templates/error/hint.html");
+const ROUTES_TABLE: &str = include_str!("../templates/error/routes-table.html");
+
+pub const ERROR_OVERLAY_CSS: &str = include_str!("../templates/error/overlay.css");
+
+pub fn fill_template(template: &str, vars: &[(&str, &str)]) -> String {
+    let mut out = template.to_string();
+    for (key, value) in vars {
+        out = out.replace(&format!("{{{{{key}}}}}"), value);
+    }
+    out
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ListedRoute {
@@ -90,67 +114,71 @@ pub fn slash_alternates(routes: &[ListedRoute]) -> Vec<(String, String)> {
 }
 
 pub fn render_not_found(method: &str, path: &str, routes: &[ListedRoute]) -> String {
-    let hint = suggest_path(path, routes);
-    let mut body = String::new();
-    body.push_str("<p class=\"lead\">No handler for this request.</p>");
-    body.push_str("<p class=\"request\"><code>");
-    body.push_str(&html_escape(method));
-    body.push(' ');
-    body.push_str(&html_escape(path));
-    body.push_str("</code></p>");
-    if let Some(hint) = &hint {
-        body.push_str("<p class=\"hint\">Did you mean <a href=\"");
-        body.push_str(&html_escape(hint));
-        body.push_str("\"><code>");
-        body.push_str(&html_escape(hint));
-        body.push_str("</code></a>?</p>");
-    }
-    if routes.is_empty() {
-        body.push_str("<p class=\"muted\">No routes are registered.</p>");
-    } else {
-        body.push_str("<h2>Registered routes</h2><table><thead><tr><th>Method</th><th>Path</th><th>Handler</th></tr></thead><tbody>");
-        for route in routes {
-            body.push_str("<tr><td><code>");
-            body.push_str(&html_escape(&route.method));
-            body.push_str("</code></td><td>");
-            if route.method == "GET" {
-                body.push_str("<a href=\"");
-                body.push_str(&html_escape(&route.path));
-                body.push_str("\"><code>");
-                body.push_str(&html_escape(&route.path));
-                body.push_str("</code></a>");
-            } else {
-                body.push_str("<code>");
-                body.push_str(&html_escape(&route.path));
-                body.push_str("</code>");
-            }
-            body.push_str("</td><td><code>");
-            body.push_str(&html_escape(&route.handler));
-            body.push_str("</code></td></tr>");
-        }
-        body.push_str("</tbody></table>");
-    }
+    let hint = match suggest_path(path, routes) {
+        Some(target) => fill_template(HINT_HTML, &[("target", &html_escape(&target))]),
+        None => String::new(),
+    };
+    not_found_document(method, path, &hint, routes)
+}
+
+fn not_found_document(method: &str, path: &str, hint: &str, routes: &[ListedRoute]) -> String {
     document(
         "404",
         "Not Found",
         "This route is not registered.",
-        &body,
+        &not_found_body(method, path, hint, routes),
         "404",
     )
 }
 
+fn not_found_body(method: &str, path: &str, hint: &str, routes: &[ListedRoute]) -> String {
+    fill_template(
+        NOT_FOUND_BODY,
+        &[
+            ("method", &html_escape(method)),
+            ("path", &html_escape(path)),
+            ("hint", hint),
+            ("routes", &routes_html(routes)),
+        ],
+    )
+}
+
+fn routes_html(routes: &[ListedRoute]) -> String {
+    if routes.is_empty() {
+        return "<p class=\"muted\">No routes are registered.</p>".to_string();
+    }
+    let mut rows = String::new();
+    for route in routes {
+        rows.push_str("<tr><td><code>");
+        rows.push_str(&html_escape(&route.method));
+        rows.push_str("</code></td><td>");
+        if route.method == "GET" {
+            rows.push_str("<a href=\"");
+            rows.push_str(&html_escape(&route.path));
+            rows.push_str("\"><code>");
+            rows.push_str(&html_escape(&route.path));
+            rows.push_str("</code></a>");
+        } else {
+            rows.push_str("<code>");
+            rows.push_str(&html_escape(&route.path));
+            rows.push_str("</code>");
+        }
+        rows.push_str("</td><td><code>");
+        rows.push_str(&html_escape(&route.handler));
+        rows.push_str("</code></td></tr>");
+    }
+    fill_template(ROUTES_TABLE, &[("rows", &rows)])
+}
+
 pub fn render_handler_error(method: &str, path: &str, handler: &str, error: &str) -> String {
-    let body = format!(
-        "<p class=\"lead\">The route handler returned an error.</p>\
-         <dl class=\"meta\">\
-         <div><dt>Request</dt><dd><code>{method} {path}</code></dd></div>\
-         <div><dt>Handler</dt><dd><code>{handler}</code></dd></div>\
-         </dl>\
-         <h2>Error</h2><pre>{error}</pre>",
-        method = html_escape(method),
-        path = html_escape(path),
-        handler = html_escape(handler),
-        error = html_escape(error),
+    let body = fill_template(
+        HANDLER_ERROR_BODY,
+        &[
+            ("method", &html_escape(method)),
+            ("path", &html_escape(path)),
+            ("handler", &html_escape(handler)),
+            ("error", &html_escape(error)),
+        ],
     );
     document(
         "500",
@@ -162,84 +190,19 @@ pub fn render_handler_error(method: &str, path: &str, handler: &str, error: &str
 }
 
 pub fn render_handler_overlay(method: &str, path: &str, handler: &str, error: &str) -> String {
-    format!(
-        "<div id=\"rocci-dev-error\" style=\"position:fixed;inset:auto 1rem 1rem 1rem;z-index:2147483647;max-height:45vh;overflow:auto;padding:1rem 1.1rem;border:1px solid #5c2a32;border-radius:12px;background:#1b1416;color:#f4e8ea;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;box-shadow:0 18px 50px rgba(0,0,0,.45)\">\
-         <div style=\"font:700 11px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#ff7b8a;margin-bottom:.4rem\">Handler failed</div>\
-         <div style=\"margin-bottom:.55rem\"><code>{method} {path}</code> · <code>{handler}</code></div>\
-         <pre style=\"margin:0;white-space:pre-wrap\">{error}</pre></div>",
-        method = html_escape(method),
-        path = html_escape(path),
-        handler = html_escape(handler),
-        error = html_escape(error),
+    fill_template(
+        HANDLER_OVERLAY_HTML,
+        &[
+            ("method", &html_escape(method)),
+            ("path", &html_escape(path)),
+            ("handler", &html_escape(handler)),
+            ("error", &html_escape(error)),
+        ],
     )
 }
-
-pub const ERROR_OVERLAY_CSS: &str = r#"
-#rocci-build-error-close {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-#rocci-build-error-close:checked + #rocci-build-error {
-  display: none !important;
-}
-#rocci-build-error {
-  position: fixed;
-  inset: auto 1rem 1rem 1rem;
-  z-index: 2147483647;
-  max-height: 45vh;
-  overflow: auto;
-  padding: 1rem 1.1rem;
-  border: 1px solid #5c2a32;
-  border-radius: 12px;
-  background: #1b1416;
-  color: #f4e8ea;
-  font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .45);
-}
-#rocci-build-error .rocci-error-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .75rem;
-  margin-bottom: .55rem;
-}
-#rocci-build-error .rocci-error-title {
-  font: 700 11px/1.2 ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: #ff7b8a;
-}
-#rocci-build-error .rocci-error-close {
-  font: 700 11px/1.2 ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: #f4e8ea;
-  border: 1px solid #5c2a32;
-  border-radius: 8px;
-  padding: .25rem .55rem;
-  cursor: pointer;
-}
-#rocci-build-error pre {
-  margin: 0;
-  white-space: pre-wrap;
-}
-"#;
 
 pub fn render_build_error_dialog(message: &str) -> String {
-    format!(
-        "<link rel=\"stylesheet\" href=\"/__rocci/error.css\">\
-         <input type=\"checkbox\" id=\"rocci-build-error-close\">\
-         <div id=\"rocci-build-error\">\
-         <div class=\"rocci-error-head\">\
-         <div class=\"rocci-error-title\">Build error</div>\
-         <label class=\"rocci-error-close\" for=\"rocci-build-error-close\">Close</label>\
-         </div>\
-         <pre>{message}</pre></div>",
-        message = html_escape(message),
-    )
+    fill_template(BUILD_DIALOG_HTML, &[("message", &html_escape(message))])
 }
 
 pub fn inject_build_error_dialog(html: &str, message: &str) -> String {
@@ -256,15 +219,11 @@ pub fn inject_build_error_dialog(html: &str, message: &str) -> String {
 }
 
 pub fn render_build_error_shell(message: &str) -> String {
-    let body = format!(
-        "<p class=\"lead\">Preview rebuild reported diagnostics. The next successful rebuild clears this page.</p><pre>{}</pre>",
-        html_escape(message),
-    );
     document(
         "Build",
         "Build error",
         "The documentation preview could not finish a clean rebuild.",
-        &body,
+        &fill_template(BUILD_SHELL_BODY, &[("message", &html_escape(message))]),
         "compile",
     )
 }
@@ -292,50 +251,49 @@ pub fn eprint_template_errors(files: &[FailedFile]) {
 }
 
 pub fn render_template_errors(files: &[FailedFile]) -> String {
-    let mut body = String::from(
-        "<p class=\"lead\">Fix the diagnostics below and rerun <code>rocci run</code>.</p>",
-    );
+    let mut frames = String::new();
     let mut count = 0usize;
     for file in files {
         let source = SourceFile::new(&file.name, &file.src);
         for diagnostic in &file.diagnostics {
             count += 1;
-            body.push_str(&frame_html(&DiagnosticFrame::from_source(
+            frames.push_str(&frame_html(&DiagnosticFrame::from_source(
                 source, diagnostic,
             )));
         }
     }
     if count == 0 {
-        body.push_str("<p class=\"muted\">Compilation failed without diagnostics.</p>");
+        frames.push_str("<p class=\"muted\">Compilation failed without diagnostics.</p>");
     }
     document(
         "Compile",
         "Template error",
         "Rocci could not compile this module.",
-        &body,
+        &fill_template(TEMPLATE_ERROR_BODY, &[("frames", &frames)]),
         "compile",
     )
 }
 
 pub fn render_roc_compile_error(output: &str, modules: &[MappedModule]) -> String {
-    let mut body = String::from(
-        "<p class=\"lead\">Roc rejected the generated program. The compiler output is below, with source locations remapped when possible.</p>",
-    );
     let mapped = remap_roc_output(output, modules);
+    let mut mapped_html = String::new();
     if !mapped.is_empty() {
-        body.push_str("<h2>Source</h2>");
+        mapped_html.push_str("<h2>Source</h2>");
         for frame in &mapped {
-            body.push_str(&frame_html(frame));
+            mapped_html.push_str(&frame_html(frame));
         }
     }
-    body.push_str("<h2>Compiler output</h2><pre>");
-    body.push_str(&html_escape(output.trim()));
-    body.push_str("</pre>");
     document(
         "Compile",
         "Roc compile error",
         "Roc rejected the generated program.",
-        &body,
+        &fill_template(
+            ROC_COMPILE_BODY,
+            &[
+                ("mapped", &mapped_html),
+                ("output", &html_escape(output.trim())),
+            ],
+        ),
         "roc",
     )
 }
@@ -420,16 +378,16 @@ pub fn roc_not_found_arm() -> &'static str {
 }
 
 fn roc_not_found_fn(routes: &[ListedRoute]) -> String {
-    let mut html = render_not_found(METHOD_PLACEHOLDER, PATH_PLACEHOLDER, routes);
-    let insert_at = html
-        .find("<h2>Registered routes</h2>")
-        .or_else(|| html.find("<p class=\"muted\">No routes are registered.</p>"))
-        .unwrap_or(html.len());
-    html.insert_str(insert_at, "ROCCI_DEV_HINT");
+    let html = not_found_document(
+        METHOD_PLACEHOLDER,
+        PATH_PLACEHOLDER,
+        HINT_PLACEHOLDER,
+        routes,
+    );
     let mut contents = roc_escape_contents(&html.replace("${", "&#36;{"));
     contents = contents.replace(METHOD_PLACEHOLDER, "${html_escape(method)}");
     contents = contents.replace(PATH_PLACEHOLDER, "${html_escape(path)}");
-    contents = contents.replace("ROCCI_DEV_HINT", "${hint}");
+    contents = contents.replace(HINT_PLACEHOLDER, "${hint}");
     format!(
         "not_found_html = |method, path| {{\n    hint =\n        match suggest_path(path) {{\n            Ok(target) => \"<p class=\\\"hint\\\">Did you mean <a href=\\\"${{html_escape(target)}}\\\"><code>${{html_escape(target)}}</code></a>?</p>\"\n            Err(_) => \"\"\n        }}\n    \"{contents}\"\n}}\n\n"
     )
@@ -517,86 +475,34 @@ fn roc_escape_contents(text: &str) -> String {
 }
 
 fn frame_html(frame: &DiagnosticFrame) -> String {
-    format!(
-        "<section class=\"frame {kind}\">\
-         <div class=\"frame-head\"><span class=\"pill\">{label}</span> {message}</div>\
-         <div class=\"loc\">{file}:{line}:{column}</div>\
-         <pre class=\"code\"><span class=\"gutter\">{line}</span><span class=\"src\">{source}</span>\n<span class=\"gutter\"></span><span class=\"caret\">{caret}</span></pre>\
-         </section>",
-        kind = html_escape(frame.severity_label()),
-        label = html_escape(&frame.kind_label()),
-        message = html_escape(&frame.message),
-        file = html_escape(&frame.file),
-        line = frame.line,
-        column = frame.column,
-        source = html_escape(&frame.source_line),
-        caret = html_escape(&frame.caret_line()),
+    fill_template(
+        FRAME_HTML,
+        &[
+            ("kind", &html_escape(frame.severity_label())),
+            ("label", &html_escape(&frame.kind_label())),
+            ("message", &html_escape(&frame.message)),
+            ("file", &html_escape(&frame.file)),
+            ("line", &frame.line.to_string()),
+            ("column", &frame.column.to_string()),
+            ("source", &html_escape(&frame.source_line)),
+            ("caret", &html_escape(&frame.caret_line())),
+        ],
     )
 }
 
 fn document(code: &str, title: &str, summary: &str, body: &str, kind: &str) -> String {
-    format!(
-        "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{title} · rocci</title>\n<style>{css}</style>\n</head>\n<body class=\"{kind}\">\n<main>\n<p class=\"brand\">rocci</p>\n<p class=\"code-mark\">{code}</p>\n<h1>{title}</h1>\n<p class=\"summary\">{summary}</p>\n{body}\n</main>\n</body>\n</html>\n",
-        title = html_escape(title),
-        css = ERROR_CSS,
-        kind = html_escape(kind),
-        code = html_escape(code),
-        summary = html_escape(summary),
-        body = body,
+    fill_template(
+        DOCUMENT_HTML,
+        &[
+            ("title", &html_escape(title)),
+            ("css", DOCUMENT_CSS),
+            ("kind", &html_escape(kind)),
+            ("code", &html_escape(code)),
+            ("summary", &html_escape(summary)),
+            ("body", body),
+        ],
     )
 }
-
-const ERROR_CSS: &str = r#"
-:root {
-  color-scheme: dark light;
-  --bg: #141218;
-  --fg: #f4eef2;
-  --muted: #b7a8b0;
-  --card: #1d1820;
-  --line: #3a3036;
-  --accent: #ff7b8a;
-  --warn: #f5c36e;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: ui-sans-serif, system-ui, sans-serif;
-}
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f7f3f4;
-    --fg: #1b1418;
-    --muted: #6b5c63;
-    --card: #fff;
-    --line: #e4d9de;
-    --accent: #c42b45;
-    --warn: #8a5a00;
-  }
-}
-html, body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 var(--sans); }
-main { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1.4rem 4rem; }
-.brand { margin: 0; letter-spacing: .16em; text-transform: uppercase; font-size: .72rem; color: var(--muted); }
-.code-mark { margin: .4rem 0 0; font: 700 3.2rem/1 var(--sans); letter-spacing: -.04em; }
-body.compile .code-mark, body.roc .code-mark, body.500 .code-mark { color: var(--accent); }
-body.404 .code-mark { color: var(--warn); }
-h1 { margin: .2rem 0 .4rem; font-size: 1.65rem; }
-.summary, .lead, .muted, .hint { color: var(--muted); }
-.request code, .meta code, table code { font-family: var(--mono); font-size: .92em; }
-.meta { display: grid; gap: .6rem; margin: 1.2rem 0; }
-.meta div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: .7rem .9rem; }
-dt { font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-dd { margin: .15rem 0 0; }
-h2 { margin: 1.8rem 0 .7rem; font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-th, td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--line); }
-th { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-a { color: inherit; }
-pre { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1rem; overflow: auto; font: 13px/1.45 var(--mono); white-space: pre-wrap; }
-.frame { margin: 1rem 0 1.3rem; }
-.frame-head { font-weight: 650; }
-.pill { display: inline-block; margin-right: .35rem; padding: .1rem .4rem; border-radius: 999px; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
-.loc { color: var(--muted); font: 12px/1.4 var(--mono); margin: .25rem 0 .45rem; }
-pre.code { display: grid; grid-template-columns: auto 1fr; column-gap: .75rem; }
-.gutter { color: var(--muted); text-align: right; user-select: none; }
-.caret { color: var(--accent); }
-"#;
 
 #[cfg(test)]
 mod tests {

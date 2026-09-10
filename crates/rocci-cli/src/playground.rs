@@ -22,23 +22,8 @@ pub static STYLES_CSS: &[u8] = include_bytes!("../../../playground/dist/styles.c
 pub static COMPILER_WASM: &[u8] = include_bytes!("../../../playground/dist/compiler.wasm");
 
 pub const PLAYGROUND_CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-src 'self'";
-const BOOT_JS: &[u8] = br#"import { PlaygroundApp } from "/app.js";
-
-async function init() {
-  try {
-    const resp = await fetch("/api/session");
-    const bootstrap = await resp.json();
-    const root = document.getElementById("playground-root");
-    new PlaygroundApp({ container: root, bootstrap });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    document.body.textContent = "Failed to load playground session: " + message;
-    document.body.style.padding = "24px";
-    document.body.style.color = "red";
-  }
-}
-init();
-"#;
+const BOOT_JS: &[u8] = include_bytes!("../templates/playground/boot.js");
+const PLAYGROUND_INDEX: &[u8] = include_bytes!("../templates/playground/index.html");
 const WASM_HTML_REASON: &str = "HTML preview is not available in WASM mode. The browser cannot dynamically compile generated Roc to WebAssembly.";
 const LOCAL_HTML_REASON: &str = "HTML is a static Html.render snapshot of the first fixture or a component whose required parameters all have defaults.";
 pub const ROCDOWN_LOCAL_HTML_REASON: &str =
@@ -236,25 +221,12 @@ fn handle_connection(
 
     match req.path.as_str() {
         "/" | "/index.html" => {
-            let html = r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rocci Playground</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <div id="playground-root"></div>
-  <script type="module" src="/boot.js"></script>
-</body>
-</html>"#;
             send_response(
                 &mut stream,
                 200,
                 "OK",
                 "text/html; charset=utf-8",
-                html.as_bytes(),
+                PLAYGROUND_INDEX,
                 PLAYGROUND_CSP,
                 "no-cache",
             );

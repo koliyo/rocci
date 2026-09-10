@@ -1,0 +1,20 @@
+<div class="inspector-body tab-console" data-logs-root="{{root}}">
+<div class="console-toolbar">
+<div class="console-filters" role="group" aria-label="Log level">
+<button type="button" data-level="debug" aria-pressed="true">debug</button>
+<button type="button" data-level="info" aria-pressed="true">info</button>
+<button type="button" data-level="warn" aria-pressed="true">warn</button>
+<button type="button" data-level="error" aria-pressed="true">error</button>
+</div>
+<button type="button" class="console-clear">Clear</button>
+</div>
+<div class="console-log" id="console-log">
+<table>
+<thead>
+<tr><th>Time</th><th>Level</th><th>Source</th><th>Message</th></tr>
+</thead>
+<tbody>{{rows}}</tbody>
+</table>
+</div>
+</div>
+<script>{{console_js}}</script>
