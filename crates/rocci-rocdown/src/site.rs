@@ -938,6 +938,7 @@ fn page_ref_from_relative(path: &Path, relative_name: &str) -> Option<PageRef> {
         .or_else(|| relative_name.strip_suffix(".markdown"))
         .or_else(|| relative_name.strip_suffix(".md"))
         .unwrap_or(relative_name);
+    page.id = id.to_string();
     if !page.explicit_route {
         page.route = catalog::derived_route(id);
     } else {

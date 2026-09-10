@@ -146,7 +146,11 @@ impl LanguageServer {
                 definition_provider: Some(OneOf::Left(true)),
                 references_provider: Some(OneOf::Left(true)),
                 completion_provider: Some(CompletionOptions {
-                    trigger_characters: Some(vec!["<".to_string(), "@".to_string()]),
+                    trigger_characters: Some(vec![
+                        "<".to_string(),
+                        "@".to_string(),
+                        "[".to_string(),
+                    ]),
                     ..CompletionOptions::default()
                 }),
                 semantic_tokens_provider: Some(

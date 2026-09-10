@@ -1,3 +1,4 @@
+use crate::PageRef;
 use crate::scan::{fence_open, is_fence_close, skip_0_3_spaces};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -170,6 +171,22 @@ fn find_closing_backticks(bytes: &[u8], n: usize) -> Option<usize> {
         }
     }
     None
+}
+
+pub(crate) fn wiki_page_keys(pages: &[PageRef], prefix: &str) -> Vec<(String, String)> {
+    let mut counts = std::collections::HashMap::<&str, usize>::new();
+    for page in pages {
+        *counts.entry(page.wiki_key()).or_insert(0) += 1;
+    }
+    let mut items: Vec<(String, String)> = pages
+        .iter()
+        .filter(|page| counts.get(page.wiki_key()).copied().unwrap_or(0) == 1)
+        .filter(|page| page.wiki_key().starts_with(prefix))
+        .map(|page| (page.wiki_key().to_string(), page.route.clone()))
+        .collect();
+    items.sort_by(|a, b| a.0.cmp(&b.0));
+    items.dedup_by(|a, b| a.0 == b.0);
+    items
 }
 
 #[cfg(test)]

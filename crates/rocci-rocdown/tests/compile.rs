@@ -40,6 +40,7 @@ fn page(stem: &str, route: &str, headings: &[&str]) -> PageRef {
         route: route.to_string(),
         explicit_route: true,
         heading_ids: headings.iter().map(|id| id.to_string()).collect(),
+        id: stem.to_string(),
     }
 }
 
@@ -987,6 +988,7 @@ fn nested_markdown_page_links_resolve_to_preview_routes() {
             route: "/".to_string(),
             explicit_route: false,
             heading_ids: vec!["plan".to_string()],
+            id: "Plan".to_string(),
         },
         PageRef {
             stem: "About".to_string(),
@@ -995,6 +997,7 @@ fn nested_markdown_page_links_resolve_to_preview_routes() {
             route: "/docs/About.md".to_string(),
             explicit_route: false,
             heading_ids: vec!["about".to_string()],
+            id: "docs/About".to_string(),
         },
     ];
     let out = compile(
@@ -1037,6 +1040,7 @@ fn absolute_document_path_suffix_matches_page() {
         route: "/knowledge/decisions/static-okf-boundary.md".to_string(),
         explicit_route: false,
         heading_ids: vec![],
+        id: "boundary".to_string(),
     }];
     let out = compile(
         SourceFile::new(

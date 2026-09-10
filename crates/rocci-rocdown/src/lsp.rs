@@ -74,6 +74,7 @@ impl DocumentAnalyzer for RocdownAnalyzer {
             text: text.to_string(),
             compiled,
             encoding,
+            pages: document_pages(name, text),
         })
     }
 }
@@ -84,6 +85,7 @@ pub struct RocdownAnalysis {
     pub text: String,
     pub compiled: CompileOutput,
     pub encoding: PositionEncoding,
+    pages: Vec<crate::PageRef>,
 }
 
 impl DocumentAnalysis for RocdownAnalysis {
@@ -131,7 +133,7 @@ impl DocumentAnalysis for RocdownAnalysis {
         let position = params.text_document_position.position;
         let source = SourceFile::new(&self.name, &self.text);
         let offset = offset_at(source, position, self.encoding);
-        Some(completion(&self.text, &self.compiled, offset))
+        Some(completion(&self.text, &self.compiled, offset, &self.pages))
     }
 
     fn semantic_tokens_full(&self, _params: &SemanticTokensParams) -> Option<SemanticTokensResult> {
@@ -208,25 +210,30 @@ pub fn compile_text(name: &str, text: &str) -> CompileOutput {
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|| name.to_string());
     let mut options = CompileOptions::default();
-    if let Some(path) = path {
-        let current = page_ref_from_source(&path, text);
-        let workspace = crate::site::workspace_pages(&path).unwrap_or_default();
-        let in_workspace = workspace.iter().any(|page| page.path == current.path);
-        let mut pages = if in_workspace {
-            workspace
-        } else if let Some(dir) = path
-            .parent()
-            .filter(|dir| dir.is_dir() && *dir != Path::new("/"))
-        {
-            index_pages_in_dir(dir)
-        } else {
-            Vec::new()
-        };
-        pages.retain(|page| page.path != current.path && page.file_name != current.file_name);
-        pages.push(current);
-        options.pages = pages;
-    }
+    options.pages = document_pages(name, text);
     crate::compile(SourceFile::new(&source_name, text), &options)
+}
+
+fn document_pages(name: &str, text: &str) -> Vec<crate::PageRef> {
+    let Some(path) = filesystem_path(name) else {
+        return Vec::new();
+    };
+    let current = page_ref_from_source(&path, text);
+    let workspace = crate::site::workspace_pages(&path).unwrap_or_default();
+    let in_workspace = workspace.iter().any(|page| page.path == current.path);
+    let mut pages = if in_workspace {
+        workspace
+    } else if let Some(dir) = path
+        .parent()
+        .filter(|dir| dir.is_dir() && *dir != Path::new("/"))
+    {
+        index_pages_in_dir(dir)
+    } else {
+        Vec::new()
+    };
+    pages.retain(|page| page.path != current.path && page.file_name != current.file_name);
+    pages.push(current);
+    pages
 }
 
 fn filesystem_path(name: &str) -> Option<PathBuf> {
@@ -438,7 +445,12 @@ pub fn goto_definition(
     }))
 }
 
-pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> CompletionResponse {
+pub fn completion(
+    text: &str,
+    compiled: &CompileOutput,
+    offset: u32,
+    pages: &[crate::PageRef],
+) -> CompletionResponse {
     let offset = (offset as usize).min(text.len());
     if component_at(compiled, offset as u32).is_some() || template_at(compiled, offset as u32) {
         let comps = components(compiled);
@@ -479,6 +491,17 @@ pub fn completion(text: &str, compiled: &CompileOutput, offset: u32) -> Completi
                         Some(format!("@{label}")),
                     )
                 })
+                .collect(),
+        );
+    }
+    if let Some(wiki) = crate::link_completion::wiki_link_context(text, offset)
+        && wiki.heading_prefix.is_none()
+        && wiki.label_prefix.is_none()
+    {
+        return CompletionResponse::Array(
+            crate::link_completion::wiki_page_keys(pages, &wiki.prefix)
+                .into_iter()
+                .map(|(key, route)| completion_item(&key, CompletionItemKind::FILE, Some(route)))
                 .collect(),
         );
     }

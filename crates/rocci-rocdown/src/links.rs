@@ -15,6 +15,7 @@ pub struct PageRef {
     pub route: String,
     pub explicit_route: bool,
     pub heading_ids: Vec<String>,
+    pub id: String,
 }
 
 pub fn page_ref_from_source(path: &Path, src: &str) -> PageRef {
@@ -30,11 +31,11 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
         _ => None,
     });
     let route = explicit_route.clone().unwrap_or_else(|| "/".to_string());
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
     PageRef {
-        stem: path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_default(),
         file_name: path
             .file_name()
             .map(|s| s.to_string_lossy().into_owned())
@@ -43,6 +44,18 @@ fn page_ref_from_parsed(path: &Path, src: &str, parsed: &ParseOutput) -> PageRef
         route,
         explicit_route: explicit_route.is_some(),
         heading_ids: parsed.headings.iter().map(|h| h.id.clone()).collect(),
+        id: stem.clone(),
+        stem,
+    }
+}
+
+impl PageRef {
+    pub(crate) fn wiki_key(&self) -> &str {
+        if self.id.is_empty() || self.id.contains('/') {
+            &self.stem
+        } else {
+            &self.id
+        }
     }
 }
 
@@ -331,6 +344,7 @@ fn resolve_page(
 ) -> Result<String, Diagnostic> {
     let Some(page) = options.pages.iter().find(|page| {
         page.stem == stem
+            || (!page.id.contains('/') && page.id == stem)
             || page.file_name == format!("{stem}.rocdown")
             || page.file_name == format!("{stem}.md")
             || page.file_name == format!("{stem}.markdown")

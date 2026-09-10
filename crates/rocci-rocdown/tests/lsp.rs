@@ -984,3 +984,81 @@ fn compile_text_resolves_docs_prefixed_link_from_docs_tree() {
     );
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn completes_wiki_targets_from_sibling_index() {
+    use std::{env, fs};
+
+    let root = env::temp_dir().join(format!(
+        "rocdown-lsp-wiki-{}-{}",
+        std::process::id(),
+        "siblings"
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("pages.rocdown"), "# Pages\n").unwrap();
+    let home = root.join("home.rocdown");
+    let src = "See [[pag";
+    fs::write(&home, src).unwrap();
+    let uri: Uri = format!("file://{}", home.display())
+        .parse()
+        .expect("wiki uri");
+
+    let mut server = initialize_server();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 1,
+                text: src.to_string(),
+            },
+        })
+        .expect("open wiki buffer");
+    let (line, character) = line_col(src, src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("wiki completion")
+    else {
+        panic!("expected completion array");
+    };
+    let found = labels(&items);
+    assert!(found.contains(&"pages"), "{found:?}");
+
+    let fenced = "```\n[[pag\n```\n";
+    fs::write(&home, fenced).unwrap();
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 2,
+                text: fenced.to_string(),
+            },
+        })
+        .expect("open fenced wiki");
+    let at = fenced.find("[[pag").expect("fence target") + "[[pag".len();
+    let (line, character) = line_col(fenced, at);
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("fenced completion")
+    else {
+        panic!("expected completion array");
+    };
+    assert!(
+        items.is_empty(),
+        "wiki completion must be empty inside a fence: {:?}",
+        labels(&items)
+    );
+    let _ = fs::remove_dir_all(root);
+}

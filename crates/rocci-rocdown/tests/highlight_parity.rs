@@ -230,6 +230,7 @@ fn link_destination_uses_source_text_after_resolve() {
                 route: "/applications/handlers/".into(),
                 explicit_route: false,
                 heading_ids: Vec::new(),
+                id: "handlers".into(),
             }],
             ..CompileOptions::default()
         },
