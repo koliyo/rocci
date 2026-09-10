@@ -488,4 +488,22 @@ suite('Rocci tools release contract (offline)', () => {
       localPath
     )
   })
+
+  test('picks the newer of target/debug and target/release', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rocci-cargo-profiles-'))
+    const debugPath = path.join(root, 'target', 'debug', 'rocci-language-server')
+    const releasePath = path.join(root, 'target', 'release', 'rocci-language-server')
+    fs.mkdirSync(path.dirname(debugPath), { recursive: true })
+    fs.mkdirSync(path.dirname(releasePath), { recursive: true })
+    fs.writeFileSync(debugPath, 'debug')
+    fs.writeFileSync(releasePath, 'release')
+    const older = new Date('2026-09-01T00:00:00Z').getTime() / 1000
+    const newer = new Date('2026-09-10T12:00:00Z').getTime() / 1000
+    fs.utimesSync(debugPath, older, older)
+    fs.utimesSync(releasePath, newer, newer)
+    assert.strictEqual(localCargoBinary([root], 'rocci-language-server')?.path, releasePath)
+    fs.utimesSync(debugPath, newer, newer)
+    fs.utimesSync(releasePath, older, older)
+    assert.strictEqual(localCargoBinary([root], 'rocci-language-server')?.path, debugPath)
+  })
 })

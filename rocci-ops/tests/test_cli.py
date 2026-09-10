@@ -2,7 +2,7 @@ from rocci_ops.cli import CHECK_USAGE, USAGE, check_main, main
 
 
 def test_top_level_usage_lists_grouped_commands() -> None:
-    assert "build         cargo release build of rocci, rocdown, and language-server; playground" in USAGE
+    assert "build         cargo release build of rocci, rocdown, and language-server; playground | lsp" in USAGE
     assert "check         deps | docs | zed" in USAGE
     assert "install       cli | vscode | cursor" in USAGE
     assert "package       macos, vscode, zed, site, icons" in USAGE
@@ -10,7 +10,7 @@ def test_top_level_usage_lists_grouped_commands() -> None:
     assert "release       patch, minor, major, v*, or dev" in USAGE
     assert "archive       version, package, package-platform, merge-libhosts, params, wait-ci, publish" in USAGE
     assert "promote       staging | production | tag" not in USAGE
-    assert "build-playground" not in USAGE
+    assert "build-playground | lsp" not in USAGE
     assert "render-brand-icons" not in USAGE
     assert "bundle" not in USAGE
     assert "check-deps" not in USAGE

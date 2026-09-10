@@ -22,7 +22,7 @@ USAGE = """\
 usage: rocci-ops <command> [args...]
 
 commands:
-  build         cargo release build of rocci, rocdown, and language-server; playground
+  build         cargo release build of rocci, rocdown, and language-server; playground | lsp
   ci            run GitHub Actions validation jobs on this machine
   check         deps | docs | zed
   install       cli | vscode | cursor

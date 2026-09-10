@@ -42,10 +42,16 @@ Use this to test a language-server change without pushing `dev` or cutting a `v*
 2. Build from the repository root:
 
    ```sh
-   cargo build -p rocci-rocdown-lsp
+   uv run rocci-ops build lsp
    ```
 
-   That writes `target/debug/rocci-language-server`. For a release-profile binary, use `cargo build --release -p rocci-rocdown-lsp` (`target/release/rocci-language-server`). The newer mtime of the two wins.
+   That is `cargo build -p rocci-rocdown-lsp` and writes `target/debug/rocci-language-server`. For a release-profile binary:
+
+   ```sh
+   uv run rocci-ops build lsp --release
+   ```
+
+   (`target/release/rocci-language-server`). The extension looks in both `target/debug` and `target/release` and uses the file with the newer mtime.
 
    Preview CLIs, if you need those from the same tree:
 
@@ -55,7 +61,7 @@ Use this to test a language-server change without pushing `dev` or cutting a `v*
 
 3. **Rocci: Restart LSP server** (or reload the window). The installed extension then uses the local binary when its mtime is newer than GitHub.
 
-F5 still works: build the server as above, then **Run Rocci Extension**. That session always prefers the local binary when present.
+F5 still works: `uv run rocci-ops build lsp`, then **Run Rocci Extension**. That session always prefers the local binary when present.
 
 ## Configuration
 
@@ -76,7 +82,7 @@ Semantic highlighting is enabled by default in VS Code (`editor.semanticHighligh
 
 See [Local dev LSP](#local-dev-lsp-no-github-tag) for the installed-extension `dev` channel. For a debug Extension Host:
 
-1. `cargo build -p rocci-rocdown-lsp` from the repository root.
+1. `uv run rocci-ops build lsp` from the repository root.
 2. Press **F5** (or **Run Rocci Extension**).
 
 ## Testing
