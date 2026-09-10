@@ -273,6 +273,11 @@ indexed files when possible and otherwise pass through. `http(s):`,
 `mailto:`, and other schemes pass through. Unknown wiki / `.rocdown` targets
 are errors. Duplicate `@page.route` values across siblings are errors.
 
+The language server completes wiki `[[` targets and Markdown internal
+destinations (published routes, relative `.rocdown` / `.md` paths, and `#`
+heading ids) from that same site or sibling page index. Completions are not
+offered inside fenced or inline code.
+
 **Raw HTML** in a Markdown paragraph is an error by default (`raw HTML is
 disabled in Rocdown; use Markdown, a document-root tag, or @render MyComponent({ ... })`). `CompileOptions.raw_html`
 preserves that inline/comment HTML through `Html.dangerously_include_unescaped_html`.

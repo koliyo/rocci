@@ -156,6 +156,10 @@ classes, language classes on fenced code, wiki links, and page-link resolution.
 When site chrome JavaScript is present, fenced code blocks expose a
 copy-to-clipboard control; the code remains selectable without JavaScript.
 
+The language server completes wiki targets and internal destinations from the
+site or sibling page index: `[[` page keys, `[text](/route)` and relative
+document paths, and `#` heading ids on the current or target page.
+
 Raw HTML in Markdown is disabled by default. Use Markdown, a document-root
 Rocci tag, or `@render MyComponent({ ... })` instead.
 
