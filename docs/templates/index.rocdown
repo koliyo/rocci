@@ -8,22 +8,13 @@
 
 # Templates
 
-A `.rocci` file is HTML for Roc. You declare a PascalCase `@component`,
-it lowers to a pure function that returns `Html`, and you preview it
-without a server.
+:lead Rocci templates provide HTML templating for Roc applications. The core functionality is pure templates, with no assumptions on the rest of the stack. See [Applications](/docs/applications) for full standalone Rocci application development.
 
-Until an installed `rocci` exists, prefix each `rocci` command with
-`cargo run -q -p rocci-cli --` from the repository root.
+Rocci templates are inspired by golang [templ](https://templ.guide) templating language, which integrate HTML tags into normal Go code functions, which is then generated as pure Go code by the generator.
+
 
 :card-grid.begin
     :link-card[href: "/docs/templates/components/", title: "Components", summary: "Declare, call, preview, and fixtures."]
     :link-card[href: "/docs/templates/markup/", title: "Markup", summary: "Tags, attributes, interpolations, scoped CSS, stable ids."]
     :link-card[href: "/docs/templates/directives/", title: "Directives", summary: "@if, @for, @match, @let."]
 :card-grid.end
-
-Stop here if you only preview components into an existing `main.roc`. You
-do not need Applications until you want generated dispatch or you own
-routing yourself.
-
-Exact forms: [language reference](/docs/reference/language/).
-When you need HTTP: [Applications](/docs/applications/).

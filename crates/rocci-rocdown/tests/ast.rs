@@ -323,6 +323,7 @@ fn all_syntax_covers_document_and_block_kinds() {
         "details",
         "definition",
         "badge",
+        "lead",
         "steps",
         "step",
         "tabs",

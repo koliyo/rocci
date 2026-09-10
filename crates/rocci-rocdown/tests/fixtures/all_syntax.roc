@@ -950,6 +950,38 @@ rocci_content = |{}| {
                         Html.element(
                             "section",
                             [
+                                Html.attribute("class", "rd-docs-lead rd-docs-block"),
+                                Html.attribute("data-rocci-docs", "lead"),
+                                Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
+                            ],
+                            [
+                                Html.element(
+                                    "p",
+                                    [
+                                        Html.attribute("class", "rd-paragraph"),
+                                        Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
+                                    ],
+                                    [
+                                        Html.text("Page standfirst with a "),
+                                        Html.element(
+                                            "a",
+                                            [
+                                                Html.attribute("class", "rd-link"),
+                                                Html.attribute("href", "/all-syntax/"),
+                                                Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),
+                                            ],
+                                            [
+                                                Html.text("link"),
+                                            ],
+                                        ),
+                                        Html.text("."),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        Html.element(
+                            "section",
+                            [
                                 Html.attribute("class", "rd-docs-steps rd-docs-block"),
                                 Html.attribute("data-rocci-docs", "steps"),
                                 Html.attribute("data-rocci-css", "AllSyntax-988bfce5"),

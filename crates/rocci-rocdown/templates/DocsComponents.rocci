@@ -122,6 +122,15 @@
     .rd-docs-figure { margin: 1.25rem 0; }
     .rd-docs-caption, .rd-docs-credit { color: var(--muted); }
     .rd-docs-compatibility { overflow-x: auto; }
+    :scope.rd-docs-lead,
+    .rd-docs-lead {
+        color: var(--muted);
+        font-size: 1.15rem;
+        line-height: 1.6;
+        margin-top: 0;
+    }
+    .rd-docs-lead > :first-child { margin-top: 0; }
+    .rd-docs-lead > :last-child { margin-bottom: 0; }
     @media (min-width: 48rem) {
         .rd-docs-card-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -246,6 +255,9 @@
     <p class="rd-docs-badge rd-docs-block" data-rocci-docs="badge">
         <span class="rd-docs-badge-label">{label}</span>
     </p>
+
+@component Lead = |{}, content|
+    <div class="rd-docs-lead rd-docs-block" data-rocci-docs="lead">{content}</div>
 
 @component Compatibility = |{ caption }, content| {
     <div class="rd-docs-compatibility rd-docs-block" data-rocci-docs="compatibility">

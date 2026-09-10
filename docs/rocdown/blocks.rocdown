@@ -8,15 +8,18 @@
 
 # Article blocks
 
-Use `:name[params]` for bounded documentation components. The parser
-stores the kind, params, and body; Rocdown validates the content model;
-the theme paints the HTML. Fenced code stays display-only.
+:lead Use `:name[params]` for bounded documentation components. The parser stores the kind, params, and body; Rocdown validates the content model; the theme paints the HTML. Fenced code stays display-only.
 
 :note[title: "Static pages"] {{
     `:note` is legal next to Markdown and `@page` on static site pages.
     `@render` and `@component` belong on hydrate or live pages, not inside
     a `:note` body.
 }}
+
+## Lead
+
+`:lead` is an explicit standfirst. The theme does not infer it from the
+paragraph after `h1`.
 
 ## Note
 
@@ -64,7 +67,7 @@ Params go in `[]`. Content is the rest of the line, `{{ }}`, or
 `:kind.begin` … `:kind.end`. Do not mix `.begin` with double braces on
 the same call.
 
-The other kinds (`:steps`, `:include`, `:badge`, `:file-tree`,
+The other kinds (`:lead`, `:steps`, `:include`, `:badge`, `:file-tree`,
 `:example`, …) are in the
 [language reference](/docs/rocdown/language/). Custom painters belong in
 the compiled theme, not `@use`, on a static site.

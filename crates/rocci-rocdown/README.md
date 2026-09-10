@@ -338,7 +338,7 @@ mounted and swaps `#main-content` plus the outline column, so open folds stay
 on the sidebar DOM. Rocdown still compiles builtin `RocdownBase`
 (palette tokens and `.article .rd-*` Markdown styles) and `DocsComponents`
 unless the project supplies those modules. Each article kind has a named Rocci
-component (`Note`, `Tabs`, `Figure`, …). A `theme/Blocks.rocci` file (or
+component (`Note`, `Tabs`, `Figure`, `Lead`, …). A `theme/Blocks.rocci` file (or
 `theme/blocks/*.rocci`) overlays those painters by matching `@component` names.
 `[blocks] pack` in `rocdown.toml` selects a different pack path;
 `[blocks.override]` remaps a kind to a pack component. Known kinds without a

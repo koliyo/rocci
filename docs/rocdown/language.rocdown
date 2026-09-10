@@ -112,6 +112,7 @@ kinds belong in the compiled theme.
 | `figure` | Exactly one image; nested `:img` alt owns accessibility; `caption` and `credit` optional; figure-level `alt` is unknown |
 | `definition` | Local term and definition |
 | `badge` | Block status label |
+| `lead` | Page standfirst; Markdown body. Not inferred from the paragraph after `h1` |
 | `compatibility` | Table of supported combinations |
 | `card-grid` / `link-card` | Related-page cards; `page` is a stable page id |
 | `file-tree` | Nested unordered list |

@@ -50,12 +50,6 @@
         line-height: .98;
         letter-spacing: -.055em;
     }
-    .article .rd-header-1 + .rd-paragraph {
-        margin-top: 0;
-        color: var(--muted);
-        font-size: 1.15rem;
-        line-height: 1.6;
-    }
     .article .rd-header-2 {
         margin: 3.4rem 0 1rem;
         padding-top: .45rem;

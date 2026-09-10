@@ -147,11 +147,14 @@ fn docs_components_render_asides_tabs_and_includes() {
     write_page(
         &root,
         "index.rocdown",
-        "# Home\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n\n:tabs.begin[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] Mac panel.\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:tabs.end\n\n:include[path: \"snippet.rs\", region: \"hello\"]\n",
+        "# Home\n\n:lead Standfirst copy.\n\n:note[title: \"Watch\"] {{\n    Read this.\n}}\n\n:tabs.begin[group: \"os\", kind: \"platform\"]\n    :tab[id: \"mac\", label: \"macOS\"] Mac panel.\n    :tab[id: \"linux\", label: \"Linux\"] Linux panel.\n:tabs.end\n\n:include[path: \"snippet.rs\", region: \"hello\"]\n",
     );
     let output = temp_dir("docs-out");
     build(&root, &output).unwrap();
     let html = fs::read_to_string(output.join("index.html")).unwrap();
+    assert!(html.contains("data-rocci-docs=\"lead\""), "{html}");
+    assert!(html.contains("rd-docs-lead"), "{html}");
+    assert!(html.contains("Standfirst copy"), "{html}");
     assert!(html.contains("data-rocci-docs=\"note\""), "{html}");
     assert!(html.contains("rd-docs-label"), "{html}");
     assert!(

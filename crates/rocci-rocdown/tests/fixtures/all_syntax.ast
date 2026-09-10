@@ -109,6 +109,12 @@
       (code :kind[params])
       (text node with a body.)))
   (block badge label preview tone preview)
+  (block lead line
+    (p
+      (text Page standfirst with a)
+      (a /all-syntax/
+        (text link))
+      (text .)))
   (block steps end
     (block step line title One
       (p

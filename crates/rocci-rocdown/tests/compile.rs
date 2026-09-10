@@ -812,6 +812,7 @@ fn all_syntax_example_compiles() {
     assert!(out.roc.contains("Html.text(published)"));
     assert!(out.roc.contains("@if this is escaped"));
     assert!(out.roc.contains("rd-docs-aside rd-docs-block rd-docs-note"));
+    assert!(out.roc.contains("rd-docs-lead rd-docs-block"));
     assert!(out.roc.contains("on_get_all_syntax! = |_state, _request|"));
     assert!(
         out.roc

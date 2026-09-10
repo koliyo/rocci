@@ -8,18 +8,11 @@
 
 # Overview
 
-Rocci lets you write HTML in Roc, run a small app from `.rocci` files,
-and optionally publish Markdown on that same stack. This manual is for
-a programmer who can use a terminal.
+:lead Rocci is a stack for building web applications using Roc. Rocci templates lets you write HTML templates for Roc web applications. Standalone Rocci applications allow bulding web applications with Roc and Datastar.
 
-Preview a component, or run a standalone app. Rocdown documents are
-optional and experimental.
-
-A component looks like this:
+Example of a simple Rocci template:
 
 ```rocci
-import Html
-
 @component
 Hello = |{ name }|
     <p>Hello, <strong>{name}</strong></p>

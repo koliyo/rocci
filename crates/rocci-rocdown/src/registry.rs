@@ -284,6 +284,22 @@ pub const KINDS: &[KindSpec] = &[
         required_one_of: &[],
     },
     KindSpec {
+        name: "lead",
+        component: "Lead",
+        family: KindFamily::Chrome,
+        authorable: true,
+        diagnostic_code: "RD2402",
+        required_fields: &[],
+        optional_fields: &[],
+        parents: &[],
+        accepts: &[],
+        accepts_markdown: true,
+        requires: &[],
+        forbids: &["tabs"],
+        child_predicate: ChildPredicate::None,
+        required_one_of: &[],
+    },
+    KindSpec {
         name: "link-card",
         component: "LinkCard",
         family: KindFamily::Chrome,
@@ -924,6 +940,15 @@ mod tests {
         assert!(note.accepts_markdown);
         assert!(!note.accepts_block_child("tabs"));
         assert!(note.accepts_block_child("details"));
+
+        let lead = lookup("lead").unwrap();
+        assert_eq!(lead.family, KindFamily::Chrome);
+        assert!(lead.paints_as_widget());
+        assert!(lead.paint_content());
+        assert!(lead.paint_fields().is_empty());
+        assert_eq!(lead.forbids, &["tabs"]);
+        assert!(!lead.accepts_block_child("tabs"));
+        assert!(lead.accepts_markdown);
 
         let steps = lookup("steps").unwrap();
         assert_eq!(steps.child_predicate, ChildPredicate::StepsXorList);

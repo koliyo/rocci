@@ -131,6 +131,8 @@ Nested section body.
 
 :badge[label: "preview", tone: "preview"]
 
+:lead Page standfirst with a [link](/all-syntax/).
+
 :steps.begin
     :step[title: "One"] First step.
     :step[title: "Two", verify: True] Second step.
