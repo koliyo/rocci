@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-10
 
+- Filed draft [Rocdown LSP does not complete wiki or internal page links](research/rocdown/lsp-wiki-link-completion.md) and paired [wiki and internal link completion](plans/rocdown/lsp-wiki-link-completion.md): reuse `workspace_pages`, lexical `[[` / `](` context, do not change link resolution. Exploratory; no phase started. Do not log complete until CI and Knowledge succeed.
+
 - Revised [Rocdown documentation generator](architecture/rocdown-documentation-compiler.md) and [Rocdown format](architecture/rocdown-format.md): mounted catalogs prefix ids/routes; prose uses `/docs/…`; wiki targets with `/` are relative paths (`RD2101`). Descriptive; do not log complete until CI and Knowledge succeed.
 
 ## 2026-09-09
