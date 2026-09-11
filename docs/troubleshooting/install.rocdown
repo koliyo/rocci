@@ -13,7 +13,7 @@
 **Cause:** the Roc compiler is missing from `PATH` in the same shell as Cargo.
 
 **Fix:** install or activate nightly-2026-09-03 (`62fcb65`) as pinned in
-`docker/install-roc.sh`, then `roc help`.
+`.roc-version` (`docker/install-roc.sh` locally), then `roc help`.
 
 ## Rust edition or crate compile errors while building the workspace
 

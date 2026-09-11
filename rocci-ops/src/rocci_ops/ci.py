@@ -203,7 +203,9 @@ def steps_for(job: str, root: Path) -> list[Step]:
             ),
         ]
     if job == "roc":
-        steps = [Step(("sudo", "./docker/install-roc.sh"))]
+        steps: list[Step] = []
+        if shutil.which("roc") is None:
+            steps.append(Step(("sudo", "./docker/install-roc.sh")))
         build_env: tuple[tuple[str, str], ...] = ()
         if sys.platform.startswith("linux"):
             steps.append(

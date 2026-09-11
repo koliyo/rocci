@@ -87,7 +87,8 @@ def test_editors_job_uses_check_zed() -> None:
     assert pytest_steps[0].cwd == "rocci-ops"
 
 
-def test_roc_job_installs_nightly_and_requires_roc() -> None:
+def test_roc_job_installs_nightly_when_roc_missing(monkeypatch) -> None:
+    monkeypatch.setattr("rocci_ops.ci.shutil.which", lambda name: None)
     steps = steps_for("roc", repo_root())
     argv_lists = [s.argv for s in steps]
     assert any("install-roc.sh" in argv[-1] for argv in argv_lists)
@@ -99,7 +100,19 @@ def test_roc_job_installs_nightly_and_requires_roc() -> None:
     assert all("--workspace" not in argv for argv in argv_lists)
 
 
-def test_roc_job_runs_build_sh_before_gated_cargo_test() -> None:
+def test_roc_job_skips_install_when_roc_on_path(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "rocci_ops.ci.shutil.which",
+        lambda name: "/usr/bin/roc" if name == "roc" else None,
+    )
+    steps = steps_for("roc", repo_root())
+    argv_lists = [s.argv for s in steps]
+    assert all("install-roc.sh" not in argv[-1] for argv in argv_lists)
+    assert any(s.extra_env == (("ROCCI_REQUIRE_ROC", "1"),) for s in steps)
+
+
+def test_roc_job_runs_build_sh_before_gated_cargo_test(monkeypatch) -> None:
+    monkeypatch.setattr("rocci_ops.ci.shutil.which", lambda name: None)
     argv_lists = [s.argv for s in steps_for("roc", repo_root())]
     joined = [" ".join(argv) for argv in argv_lists]
     build_idx = next(i for i, line in enumerate(joined) if "rocci-platform/build.sh" in line)

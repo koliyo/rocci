@@ -103,7 +103,7 @@ staging_tool = "crates/rocci-docs"
 [install]
 primary = "Clone the repository and cargo-build the workspace."
 roc_nightly = "nightly-2026-09-03-62fcb65"
-roc_pin_source = "docker/install-roc.sh"
+roc_pin_source = ".roc-version"
 rust = "A Rust toolchain that compiles edition 2024 workspace crates."
 github_releases = "Optional prerelease archives from GitHub Releases (tag v* / dev). Experimental; not the documented first path."
 
