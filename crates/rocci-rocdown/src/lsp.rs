@@ -8,9 +8,10 @@ use lsp_types::{
     SemanticTokensResult, SymbolKind, Uri,
 };
 use rocci_lsp::analysis::{
-    command_symbol, completion_in_template, completion_item, component_symbol, context_symbol,
-    css_symbol, fixture_symbol, fragment_symbol, goto_definition_components, hover_components,
-    init_symbol, live_symbol, lsp_range, map_diagnostics, named_symbol, offset_at, view_symbol,
+    command_symbol, completion_in_template, completion_item, completion_item_replacing,
+    component_symbol, context_symbol, css_symbol, fixture_symbol, fragment_symbol,
+    goto_definition_components, hover_components, init_symbol, live_symbol, lsp_range,
+    map_diagnostics, named_symbol, offset_at, view_symbol,
 };
 use rocci_lsp::tokens::{RawToken, encode_tokens};
 use rocci_lsp::{DocumentAnalysis, DocumentAnalyzer, InspectedRegion, Language, RegionPurpose};
@@ -133,7 +134,14 @@ impl DocumentAnalysis for RocdownAnalysis {
         let position = params.text_document_position.position;
         let source = SourceFile::new(&self.name, &self.text);
         let offset = offset_at(source, position, self.encoding);
-        Some(completion(&self.text, &self.compiled, offset, &self.pages))
+        Some(completion(
+            &self.name,
+            &self.text,
+            &self.compiled,
+            offset,
+            self.encoding,
+            &self.pages,
+        ))
     }
 
     fn semantic_tokens_full(&self, _params: &SemanticTokensParams) -> Option<SemanticTokensResult> {
@@ -459,9 +467,11 @@ pub fn goto_definition(
 }
 
 pub fn completion(
+    name: &str,
     text: &str,
     compiled: &CompileOutput,
     offset: u32,
+    encoding: PositionEncoding,
     pages: &[crate::PageRef],
 ) -> CompletionResponse {
     let offset = (offset as usize).min(text.len());
@@ -534,10 +544,17 @@ pub fn completion(
         if let Some(heading_prefix) = dest.heading_prefix.as_deref() {
             return heading_completion(compiled, pages, &dest.path_prefix, heading_prefix);
         }
+        let range = lsp_range(
+            SourceFile::new(name, text),
+            Span::new(dest.dest_start, offset),
+            encoding,
+        );
         return CompletionResponse::Array(
             crate::link_completion::markdown_dest_keys(pages, pages.last(), &dest.path_prefix)
                 .into_iter()
-                .map(|(key, route)| completion_item(&key, CompletionItemKind::FILE, Some(route)))
+                .map(|(key, route)| {
+                    completion_item_replacing(&key, CompletionItemKind::FILE, Some(route), range)
+                })
                 .collect(),
         );
     }

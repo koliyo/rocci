@@ -202,6 +202,7 @@ fn starts_with_ignore_ascii(value: &str, prefix: &str) -> bool {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MarkdownDestContext {
+    pub dest_start: usize,
     pub path_prefix: String,
     pub heading_prefix: Option<String>,
 }
@@ -228,6 +229,7 @@ pub(crate) fn markdown_dest_context(src: &str, offset: usize) -> Option<Markdown
         return None;
     }
     Some(MarkdownDestContext {
+        dest_start,
         path_prefix,
         heading_prefix,
     })
@@ -512,6 +514,7 @@ mod tests {
         let src = "[x](Page#he";
         let offset = src.len();
         let found = markdown_dest_context(src, offset).expect("dest");
+        assert_eq!(found.dest_start, 4);
         assert_eq!(found.path_prefix, "Page");
         assert_eq!(found.heading_prefix.as_deref(), Some("he"));
     }
