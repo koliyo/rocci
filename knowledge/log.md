@@ -6,6 +6,10 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-11
+
+- Pointed Rocdown/site/theme chrome at the h35 remaining-content box: fill `body` with `100%` instead of `100vh`, alias `--rocci-chrome-*` from `--h35-chrome-*`. Exploratory; do not log complete until hosted CI succeeds.
+
 ## 2026-09-10
 
 - Restored lexical tokens on [known limitations](status/known-limitations.md) so the retrieval question `public documentation-site search packaging` hits `status/known-limitations` (Knowledge CI hit rate 87.50%). Descriptive; do not log complete until Knowledge succeeds.
