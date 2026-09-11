@@ -48,6 +48,7 @@ pub struct PreviewOptions {
     pub on_navigate: Option<NavigateHandler>,
     pub home_url: Option<String>,
     pub picker: bool,
+    pub goto: bool,
 }
 
 impl Default for PreviewOptions {
@@ -68,6 +69,7 @@ impl Default for PreviewOptions {
             on_navigate: None,
             home_url: None,
             picker: false,
+            goto: true,
         }
     }
 }
@@ -109,7 +111,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         source_root: options.source_root,
         inspector_url: options.inspector_url,
         picker: options.picker,
-        goto: true,
+        goto: options.goto,
         find: true,
         width: options.width,
         height: options.height,
@@ -148,5 +150,10 @@ mod tests {
     #[test]
     fn ipc_handler_type_is_send() {
         let _handler: Option<IpcHandler> = None;
+    }
+
+    #[test]
+    fn goto_defaults_on() {
+        assert!(PreviewOptions::default().goto);
     }
 }
