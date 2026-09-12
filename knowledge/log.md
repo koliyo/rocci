@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 1 on `compile-time-template-preparation`: compatibility matrix with html5lib 1.1, no unexplained benchmarked Card differences, CR-in-attribute DOM split, and a scoped `boolean_attribute(False)` repair note. Exploratory; not hosted-CI complete.
+
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 0 on `compile-time-template-preparation`: hashed baseline receipt, named HTML cases, cache-hit versus `--no-cache` upstream tests, and harness fault probes. Claimed speed ordering reproduced; September 12 receipt preserved. Exploratory; not hosted-CI complete.
 
 - Filed draft [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md): prioritize reproducible receipts, independent HTML/type contracts, and controlled escaping/growth/encoding comparisons before conditional library and real-host probes. Paired the research and linked the older HTML plan without reopening its skipped phases. Exploratory; no new phase started.

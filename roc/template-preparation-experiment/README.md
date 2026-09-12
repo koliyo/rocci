@@ -48,11 +48,19 @@ wrong output, wrong expected error, corrupted source hash, a controlled
 timed-out child, and git porcelain parsing of dirty tracked paths. A full
 experiment run also executes those probes first.
 
-The runner writes a complete receipt even on exception or failed builds. Exit 0
-means `harness_ok` and `type_contract_ok` are true, and, with `--bench`, that
-named HTML findings match expectations. Inspect `html_compatible` separately:
-exit 0 still includes the known failing carriage-return attribute case.
-`html_compatible` is not true merely because that mismatch is expected.
+Use a virtualenv with the pinned HTML5 parser for `--compat`:
+
+```sh
+python3 -m venv /tmp/rocci-template-prep-venv
+/tmp/rocci-template-prep-venv/bin/pip install -r roc/template-preparation-experiment/requirements.txt
+/tmp/rocci-template-prep-venv/bin/python3 roc/template-preparation-experiment/run.py \
+  --compat --output /tmp/template-preparation-compat.json
+```
+
+`--compat` builds the Phase 1 fixture contract: named authored inputs, exact bytes
+where they differ, and html5lib 1.1 parsed events. It classifies mismatches and
+records unsupported interpolation positions. It does not replace the September 12
+or Phase 0 receipts.
 
 Render cases are named. Summaries are `harness_ok`, `type_contract_ok`, and
 `html_compatible`. Compiler work records `--no-cache` and warm incremental

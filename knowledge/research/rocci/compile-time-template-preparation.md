@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T10:40:00Z }
+generated: { by: process:cursor, at: 2026-09-12T10:55:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -27,6 +27,9 @@ sources:
   - id: phase-0-receipt
     resource: ./compile-time-template-preparation-phase-0-results.json
     title: Phase 0 hashed baseline with named cases, cache modes, digests, and harness faults
+  - id: phase-1-receipt
+    resource: ./compile-time-template-preparation-phase-1-results.json
+    title: Phase 1 compatibility matrix, boolean/document probes, and html5lib events
   - id: allocation-counter
     resource: ../../../roc/template-preparation-experiment/allocations.c
     title: Optional macOS libc allocation-call interposer
@@ -314,9 +317,12 @@ than a blanket reading of that historical record might suggest.[^native-postmort
 Next investigation: [template preparation and Html runtime costs](/plans/rocci/compile-time-template-preparation.md).
 Phase 0 completed locally on `compile-time-template-preparation`: a hashed
 baseline reproduces the claimed speed ordering and named HTML findings
-without replacing the September 12 receipt. Remaining phases have not
-started; the earlier source-lowering decision remains intact.
-[^follow-up-plan][^phase-0-receipt]
+without replacing the September 12 receipt. Phase 1 adds a compatibility
+matrix: benchmarked Card cases have no unexplained differences; quotes are
+equivalent serialization; a raw CR in an attribute is a real DOM-value split.
+Remaining phases have not started; the earlier source-lowering decision
+remains intact.
+[^follow-up-plan][^phase-0-receipt][^phase-1-receipt]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
 The existing native-compiler research remains relevant to a **Roc program
@@ -510,6 +516,42 @@ warm sample. Allocation-call scaling remained linear on the double-length
 runs. These are still not HTTP measurements or isolated renderer latency.
 [^phase-0-receipt]
 
+### Phase 1 compatibility
+
+Executed on 2026-09-12 with html5lib 1.1 as the pinned HTML5 parser. The Python
+event helper remains a fast fixture check; literal CR/CRLF preprocessing is
+recorded separately from character-reference decoding. The restricted library's
+promised subset is ordinary text and complete double-quoted ordinary attribute
+values. Dynamic tag/attribute names, script/style/event-handler contexts, raw
+HTML, and arbitrary Roc expressions stay unsupported.[^phase-1-receipt]
+
+Benchmarked Card cases have no unexplained differences. Quotes and some
+ampersand spellings are equivalent serialization: html5lib text is
+`&<>"' café 😀` for every backend. A raw CR in an attribute is a real
+DOM-value split: prepared and the string runtime parse to LF (code 10);
+product nodes emit `&#13;` and keep CR (code 13). That is product/string
+drift plus a restricted-library limitation, not equivalent serialization.
+[^phase-1-receipt][^html-preprocessing][^product-html][^string-html]
+
+`Compat.rocci` adds void elements, a valueless boolean `input`, nested
+lists, a nested component, and an Html body parameter. String versus node
+markup for those extras is equivalent serialization except where CR appears.
+Prepared Mustache cannot express those Rocci forms; those gaps are restricted
+library limitations, not benchmark failures. Document wrappers also drift:
+the string `render_document` inserts a newline after the doctype; the node
+runtime concatenates `<!DOCTYPE html>` with no newline. Fragments take
+different shapes (`Str` identity versus `List(Node)` -> `Fragment`).
+[^phase-1-receipt]
+
+`.rocci` valueless attributes lower only to `boolean_attribute(name, True)`.
+Hand-written Roc that passes `False` shows product/string drift: string omits
+the attribute (`<button>off</button>`); nodes still emit
+`disabled=""` for both branches. Proposed repair, independent of speed: in
+`crates/rocci-platform/platform/Html.roc` (and the CLI wrapper) make the false
+branch omit the attribute so presence matches HTML boolean semantics. Tests
+belong on that helper. Do not treat this as a `.rocci` syntax bug.
+[^phase-1-receipt][^product-html][^lower-html]
+
 ### Disposition after the experiment
 
 The restricted-library idea passes the first viability test: type-safe
@@ -552,3 +594,4 @@ Roc expressions executable or establishes a replacement for `.rocci`.
 [^html-preprocessing]: CRLF and literal CR are normalized before tokenization; character references are decoded later.
 [^follow-up-plan]: Separate plan for evidence quality, controlled comparisons, API boundaries, and representative host checks; not a product cutover.
 [^phase-0-receipt]: Phase 0 local baseline receipt; September 12 file preserved; claimed speed ordering reproduced.
+[^phase-1-receipt]: Phase 1 local matrix and helper probes; html5lib 1.1; no unexplained benchmarked Card differences.

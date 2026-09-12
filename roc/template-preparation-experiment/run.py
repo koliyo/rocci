@@ -342,6 +342,9 @@ def capture_environment(work, repetitions, bench, allocations):
         "card.mustache.html": HERE / "card.mustache.html",
         "allocations.c": HERE / "allocations.c",
         "README.md": HERE / "README.md",
+        "Compat.rocci": HERE / "Compat.rocci",
+        "compat.mustache.html": HERE / "compat.mustache.html",
+        "compat.py": HERE / "compat.py",
     }
     product = {
         "crates/rocci-ui/runtime/Html.roc": REPO / "crates/rocci-ui/runtime/Html.roc",
@@ -395,7 +398,8 @@ def summarize(report):
         if name not in probe_names or (probes_no_cache and name not in no_cache_names)
     ]
     type_ok = (
-        not missing_probes
+        not report.get("compat_requested")
+        and not missing_probes
         and probes
         and all(item.get("passed") for item in probes)
         and all(item.get("passed") for item in probes_no_cache)
@@ -420,7 +424,7 @@ def summarize(report):
         harness_problems.append("harness_fault_probe")
     if not receipt_complete(report):
         harness_problems.append("incomplete_receipt")
-    if missing_probes:
+    if missing_probes and not report.get("compat_requested"):
         harness_problems.append("missing_probes")
     if report.get("bench_requested"):
         for backend in BACKENDS:
@@ -505,6 +509,16 @@ def summarize(report):
                         checksums = [run.get("checksum") for run in item.get("runs") or [] if run.get("repetitions")]
                         if len(checksums) != 2 or any(value is None for value in checksums):
                             harness_problems.append(f"allocation_output_unchecked:{backend}:{workload['name']}")
+    if report.get("compat_requested"):
+        if not report.get("compatibility_matrix"):
+            harness_problems.append("missing_compat_matrix")
+        if report.get("unexplained_benchmark_differences"):
+            harness_problems.append("unexplained_html")
+        if not report.get("unsupported_cases"):
+            harness_problems.append("missing_unsupported_cases")
+        boolean = (report.get("boolean_probes") or {}).get("observed") or {}
+        if not boolean:
+            harness_problems.append("missing_boolean_probe")
     report["html_compatible"] = bool(html_compatible and report.get("bench_requested") and not report.get("error"))
     report["html_expected_findings_confirmed"] = bool(
         findings_ok and report.get("bench_requested") and "error" not in harness_problems
@@ -1000,33 +1014,48 @@ def run_experiment(options):
         if not all(item["passed"] for item in report["harness_fault_probes"]):
             raise ExperimentError("harness fault probe failed")
         engine_files(work, options.engine_dir)
-        report["probes"] = type_probes(work, "default")
-        report["probes_no_cache"] = type_probes(work, "no-cache")
-        report["upstream_tests"] = {
-            "default": command(["roc", "test", "Template.roc"], work, timeout=120),
-            "no_cache": command(["roc", "test", "--no-cache", "Template.roc"], work, timeout=120),
-        }
-        if options.bench:
-            rocci = REPO / "target/debug/rocci-template"
-            cargo = command(["cargo", "build", "-q", "-p", "rocci-template"], REPO, timeout=120)
-            if cargo["exit"] != 0:
-                raise ExperimentError("cargo build -p rocci-template failed")
-            inspect, generated = comparison_apps(work, rocci)
-            report["inspect"] = inspect
-            report["generated_hashes"] = generated
-            report["comparisons"] = {}
-            measure_apps(work, options.repetitions, report["comparisons"])
-            report["speed_ordering"] = speed_ordering(report["comparisons"])
-            if options.allocations:
-                report["allocations"] = measure_allocations(work, options.repetitions, report["comparisons"])
+        if options.compat:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("compat", HERE / "compat.py")
+            compat = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(compat)
+            report["compat_requested"] = True
+            compat.run_compat(sys.modules[__name__], work, report)
+        else:
+            report["probes"] = type_probes(work, "default")
+            report["probes_no_cache"] = type_probes(work, "no-cache")
+            report["upstream_tests"] = {
+                "default": command(["roc", "test", "Template.roc"], work, timeout=120),
+                "no_cache": command(["roc", "test", "--no-cache", "Template.roc"], work, timeout=120),
+            }
+            if options.bench:
+                rocci = REPO / "target/debug/rocci-template"
+                cargo = command(["cargo", "build", "-q", "-p", "rocci-template"], REPO, timeout=120)
+                if cargo["exit"] != 0:
+                    raise ExperimentError("cargo build -p rocci-template failed")
+                inspect, generated = comparison_apps(work, rocci)
+                report["inspect"] = inspect
+                report["generated_hashes"] = generated
+                report["comparisons"] = {}
+                measure_apps(work, options.repetitions, report["comparisons"])
+                report["speed_ordering"] = speed_ordering(report["comparisons"])
+                if options.allocations:
+                    report["allocations"] = measure_allocations(work, options.repetitions, report["comparisons"])
     except Exception as error:
         report["error"] = f"{type(error).__name__}: {error}"
     write_receipt(options.output, report)
-    ok = (
-        report["harness_ok"]
-        and report["type_contract_ok"]
-        and (not options.bench or report["html_expected_findings_confirmed"])
-    )
+    if options.compat:
+        ok = (
+            report["harness_ok"]
+            and not report.get("unexplained_benchmark_differences")
+            and report.get("compatibility_matrix")
+        )
+    else:
+        ok = (
+            report["harness_ok"]
+            and report["type_contract_ok"]
+            and (not options.bench or report["html_expected_findings_confirmed"])
+        )
     return 0 if ok else 1
 
 
@@ -1039,11 +1068,14 @@ def main():
     parser.add_argument("--repetitions", type=int, default=5000)
     parser.add_argument("--work-dir", type=Path, help="Keep generated files in a NEW directory")
     parser.add_argument("--self-test", action="store_true", help="Run harness fault probes only")
+    parser.add_argument("--compat", action="store_true", help="Build the Phase 1 HTML compatibility matrix")
     options = parser.parse_args()
     if options.repetitions <= 0:
         parser.error("--repetitions must be positive")
     if options.allocations and not options.bench:
         parser.error("--allocations requires --bench")
+    if options.compat and (options.bench or options.self_test):
+        parser.error("--compat cannot be combined with --bench or --self-test")
     if options.self_test:
         raise SystemExit(run_self_test(options.output))
     raise SystemExit(run_experiment(options))

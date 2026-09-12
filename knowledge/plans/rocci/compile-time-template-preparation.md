@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T10:40:00Z }
+generated: { by: process:cursor, at: 2026-09-12T10:55:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -18,6 +18,9 @@ sources:
   - id: phase-0-receipt
     resource: ../../research/rocci/compile-time-template-preparation-phase-0-results.json
     title: Phase 0 hashed baseline receipt with named cases and harness faults
+  - id: phase-1-receipt
+    resource: ../../research/rocci/compile-time-template-preparation-phase-1-results.json
+    title: Phase 1 compatibility matrix, boolean probes, and html5lib parse events
   - id: runner
     resource: ../../../roc/template-preparation-experiment/run.py
     title: Current experiment construction, checks, and timing assertions
@@ -81,12 +84,13 @@ one-shot workloads, while the new experiment uses repeated rendering and
 activate the older plan's skipped fusion or runtime-unification phases.
 [^prior-html-plan][^native-plan]
 
-**State:** draft; Phase 0 completed locally on `compile-time-template-preparation`.
-The September 12 receipt is preserved. The Phase 0 receipt reproduces the
-claimed 100-row prepared win and small-node win, distinguishes cache-hit
-upstream tests from `roc test --no-cache`, and reports named HTML findings
-plus harness faults. Not hosted-CI complete. Phases 1–5 have not started.
-[^phase-0-receipt]
+**State:** draft; Phases 0–1 completed locally on `compile-time-template-preparation`.
+The September 12 receipt is preserved. Phase 0 reproduced the claimed speed
+ordering. Phase 1 has a compatibility matrix with no unexplained benchmarked
+differences; CR-in-attribute remains a real DOM-value split, and
+`boolean_attribute(False)` is product/string drift not reachable from `.rocci`.
+Not hosted-CI complete. Phases 2–5 have not started.
+[^phase-0-receipt][^phase-1-receipt]
 
 ## Evidence and open questions
 
@@ -411,6 +415,7 @@ the candidate algorithms.
   revision; no such hosted completion is claimed by this plan.
 
 [^phase-0-receipt]: Local Phase 0 baseline on Apple M1 Max, `nightly-2026-09-03-62fcb65`; original September 12 receipt unchanged.
+[^phase-1-receipt]: Local Phase 1 matrix; html5lib 1.1; CR DOM split and boolean helper drift classified.
 [^research]: Paired findings distinguish prepared data from source generation and document the current experiment's limits.
 [^receipt]: Raw results, cached upstream test output, binary/timing samples, source hashes, and explicit compatibility failure.
 [^runner]: Named cases, cache-mode checks, untimed output digests, complete failed receipts, and harness fault probes.

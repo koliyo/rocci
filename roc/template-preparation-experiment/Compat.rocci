@@ -1,0 +1,8 @@
+@component Inner = |{ name }|
+    <b>{name}</b>
+
+@component Box = |{ title }, content|
+    <div class="box" title={title}>{content}</div>
+
+@component Compat = |{ title, active, items }|
+    <section title={title}><h1>{title}</h1>@if active { <b>active</b> }<img src="x" alt={title}><br><input disabled><ul>@for item in items { <li title={item.name}><Inner name={item.name} />@for kid in item.kids { <i>{kid.name}</i> }</li> }</ul><Box title={title}><span>{title}</span></Box></section>
