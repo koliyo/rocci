@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T10:55:00Z }
+generated: { by: process:cursor, at: 2026-09-12T11:45:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -21,6 +21,12 @@ sources:
   - id: phase-1-receipt
     resource: ../../research/rocci/compile-time-template-preparation-phase-1-results.json
     title: Phase 1 compatibility matrix, boolean probes, and html5lib parse events
+  - id: phase-2-receipt
+    resource: ../../research/rocci/compile-time-template-preparation-phase-2-results.json
+    title: Phase 2 isolated escape, growth, encoding, and builder-control costs
+  - id: costs
+    resource: ../../../roc/template-preparation-experiment/costs.py
+    title: Isolated kernel and Card variants copied only into the experiment work directory
   - id: runner
     resource: ../../../roc/template-preparation-experiment/run.py
     title: Current experiment construction, checks, and timing assertions
@@ -84,13 +90,16 @@ one-shot workloads, while the new experiment uses repeated rendering and
 activate the older plan's skipped fusion or runtime-unification phases.
 [^prior-html-plan][^native-plan]
 
-**State:** draft; Phases 0–1 completed locally on `compile-time-template-preparation`.
+**State:** draft; Phases 0–2 completed locally on `compile-time-template-preparation`.
 The September 12 receipt is preserved. Phase 0 reproduced the claimed speed
 ordering. Phase 1 has a compatibility matrix with no unexplained benchmarked
 differences; CR-in-attribute remains a real DOM-value split, and
 `boolean_attribute(False)` is product/string drift not reachable from `.rocci`.
-Not hosted-CI complete. Phases 2–5 have not started.
-[^phase-0-receipt][^phase-1-receipt]
+Phase 2 attributes the large-fixture gap to escaping algorithms, not
+compile-time preparation: a matched string builder beat prepared rendering,
+and `node_scan_escape` is the selected runtime candidate for Phase 4.
+Not hosted-CI complete. Phases 3–5 have not started.
+[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt]
 
 ## Evidence and open questions
 
@@ -98,7 +107,7 @@ Not hosted-CI complete. Phases 2–5 have not started.
 | --- | --- |
 | A closure sharing the sample/input type passes 16 focused probes; added, missing, and nested fields are rejected. | Exported, inferred, nominal, and higher-order uses across modules; typed composition; behavior on a later compiler. |
 | The receipt reports 62 upstream tests passing. | The final receipt's upstream invocation used cached results; a fresh checkpoint should distinguish cached and uncached runs. |
-| Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. | Attribution to escaping, growth, node construction, encoding, or interpretation; other workloads, platforms, and actual HTTP serving. |
+| Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. Phase 2 shows the gap is mostly escaping/growth, not preparation: a matched builder beat prepared rendering, and scan/copy escape is ~34% faster than current node escape on the 100-row escaped Card. | Other workloads, platforms, and actual HTTP serving for the selected `node_scan_escape` candidate. |
 | Product nodes won the smallest runtime fixture, and prepared templates cost more to check/build. | Warm incremental behavior, many-template scaling, first-use latency, and practical authoring cost. |
 | A CR-in-attribute mismatch is explicit; quote entity spellings can differ without changing parsed meaning. | A broader HTML contract including fragments, void elements, boolean attributes, raw-text contexts, and browser parsing. |
 | Filename and line appear in preparation diagnostics. | Structured offsets, precise columns, partial origins, stable error codes, and LSP navigation. |
@@ -294,6 +303,7 @@ repeatable regression above 5% in small cases after accounting for measurement
 noise. Also report absolute time and build/binary/memory costs. These are
 investigation filters, not established project SLAs; record any reasoned
 departure before selecting a candidate. Correctness repairs need no speedup.
+[^costs][^phase-2-receipt]
 
 **Stop condition:** if the gain disappears with matched escaping and growth,
 stop presenting template preparation as the performance opportunity. A
@@ -416,6 +426,8 @@ the candidate algorithms.
 
 [^phase-0-receipt]: Local Phase 0 baseline on Apple M1 Max, `nightly-2026-09-03-62fcb65`; original September 12 receipt unchanged.
 [^phase-1-receipt]: Local Phase 1 matrix; html5lib 1.1; CR DOM split and boolean helper drift classified.
+[^phase-2-receipt]: Local Phase 2 cost table; Apple M1 Max; `node_scan_escape` selected; builder-control beat prepared rendering.
+[^costs]: Isolated Html copies live only in the experiment work directory; generated Card Roc stays unchanged.
 [^research]: Paired findings distinguish prepared data from source generation and document the current experiment's limits.
 [^receipt]: Raw results, cached upstream test output, binary/timing samples, source hashes, and explicit compatibility failure.
 [^runner]: Named cases, cache-mode checks, untimed output digests, complete failed receipts, and harness fault probes.

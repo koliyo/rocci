@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T10:55:00Z }
+generated: { by: process:cursor, at: 2026-09-12T11:45:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -30,6 +30,12 @@ sources:
   - id: phase-1-receipt
     resource: ./compile-time-template-preparation-phase-1-results.json
     title: Phase 1 compatibility matrix, boolean/document probes, and html5lib events
+  - id: phase-2-receipt
+    resource: ./compile-time-template-preparation-phase-2-results.json
+    title: Phase 2 isolated escape, growth, encoding, and builder-control costs
+  - id: costs
+    resource: ../../../roc/template-preparation-experiment/costs.py
+    title: Isolated kernel and Card variants copied only into the experiment work directory
   - id: allocation-counter
     resource: ../../../roc/template-preparation-experiment/allocations.c
     title: Optional macOS libc allocation-call interposer
@@ -320,9 +326,11 @@ baseline reproduces the claimed speed ordering and named HTML findings
 without replacing the September 12 receipt. Phase 1 adds a compatibility
 matrix: benchmarked Card cases have no unexplained differences; quotes are
 equivalent serialization; a raw CR in an attribute is a real DOM-value split.
-Remaining phases have not started; the earlier source-lowering decision
-remains intact.
-[^follow-up-plan][^phase-0-receipt][^phase-1-receipt]
+Phase 2 attributes the large-fixture speed gap to escaping algorithms, not
+compile-time preparation: a matched string builder beat prepared rendering,
+and `node_scan_escape` is the selected runtime candidate. Remaining phases
+have not started; the earlier source-lowering decision remains intact.
+[^follow-up-plan][^phase-0-receipt][^phase-1-receipt][^phase-2-receipt]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
 The existing native-compiler research remains relevant to a **Roc program
@@ -552,6 +560,66 @@ branch omit the attribute so presence matches HTML boolean semantics. Tests
 belong on that helper. Do not treat this as a `.rocci` syntax bug.
 [^phase-1-receipt][^product-html][^lower-html]
 
+### Phase 2 cost isolation
+
+Executed on 2026-09-12. Isolated kernels and Card variants copy Html modules
+only into the experiment work directory; generated Card Roc stays unchanged.
+`--costs` times process totals (startup included). Kernels run 20,000 escapes.
+Card cases use 3,000 renders except the 1,000-row sweep (500 renders).
+Apple M1 Max, `nightly-2026-09-03-62fcb65`. `harness_ok` is true.
+[^costs][^phase-2-receipt]
+
+Isolated escape kernels (median process seconds):
+
+| Kernel | Clean | Escaped |
+| --- | ---: | ---: |
+| Node fold/concat (current) | 5.9 ms | 9.6 ms |
+| Node scan/copy | 4.0 ms | 6.2 ms |
+| String split/join (current) | 6.2 ms | 8.1 ms |
+| String scan/copy | 3.9 ms | 6.6 ms |
+
+Scan/copy beats fold/concat and split/join on both clean and escaped kernels.
+Geometric join growth on the current node renderer did not move the 100-row
+escaped Card (401 ms vs 395 ms). Combining scan/copy with join growth after
+the individual measurements was no faster than scan/copy alone (270 ms vs
+265 ms).
+
+Card 100-row escaped, 3,000 renders, median process seconds:
+
+| Variant | Median |
+| --- | ---: |
+| Current product nodes | 401 ms |
+| Node scan/copy escape | 265 ms (~34% faster) |
+| Node join growth | 395 ms |
+| Current string | 565 ms |
+| String scan/copy escape | 386 ms |
+| Prepared | 132 ms |
+| Builder-control (scan/copy + join) | 115 ms |
+
+The 1,000-row escaped sweep (500 renders) keeps the same ordering: nodes 651 ms,
+scan/copy 463 ms, prepared 214 ms, builder-control 210 ms. Encoding 3,000
+copies of a 100-row clean context took 16 ms median versus 63 ms prepared
+end-to-end on the same row count, so context encoding is a minority of the
+prepared process total and is kept outside the Card timings.
+[^phase-2-receipt]
+
+**Stop condition:** builder-control beat prepared rendering on the 100-row
+escaped Card. Matched escaping and growth therefore remove the reason to
+present compile-time template preparation as the performance opportunity.
+A runtime-only scan/copy escape remains the interesting candidate.
+[^phase-2-receipt]
+
+**Selection:** `node_scan_escape` is the Phase 4 runtime candidate. The
+proposed screen is at least 15% improvement on the 100-row escaped Card and
+no more than 5% regression on the empty clean Card. Empty-card process totals
+sit on a ~2 ms noise floor; the 1.0 ms scan-versus-node difference there is
+inside that floor, recorded as a reasoned departure rather than a real
+regression. `string_scan_escape` fails the screen (3.7% large-case gain and
+a 34% empty-card regression). Join growth alone fails the 15% rule. Correct
+output is unchanged versus the current node contract, including `&#13;` in
+attributes. No product Html file was edited.
+[^phase-2-receipt][^costs][^product-html]
+
 ### Disposition after the experiment
 
 The restricted-library idea passes the first viability test: type-safe
@@ -559,9 +627,12 @@ context binding can be layered over compile-time preparation on the current
 pin without a product parser change. Empty samples, the encoder vocabulary,
 attribute semantics, and coarse diagnostics remain real limits.
 The performance results also justify investigating buffer growth and escaping
-in the existing Html runtimes independently. Neither result makes embedded
-Roc expressions executable or establishes a replacement for `.rocci`.
-[^typed-adapter][^experiment-results]
+in the existing Html runtimes independently. Phase 2 later showed buffer
+growth is not the large-fixture win and that matched algorithms beat prepared
+rendering, so compile-time preparation is not the performance opportunity.
+Neither result makes embedded Roc expressions executable or establishes a
+replacement for `.rocci`.
+[^typed-adapter][^experiment-results][^phase-2-receipt]
 
 [^discussion]: Exact linked announcement and archived reply; no documented platform compiler hook.
 [^templegen-main]: Main-branch generator, closed Ctx, formatter calls, two strategies, and later benchmark summary.
@@ -595,3 +666,5 @@ Roc expressions executable or establishes a replacement for `.rocci`.
 [^follow-up-plan]: Separate plan for evidence quality, controlled comparisons, API boundaries, and representative host checks; not a product cutover.
 [^phase-0-receipt]: Phase 0 local baseline receipt; September 12 file preserved; claimed speed ordering reproduced.
 [^phase-1-receipt]: Phase 1 local matrix and helper probes; html5lib 1.1; no unexplained benchmarked Card differences.
+[^phase-2-receipt]: Phase 2 local cost table; process totals; `node_scan_escape` selected; builder-control beat prepared rendering.
+[^costs]: Isolated Html copies in the work directory; generated Card Roc unchanged.

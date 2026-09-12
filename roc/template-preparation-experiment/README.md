@@ -62,6 +62,12 @@ where they differ, and html5lib 1.1 parsed events. It classifies mismatches and
 records unsupported interpolation positions. It does not replace the September 12
 or Phase 0 receipts.
 
+`--costs` builds Phase 2 isolated kernels and Card variants. It copies Html
+modules only into the work directory and leaves generated Card Roc unchanged.
+It writes `compile-time-template-preparation-phase-2-results.json` when that
+output path is requested. Combine it with `--engine-dir` after a prior download.
+Do not combine `--costs` with `--bench`, `--self-test`, or `--compat`.
+
 Render cases are named. Summaries are `harness_ok`, `type_contract_ok`, and
 `html_compatible`. Compiler work records `--no-cache` and warm incremental
 checks/builds, and upstream tests record a default run plus `roc test --no-cache`.
