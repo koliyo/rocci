@@ -68,6 +68,13 @@ It writes `compile-time-template-preparation-phase-2-results.json` when that
 output path is requested. Combine it with `--engine-dir` after a prior download.
 Do not combine `--costs` with `--bench`, `--self-test`, or `--compat`.
 
+`--host` checks the selected `node_scan_escape` candidate on representative
+Rocci fixtures (small component, list, nested/fragments, scoped CSS) by
+copying Html into the work directory. It also records that theme painters
+select `Str`, attempts an HTTP origin against a copied platform tree, and
+records Linux coverage as absent on a Darwin host. Do not combine `--host`
+with `--bench`, `--self-test`, `--compat`, or `--costs`.
+
 Render cases are named. Summaries are `harness_ok`, `type_contract_ok`, and
 `html_compatible`. Compiler work records `--no-cache` and warm incremental
 checks/builds, and upstream tests record a default run plus `roc test --no-cache`.

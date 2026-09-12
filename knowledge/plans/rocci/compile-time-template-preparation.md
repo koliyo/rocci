@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T12:05:00Z }
+generated: { by: process:cursor, at: 2026-09-12T12:20:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -24,9 +24,18 @@ sources:
   - id: phase-2-receipt
     resource: ../../research/rocci/compile-time-template-preparation-phase-2-results.json
     title: Phase 2 isolated escape, growth, encoding, and builder-control costs
+  - id: phase-4-receipt
+    resource: ../../research/rocci/compile-time-template-preparation-phase-4-results.json
+    title: Phase 4 representative fixtures, theme inspection, and host coverage limits
   - id: costs
     resource: ../../../roc/template-preparation-experiment/costs.py
     title: Isolated kernel and Card variants copied only into the experiment work directory
+  - id: host
+    resource: ../../../roc/template-preparation-experiment/host.py
+    title: Phase 4 representative fixture and host-coverage runner
+  - id: host-page
+    resource: ../../../roc/template-preparation-experiment/HostPage.rocci
+    title: Nested list plus scoped CSS page used for the product-origin smoke
   - id: runner
     resource: ../../../roc/template-preparation-experiment/run.py
     title: Current experiment construction, checks, and timing assertions
@@ -90,7 +99,7 @@ one-shot workloads, while the new experiment uses repeated rendering and
 activate the older plan's skipped fusion or runtime-unification phases.
 [^prior-html-plan][^native-plan]
 
-**State:** draft; Phases 0–3 completed locally on `compile-time-template-preparation`.
+**State:** draft; Phases 0–4 completed locally on `compile-time-template-preparation`.
 The September 12 receipt is preserved. Phase 0 reproduced the claimed speed
 ordering. Phase 1 has a compatibility matrix with no unexplained benchmarked
 differences; CR-in-attribute remains a real DOM-value split, and
@@ -100,8 +109,11 @@ compile-time preparation: a matched string builder beat prepared rendering,
 and `node_scan_escape` is the selected runtime candidate for Phase 4.
 Phase 3 defers generator-free library consumption: the Phase 1 subset plus
 typed-closure probes remain the supported contract; no library candidate
-is carried into Phase 4. Not hosted-CI complete. Phases 4–5 have not started.
-[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^adapter]
+is carried into Phase 4. Phase 4: Hello, Card, Compat, and Callout bytes match
+between current nodes and `node_scan_escape`; theme painters select `Str`;
+candidate HTTP and Linux coverage are absent. Not hosted-CI complete. Phase 5
+has not started.
+[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^adapter][^host][^host-page]
 
 ## Evidence and open questions
 
@@ -109,7 +121,7 @@ is carried into Phase 4. Not hosted-CI complete. Phases 4–5 have not started.
 | --- | --- |
 | A closure sharing the sample/input type passes 16 focused probes; added, missing, and nested fields are rejected. Phase 3 defers exported, inferred, nominal, and higher-order library APIs rather than expanding the spike. | A later compiler, and a separately scoped library experiment if generator-free consumption is chosen later. |
 | The receipt reports 62 upstream tests passing. | The final receipt's upstream invocation used cached results; a fresh checkpoint should distinguish cached and uncached runs. |
-| Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. Phase 2 shows the gap is mostly escaping/growth, not preparation: a matched builder beat prepared rendering, and scan/copy escape is ~34% faster than current node escape on the 100-row escaped Card. | Other workloads, platforms, and actual HTTP serving for the selected `node_scan_escape` candidate. |
+| Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. Phase 2 shows the gap is mostly escaping/growth, not preparation: a matched builder beat prepared rendering, and scan/copy escape is ~34% faster than current node escape on the 100-row escaped Card. Phase 4 keeps that candidate byte-identical on Hello, Card, Compat, and Callout. | HTTP serving and Linux for `node_scan_escape`; theme painters remain on `Str`. |
 | Product nodes won the smallest runtime fixture, and prepared templates cost more to check/build. | Warm incremental behavior, many-template scaling, first-use latency, and practical authoring cost. |
 | A CR-in-attribute mismatch is explicit; quote entity spellings can differ without changing parsed meaning. | A broader HTML contract including fragments, void elements, boolean attributes, raw-text contexts, and browser parsing. |
 | Filename and line appear in preparation diagnostics. | Structured offsets, precise columns, partial origins, stable error codes, and LSP navigation. |
@@ -429,6 +441,9 @@ the candidate algorithms.
 [^phase-0-receipt]: Local Phase 0 baseline on Apple M1 Max, `nightly-2026-09-03-62fcb65`; original September 12 receipt unchanged.
 [^phase-1-receipt]: Local Phase 1 matrix; html5lib 1.1; CR DOM split and boolean helper drift classified.
 [^phase-2-receipt]: Local Phase 2 cost table; Apple M1 Max; `node_scan_escape` selected; builder-control beat prepared rendering.
+[^phase-4-receipt]: Local Phase 4; Hello/Card/Compat/Callout bytes equal; theme `Str`; candidate HTTP and Linux absent.
+[^host]: Representative fixtures copy Html only in the work directory; `rocci build --output` cannot retarget that copy.
+[^host-page]: Nested HostPage with a view and fragment route; used only for a product-origin smoke.
 [^costs]: Isolated Html copies live only in the experiment work directory; generated Card Roc stays unchanged.
 [^research]: Paired findings distinguish prepared data from source generation and document the current experiment's limits.
 [^receipt]: Raw results, cached upstream test output, binary/timing samples, source hashes, and explicit compatibility failure.

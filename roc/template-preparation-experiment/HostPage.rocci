@@ -1,0 +1,38 @@
+@get:view("/") {
+    hostPage({
+        title: "Ada & Co",
+        active: Bool.True,
+        items: [{ name: "one" }, { name: "two" }],
+    })
+}
+
+@get:fragment("/card") {
+    hostCard({
+        title: "Ada & Co",
+        active: Bool.True,
+        items: [{ name: "one" }],
+    })
+}
+
+@component Inner = |{ name }|
+    <b>{name}</b>
+
+@component HostCard = |{ title, active, items }| {
+    @css {
+        .host-card { color: #111; }
+    }
+    <section class="host-card" title={title}>
+        <h1>{title}</h1>
+        @if active { <b>active</b> }
+        <ul>
+            @for item in items {
+                <li><Inner name={item.name} /></li>
+            }
+        </ul>
+    </section>
+}
+
+@component HostPage = |{ title, active, items }|
+    <main>
+        <HostCard title={title} active={active} items={items} />
+    </main>

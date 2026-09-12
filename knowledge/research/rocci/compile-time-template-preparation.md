@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T12:05:00Z }
+generated: { by: process:cursor, at: 2026-09-12T12:20:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -33,15 +33,30 @@ sources:
   - id: phase-2-receipt
     resource: ./compile-time-template-preparation-phase-2-results.json
     title: Phase 2 isolated escape, growth, encoding, and builder-control costs
+  - id: phase-4-receipt
+    resource: ./compile-time-template-preparation-phase-4-results.json
+    title: Phase 4 representative fixtures, theme inspection, and host coverage limits
   - id: costs
     resource: ../../../roc/template-preparation-experiment/costs.py
     title: Isolated kernel and Card variants copied only into the experiment work directory
+  - id: host
+    resource: ../../../roc/template-preparation-experiment/host.py
+    title: Phase 4 representative fixture and host-coverage runner
+  - id: host-page
+    resource: ../../../roc/template-preparation-experiment/HostPage.rocci
+    title: Nested list plus scoped CSS page used for the product-origin smoke
   - id: allocation-counter
     resource: ../../../roc/template-preparation-experiment/allocations.c
     title: Optional macOS libc allocation-call interposer
   - id: product-html
     resource: ../../../crates/rocci-platform/platform/Html.roc
     title: Product node runtime and context-aware escaping
+  - id: platform-readme
+    resource: ../../../crates/rocci-platform/README.md
+    title: Platform ownership, application pin, and vendor provenance
+  - id: theme
+    resource: ../../../crates/rocci-rocdown/src/plan/theme.rs
+    title: Theme painters select Str signatures
   - id: string-html
     resource: ../../../crates/rocci-ui/runtime/Html.roc
     title: String Html runtime used in the comparison
@@ -329,9 +344,11 @@ equivalent serialization; a raw CR in an attribute is a real DOM-value split.
 Phase 2 attributes the large-fixture speed gap to escaping algorithms, not
 compile-time preparation: a matched string builder beat prepared rendering,
 and `node_scan_escape` is the selected runtime candidate. Phase 3 defers
-the generator-free library spike. Remaining phases have not started; the
-earlier source-lowering decision remains intact.
-[^follow-up-plan][^phase-0-receipt][^phase-1-receipt][^phase-2-receipt]
+the generator-free library spike. Phase 4 keeps that candidate byte-identical
+on Hello, Card, Compat, and Callout; theme painters stay on `Str`; candidate
+HTTP and Linux coverage are absent. Remaining: Phase 5 recommendation.
+The earlier source-lowering decision remains intact.
+[^follow-up-plan][^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
 The existing native-compiler research remains relevant to a **Roc program
@@ -656,6 +673,26 @@ Choose **defer**. Do not carry a library candidate into Phase 4. A later
 packaging experiment can reopen these API questions; this plan does not.
 [^typed-adapter][^follow-up-plan]
 
+### Phase 4 representative host
+
+Executed on 2026-09-12. `--host` copies platform Html only into the work
+directory and leaves generated Roc unchanged. Hello (small component), Card
+(list), Compat (nested components, void elements, Html body), and Callout
+(scoped CSS fragment) are byte-identical between current nodes and
+`node_scan_escape`. Theme compilation still sets `html_type: "Str"`; the node
+candidate does not apply to painters. Linux was not available (Darwin /
+Apple M1 Max).[^host][^phase-4-receipt][^theme]
+
+Candidate HTTP coverage is absent: `rocci build --output` writes a process
+binary against the in-tree `rocci` pin and drops the staged workspace, so a
+copied `Html.roc` cannot be substituted. `--platform` accepts only `rocci`.
+A product-origin smoke of HostPage also failed to listen (`PermissionError`).
+Do not treat the basic-cli fixture match as HTTP performance.
+[^host][^host-page][^phase-4-receipt][^platform-readme]
+
+Narrow any later runtime change to macOS Node Html first. Do not claim
+cross-platform or webview-origin benefit from this phase.
+
 ### Disposition after the experiment
 
 The restricted-library idea passes the first viability test: type-safe
@@ -703,4 +740,9 @@ replacement for `.rocci`.
 [^phase-0-receipt]: Phase 0 local baseline receipt; September 12 file preserved; claimed speed ordering reproduced.
 [^phase-1-receipt]: Phase 1 local matrix and helper probes; html5lib 1.1; no unexplained benchmarked Card differences.
 [^phase-2-receipt]: Phase 2 local cost table; process totals; `node_scan_escape` selected; builder-control beat prepared rendering.
+[^phase-4-receipt]: Phase 4 local host receipt; fixture bytes equal; theme `Str`; candidate HTTP and Linux absent.
+[^host]: Representative Html copies in the work directory; rocci-cli cannot retarget a copied platform for HTTP.
+[^host-page]: HostPage view and fragment routes; product-origin smoke only.
 [^costs]: Isolated Html copies in the work directory; generated Card Roc unchanged.
+[^platform-readme]: In-tree rocci-platform pin; `libhost.a` is not a kept workspace for this experiment.
+[^theme]: `compile_single_module` sets `html_type: "Str"`.

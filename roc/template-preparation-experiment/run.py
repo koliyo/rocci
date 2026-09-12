@@ -346,6 +346,8 @@ def capture_environment(work, repetitions, bench, allocations):
         "compat.mustache.html": HERE / "compat.mustache.html",
         "compat.py": HERE / "compat.py",
         "costs.py": HERE / "costs.py",
+        "host.py": HERE / "host.py",
+        "HostPage.rocci": HERE / "HostPage.rocci",
     }
     product = {
         "crates/rocci-ui/runtime/Html.roc": REPO / "crates/rocci-ui/runtime/Html.roc",
@@ -401,6 +403,7 @@ def summarize(report):
     type_ok = (
         not report.get("compat_requested")
         and not report.get("costs_requested")
+        and not report.get("host_requested")
         and not missing_probes
         and probes
         and all(item.get("passed") for item in probes)
@@ -426,7 +429,7 @@ def summarize(report):
         harness_problems.append("harness_fault_probe")
     if not receipt_complete(report):
         harness_problems.append("incomplete_receipt")
-    if missing_probes and not report.get("compat_requested") and not report.get("costs_requested"):
+    if missing_probes and not report.get("compat_requested") and not report.get("costs_requested") and not report.get("host_requested"):
         harness_problems.append("missing_probes")
     if report.get("bench_requested"):
         for backend in BACKENDS:
@@ -524,6 +527,11 @@ def summarize(report):
     if report.get("costs_requested"):
         if not report.get("cost_table") or "selected" not in (report.get("phase2_selection") or {}):
             harness_problems.append("missing_cost_table")
+    if report.get("host_requested"):
+        if not report.get("phase4_coverage"):
+            harness_problems.append("missing_host_coverage")
+        if not ((report.get("host") or {}).get("fixtures") or {}):
+            harness_problems.append("missing_host_fixtures")
     report["html_compatible"] = bool(html_compatible and report.get("bench_requested") and not report.get("error"))
     report["html_expected_findings_confirmed"] = bool(
         findings_ok and report.get("bench_requested") and "error" not in harness_problems
@@ -1033,6 +1041,13 @@ def run_experiment(options):
             spec.loader.exec_module(costs)
             report["costs_requested"] = True
             costs.run_costs(sys.modules[__name__], work, report)
+        elif options.host:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("host", HERE / "host.py")
+            host = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(host)
+            report["host_requested"] = True
+            host.run_host(sys.modules[__name__], work, report)
         else:
             report["probes"] = type_probes(work, "default")
             report["probes_no_cache"] = type_probes(work, "no-cache")
@@ -1064,6 +1079,8 @@ def run_experiment(options):
         )
     elif options.costs:
         ok = report["harness_ok"] and report.get("phase2_selection") is not None
+    elif options.host:
+        ok = report["harness_ok"] and report.get("phase4_coverage") is not None and not report.get("error")
     else:
         ok = (
             report["harness_ok"]
@@ -1084,15 +1101,18 @@ def main():
     parser.add_argument("--self-test", action="store_true", help="Run harness fault probes only")
     parser.add_argument("--compat", action="store_true", help="Build the Phase 1 HTML compatibility matrix")
     parser.add_argument("--costs", action="store_true", help="Run Phase 2 isolated escape/growth cost experiments")
+    parser.add_argument("--host", action="store_true", help="Run Phase 4 representative host checks for node_scan_escape")
     options = parser.parse_args()
     if options.repetitions <= 0:
         parser.error("--repetitions must be positive")
     if options.allocations and not options.bench:
         parser.error("--allocations requires --bench")
-    if options.compat and (options.bench or options.self_test or options.costs):
-        parser.error("--compat cannot be combined with --bench, --self-test, or --costs")
-    if options.costs and (options.bench or options.self_test):
-        parser.error("--costs cannot be combined with --bench or --self-test")
+    if options.compat and (options.bench or options.self_test or options.costs or options.host):
+        parser.error("--compat cannot be combined with --bench, --self-test, --costs, or --host")
+    if options.costs and (options.bench or options.self_test or options.host):
+        parser.error("--costs cannot be combined with --bench, --self-test, or --host")
+    if options.host and (options.bench or options.self_test):
+        parser.error("--host cannot be combined with --bench or --self-test")
     if options.self_test:
         raise SystemExit(run_self_test(options.output))
     raise SystemExit(run_experiment(options))
