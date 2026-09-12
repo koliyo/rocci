@@ -8,6 +8,7 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Led the [root](/index.md), [architecture](/architecture/), [status](/status/), and [plans](/plans/) indexes with current contracts and dated status; historical plans stay in area folders. No concept IDs moved. Local Exit evidence only.
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 5 on `compile-time-template-preparation`: preparation is not the performance opportunity; filed [scan/copy Node escape](plans/rocci/html-scan-copy-escape.md) and [boolean_attribute(False)](plans/rocci/html-boolean-attribute.md) follow-ups. Exploratory; not started; not hosted-CI complete.
 
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 4 on `compile-time-template-preparation`: Hello/Card/Compat/Callout bytes match for `node_scan_escape`; theme painters stay on `Str`; candidate HTTP and Linux coverage absent. Exploratory; not hosted-CI complete.

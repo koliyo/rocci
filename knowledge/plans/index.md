@@ -1,5 +1,9 @@
 # Plans
 
+Plans stay in product-area folders. Historical versus current is labeled on
+the record (superseded, skipped phases, shipped), not by moving files into
+lifecycle directories.
+
 * [Rocci](rocci/) - Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 * [Rocdown](rocdown/) - Format, blocks, interpolation, islands, and the app-docs compiler.
 * [OKF](okf/) - Portable engine, review application, knowledge load and render, and bundle layout.
