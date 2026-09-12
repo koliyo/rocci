@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:52:00Z }
+generated: { by: process:cursor, at: 2026-09-12T14:07:47Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -116,12 +116,12 @@ The September 12 receipt is preserved. Compile-time template preparation is
 not the performance opportunity. Implementation follow-up
 [scan/copy node escape](./html-scan-copy-escape.md) completed locally on
 `main` (Phases 0–1); Linux remains unmeasured and must stay listed; theme
-`Str` remains unmeasured; macOS HTTP origin matches with no visible renderer
+`Str` owners are named; painter remeasure not started; macOS HTTP origin matches with no visible renderer
 gain.
 [`boolean_attribute(False)` omission](./html-boolean-attribute.md) is not
 started. Exploration follow-up [HTTP/Linux host coverage](./html-scan-copy-host-coverage.md)
-Phases 0–2 completed locally on `main`; [theme/string Html escaping](./html-string-theme-escape.md) is
-not started. Library spike
+Phases 0–2 completed locally on `main`; [theme/string Html escaping](./html-string-theme-escape.md)
+Phase 0 completed locally on `main` (owners named; painter remeasure not started). Library spike
 deferred. Not an approved Decision. Not hosted-CI complete.
 [^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^adapter][^host][^host-page]
 
@@ -476,7 +476,7 @@ September 9 NavList status quo is unchanged.[^scan-copy-plan][^boolean-plan][^pr
 [^scan-copy-plan]: Follow-up implementation plan; not started; not an approved Decision.
 [^boolean-plan]: Follow-up correctness plan; not started; independent of speed.
 [^host-coverage-plan]: Phases 0–2 local: macOS origin bytes match, no visible renderer gain; Linux absent.
-[^string-theme-plan]: Exploration of split/join string Html for theme painters; close-or-file.
+[^string-theme-plan]: Phase 0 named RocdownTheme/DocsComponents and playground ui copy; painter remeasure not started.
 [^native-plan]: Source-emitting Roc compiler work is a separate project from prepared-template interpretation.
 [^pure-render]: Existing pure component contract.
 [^rust-catalog]: Static content ownership must not change as a renderer shortcut.

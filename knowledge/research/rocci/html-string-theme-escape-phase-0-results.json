@@ -1,0 +1,101 @@
+{
+  "timestamp": "2026-09-12T14:07:47Z",
+  "os": "Darwin",
+  "architecture": "arm64",
+  "cpu": "Apple M1 Max",
+  "machine": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "roc": "Roc compiler version nightly-2026-09-03-62fcb65",
+  "rocci_revision": "d51017c5942ee2650cba6be7c630a262c725bbe6",
+  "product_html_hashes": {
+    "crates/rocci-ui/runtime/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "crates/rocci-rocdown/runtime/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "crates/rocci-cli/runtime/Html.roc": "7e0439aa96a2bddc665798907880324599e2fb556afc4f6c498b7f1886d69439",
+    "crates/rocci-platform/platform/Html.roc": "f8df1032b918e30fd3a8672f6e6a5a19f9295a1dcb3f56ab98c5759624bd574f"
+  },
+  "ui_rocdown_html_identical": true,
+  "html_type_str_callers": [
+    "crates/rocci-rocdown/src/plan/theme.rs:compile_single_module"
+  ],
+  "owners": [
+    {
+      "path": "crates/rocci-rocdown/templates/RocdownTheme.rocci",
+      "import": "import Html; staged crates/rocci-rocdown/runtime/Html.roc via runtime::stage_into",
+      "html_type": "Str",
+      "role": "actual painter: SiteShell nested chrome, scoped CSS, ordinary href/class/id attributes"
+    },
+    {
+      "path": "crates/rocci-rocdown/templates/DocsComponents.rocci",
+      "import": "import Html; same Rocdown runtime copy",
+      "html_type": "Str",
+      "role": "actual painter: Aside/Note and related widgets; interpolates kind/title/aria"
+    },
+    {
+      "path": "crates/rocci-ui/templates/chrome/{NavList,Breadcrumbs,PageOutline}.rocci",
+      "import": "compiled as theme modules with html_type Str; same Rocdown Html.roc",
+      "html_type": "Str",
+      "role": "chrome painters nested by RocdownTheme"
+    },
+    {
+      "path": "crates/rocci-rocdown/runtime/RocdownBuild.roc",
+      "import": "import Html; fragment/empty/dangerously_include_unescaped_html",
+      "html_type": "Str",
+      "role": "site apply host; identity render on string Html"
+    },
+    {
+      "path": "crates/rocci-cli/src/playground_html.rs",
+      "import": "rocci_ui::HTML_ROC (crates/rocci-ui/runtime/Html.roc)",
+      "html_type": "Html (LowerOptions default; string constructors)",
+      "role": "remaining ui consumer besides experiment rocci-string: rocci render snapshot"
+    },
+    {
+      "path": "crates/rocci-cli/src/rocci_test.rs",
+      "import": "rocci_ui::HTML_ROC; rewrite_html_annos_for_string_runtime Html -> Str",
+      "html_type": "Str after rewrite",
+      "role": "rocci test staging of the ui copy"
+    },
+    {
+      "path": "roc/template-preparation-experiment/",
+      "import": "copies crates/rocci-ui/runtime/Html.roc as rocci-string / string_current",
+      "html_type": "string constructors",
+      "role": "Phase 2 Card backend; not a theme painter"
+    }
+  ],
+  "not_str_owners": [
+    {
+      "path": "crates/rocci-cli/runtime/Html.roc",
+      "reason": "Node wrapper over pf.Html; rocci run / driver / bundle"
+    },
+    {
+      "path": "crates/rocci-platform/platform/Html.roc",
+      "reason": "Node scan/copy; out of bound"
+    },
+    {
+      "path": "crates/rocci-lsp/src/projection_workspace.rs",
+      "reason": "stages CLI Node wrapper for check, not string Html"
+    },
+    {
+      "path": "crates/rocci-ui/src/html.rs",
+      "reason": "Rust replace helper; crate tests only; not a Roc kernel"
+    },
+    {
+      "path": "crates/rocci-rocdown/src/islands.rs",
+      "reason": "stages Rocdown string Html.roc but annotates html_type Html.Node; runtime still split/join; not a Str-signature painter"
+    }
+  ],
+  "string_escape_contract": {
+    "text_and_attributes": [
+      ["&", "&amp;"],
+      ["<", "&lt;"],
+      [">", "&gt;"],
+      ["\"", "&quot;"],
+      ["'", "&#39;"]
+    ],
+    "cr_lf_in_attributes": "raw; no &#13; or &#10;",
+    "cr_in_attribute_after_html_parse": "LF (U+000A); product/string drift vs Node &#13;",
+    "boolean_attribute_false": "omits the attribute",
+    "render_document": "<!DOCTYPE html>\\n then body",
+    "later_kernel_must_not": "adopt Node attribute &#13;/&#10;"
+  },
+  "phase_1_painter": "RocdownTheme.siteShell (nested NavList/Breadcrumbs/PageOutline, scoped CSS, ordinary attributes)",
+  "phase_1_ui_consumer": "playground_html / rocci_ui::HTML_ROC"
+}

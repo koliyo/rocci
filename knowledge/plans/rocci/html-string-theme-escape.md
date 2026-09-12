@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Decide whether theme and string Html split/join escaping deserves a kernel change
-description: "string_scan_escape failed the Phase 2 small-case screen. Theme painters and Rocdown/ui string Html still use repeated split/join. Measure that path on its actual consumers, then close it or file a separate implementation plan. Do not switch painters to Html.Node."
+description: "Phase 0 named Str owners: RocdownTheme/DocsComponents via Rocdown Html.roc, plus playground/rocci test via the identical ui copy. string_scan_escape failed the Card small-case screen; remeasure on a painter, then close or file. Do not switch painters to Html.Node."
 tags: [domain/rocci, domain/rocdown, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
+generated: { by: process:cursor, at: 2026-09-12T14:07:47Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -20,19 +20,37 @@ sources:
     title: HTTP/Linux coverage for Node Html, not Str painters
   - id: research
     resource: ../../research/rocci/compile-time-template-preparation.md
-    title: string_scan_escape failed the 15%/5% screen
+    title: string_scan_escape failed the 15%/5% screen; CR-in-attribute LF after parse
   - id: phase-2-receipt
     resource: ../../research/rocci/compile-time-template-preparation-phase-2-results.json
     title: 3.7% large-case gain and 34% empty-card regression versus current string
+  - id: phase-0-receipt
+    resource: ../../research/rocci/html-string-theme-escape-phase-0-results.json
+    title: Owner table, identical ui/Rocdown Html.roc hashes, string escape contract
   - id: ui-html
     resource: ../../../crates/rocci-ui/runtime/Html.roc
-    title: Split/join escape used by the string comparison backend
+    title: Split/join escape used by playground, rocci test, and rocci-string
   - id: rocdown-html
     resource: ../../../crates/rocci-rocdown/runtime/Html.roc
-    title: Same split/join helper staged for theme painters
+    title: Byte-identical split/join helper staged for theme painters
   - id: theme
     resource: ../../../crates/rocci-rocdown/src/plan/theme.rs
     title: compile_single_module sets html_type Str
+  - id: docs-components
+    resource: ../../../crates/rocci-rocdown/templates/DocsComponents.rocci
+    title: Actual Str painter; interpolates kind/title/aria
+  - id: rocdown-theme
+    resource: ../../../crates/rocci-rocdown/templates/RocdownTheme.rocci
+    title: Actual Str painter; nested chrome and scoped CSS
+  - id: stage
+    resource: ../../../crates/rocci-rocdown/src/build/mod.rs
+    title: Site build calls runtime::stage_into for the Rocdown Html copy
+  - id: playground
+    resource: ../../../crates/rocci-cli/src/playground_html.rs
+    title: Remaining ui consumer; stages rocci_ui::HTML_ROC
+  - id: rocci-test
+    resource: ../../../crates/rocci-cli/src/rocci_test.rs
+    title: Stages ui Html.roc and rewrites Html annotations to Str
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: NavList one-shot status quo; painters already annotate Str
@@ -41,8 +59,13 @@ sources:
 # Decide whether theme and string Html split/join escaping deserves a kernel change
 
 Exploratory follow-up from [template preparation and Html runtime costs](/plans/rocci/compile-time-template-preparation.md).
-Do not start a phase until the user asks. Not an approved Decision. Closing
-with no change is a valid Exit.[^investigation][^research]
+Not an approved Decision. Closing with no change is a valid Exit.
+
+**State:** draft; Phase 0 completed locally on `main`. Owners are RocdownTheme
+and DocsComponents (`html_type: Str` over the Rocdown Html copy) plus
+playground/`rocci test` over the identical ui copy. Isolated string scan/copy
+is still unmeasured on a painter. Not hosted-CI complete.
+[^investigation][^research][^phase-0-receipt]
 
 ## Goal
 
@@ -85,6 +108,36 @@ implementation is warranted, or record status quo.[^phase-2-receipt][^theme]
 **Exit:** owner table (path, import, Html type) and the promised string
 escape contract.
 
+**Outcome:** The only `html_type: "Str"` caller is theme
+`compile_single_module`. The two string Html.roc files are byte-identical
+(SHA-256 `7b083eaa…`). Site `build` stages the Rocdown copy. CLI Html.roc
+is a Node wrapper and is not an owner.[^theme][^rocdown-html][^ui-html][^stage][^phase-0-receipt]
+
+| Path | Import | Html type |
+| --- | --- | --- |
+| `crates/rocci-rocdown/templates/RocdownTheme.rocci` | `import Html`; staged Rocdown `Html.roc` | `Str` |
+| `crates/rocci-rocdown/templates/DocsComponents.rocci` | same | `Str` |
+| `crates/rocci-ui/templates/chrome/{NavList,Breadcrumbs,PageOutline}.rocci` | compiled as theme modules; same Rocdown copy | `Str` |
+| `crates/rocci-rocdown/runtime/RocdownBuild.roc` | `import Html` | `Str` (identity render) |
+| `crates/rocci-cli/src/playground_html.rs` | `rocci_ui::HTML_ROC` | default `Html`; string constructors |
+| `crates/rocci-cli/src/rocci_test.rs` | `rocci_ui::HTML_ROC`; rewrite `Html` → `Str` | `Str` after rewrite |
+| `roc/template-preparation-experiment/` | copies ui `Html.roc` as `rocci-string` | string constructors |
+
+Actual painter for Phase 1: RocdownTheme `siteShell` (nested NavList /
+Breadcrumbs / PageOutline, scoped CSS, ordinary attributes). Remaining ui
+consumer besides `rocci-string`: playground HTML snapshot.[^rocdown-theme][^docs-components][^playground][^rocci-test]
+
+Promised string escape contract: one helper for text and attributes
+(`&` `&amp;`, `<` `&lt;`, `>` `&gt;`, `"` `&quot;`, `'` `&#39;`). No
+`&#13;` / `&#10;`. A raw CR in an attribute is emitted raw and parses to
+LF (U+000A). False `boolean_attribute` omits the attribute.
+`render_document` inserts a newline after the doctype. A later kernel must
+not adopt Node attribute CR/LF numeric references.[^ui-html][^research]
+
+Islands stage the Rocdown string copy while annotating `Html.Node`. That
+is a signature mismatch, not a second Str owner. Rust `rocci_ui::html::escape`
+is crate-test only.
+
 ## Phase 1 — Remeasure isolated string escape on a painter-shaped workload
 
 **Bound**
@@ -122,11 +175,17 @@ does not itself edit product Html.
 - `git diff --check`
 
 [^investigation]: Theme Str and string_scan failure were left as coverage gaps.
-[^research]: Phase 2 selected Node scan/copy, not the string variant.
+[^research]: Phase 2 selected Node scan/copy, not the string variant; Phase 1 classified CR-in-attribute as LF after parse for string Html.
 [^scan-copy]: Node product port; string Html is out of that bound.
 [^host-coverage]: Preview HTTP origin for Node, not painters.
 [^phase-2-receipt]: string_scan_escape large gain 3.7%; empty-card regression ~34%.
-[^ui-html]: Experiment string backend; split/join `escape`.
-[^rocdown-html]: `include_str!` copy staged for Rocdown theme compile.
+[^phase-0-receipt]: Local Phase 0 owner table; ui and Rocdown Html.roc hashes match; string contract excludes `&#13;`.
+[^ui-html]: Split/join `escape`; playground, rocci test, and experiment string backend.
+[^rocdown-html]: Byte-identical `include_str!` copy staged for Rocdown theme compile and site apply.
 [^theme]: `html_type: "Str"` in `compile_single_module`.
+[^docs-components]: DocsComponents Aside interpolates kind, title, and aria into class/text/attributes.
+[^rocdown-theme]: RocdownTheme SiteShell nests chrome and scoped CSS; returns Str.
+[^stage]: `build_loaded_with_host` calls `runtime::stage_into`.
+[^playground]: `rocci render` stages `rocci_ui::HTML_ROC`.
+[^rocci-test]: Rewrites `-> Html` to `-> Str` before `roc test`.
 [^prior-html-plan]: Unification and fusion stay skipped.
