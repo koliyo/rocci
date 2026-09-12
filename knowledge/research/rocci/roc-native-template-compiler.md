@@ -4,11 +4,14 @@ title: A Roc-native template parser and lowerer
 description: "Exploratory proof of concept: a parallel Roc port of template parse and lower that aims at emit parity with crates/rocci-template. Rust stays the product compiler. Motivating vision is consuming pure .rocci templates in a normal Roc app with no rocci CLI; this record does not replace the Rust crate. Not shipped."
 tags: [domain/rocci, integration/roc, concern/syntax, concern/architecture, concern/language-design, concern/tooling]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T20:10:00Z }
+generated: { by: process:cursor, at: 2026-09-12T09:01:28Z }
 stale_after: 2026-11-30
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: compile-time-preparation
+    resource: ./compile-time-template-preparation.md
+    title: Templegen compile-time preparation, local probes, and Rocci viability
   - id: plan
     resource: ../../plans/rocci/roc-native-template-compiler.md
     title: Implementation plan for a Roc-native template compiler
@@ -221,11 +224,15 @@ phases from this rewrite.[^glue-research][^platform-api][^platform-readme]
 
 ## What "run from Roc without Rust" can mean
 
-The Roc compiler still only compiles `.roc`. There is no `import Hello.rocci`,
-no user macros, and no compile-time splice of a parsed string into the
-surrounding module. Constant folding can evaluate a *pure* parser on a string
-literal at compile time; it cannot then typecheck the emitted source in the
-same compilation.[^roc-tutorial][^template-lib]
+The distinction is importing `.rocci` as **executable source** versus
+embedding a file as **string data**. A pure parser can prepare embedded
+template text at compile time; that does not splice its emitted Roc source
+into the surrounding module for type checking. The September 12
+[Templegen investigation](compile-time-template-preparation.md) demonstrates
+the data route on Rocci's September 3 pin, followed by runtime interpretation.
+It also reproduces a context-shape safety gap. That restricted library route
+does not replace this research's source-emitting compiler or support arbitrary
+Roc expressions inside template text.[^compile-time-preparation][^template-lib]
 
 Honest end states, in order of ambition:
 
@@ -591,7 +598,8 @@ not restated here.[^postmortem]
 [^roc-defaults]: Pattern `??` illegal; type-position defaults on the pin.
 [^pure-render]: `@component` is a pure function to `Html`.
 [^product-boundary]: Rocci templates versus Rocdown documents.
-[^roc-tutorial]: New compiler: `var $x`, `for`, `Try`, `?`, methods, `expect`, packages, no `.rocci` imports; constant folding is not macros.
+[^roc-tutorial]: New compiler: `var $x`, `for`, `Try`, `?`, methods, `expect`, packages; constant folding does not establish executable `.rocci` imports.
+[^compile-time-preparation]: New evidence distinguishes raw file embedding and compile-time data preparation from source generation and expression compilation.
 [^roc-parser]: Combinators including XML; not HTML+Roc spans.
 [^roc-parser-string]: `String :: {}.{` and `List(U8)` leftover parsing.
 [^cursor-spike]: `var $cur` plus `{ ..$cur, pos: n }`; `skip_string` understands `"\${"`; `roc test roc/rocci-template/main.roc`.

@@ -4,11 +4,14 @@ title: Measure Html emit, then fuse static chunks or unify Html.roc
 description: "Phase 0 recorded: constructor-call compile and render are noise next to basic-cli main wrap. Phase 1 chose E (status quo). No fusion, no Html.roc unify, no debug/release emit. Closed after documenting why."
 tags: [domain/rocci, domain/rocdown, domain/runtime, integration/roc, concern/performance, concern/rendering, concern/architecture]
 status: draft
-generated: { by: process:cursor, at: 2026-09-09T10:30:00Z }
+generated: { by: process:cursor, at: 2026-09-12T10:11:44Z }
 stale_after: 2026-12-09
 authority: exploratory
 owners: [human:nils]
 sources:
+  - id: preparation-follow-up
+    resource: ./compile-time-template-preparation.md
+    title: New controlled investigation after the September 12 template-preparation experiments
   - id: research
     resource: ../../research/rocci/html-node-lowering.md
     title: Emit shape versus Html runtime
@@ -102,6 +105,12 @@ Exploratory. Research:
 [emit shape versus Html runtime](/research/rocci/html-node-lowering.md).[^research]
 
 Phase 0 recorded 2026-09-09. Phase 1 chose **E (status quo)** from those numbers: both `roc check` and one-shot render are noise next to basic-cli `main` wrap through NavList. Phases 2–4 are skipped. Phase 5 documents the unchanged public emit.
+
+September 12 follow-up: [investigate template preparation and Html runtime
+costs](/plans/rocci/compile-time-template-preparation.md) owns the new repeated
+list-rendering evidence and controlled algorithm comparisons. This plan's
+status-quo outcome is unchanged; the new plan does not activate its skipped
+runtime-unification or fusion phases.[^preparation-follow-up]
 
 ## Goal
 
@@ -224,3 +233,4 @@ Phase 0 is measurement notes. Phase 2–3 are the code floor: `cargo test -p roc
 [^article-render]: `render_article` returns a Rust string.
 [^theme-plan]: Painters already annotate `Str`.
 [^language-dev]: No server in parser tests; Roc compile is explicit.
+[^preparation-follow-up]: Distinct experimental scope; preserves the September 9 outcome and current constructor lowering.
