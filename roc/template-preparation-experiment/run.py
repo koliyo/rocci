@@ -536,6 +536,8 @@ def summarize(report):
             harness_problems.append("missing_host_coverage")
         elif "ok" not in http:
             harness_problems.append("missing_host_http")
+        if "ok" not in (report.get("host_linux") or {}):
+            harness_problems.append("missing_host_linux")
     report["html_compatible"] = bool(html_compatible and report.get("bench_requested") and not report.get("error"))
     report["html_expected_findings_confirmed"] = bool(
         findings_ok and report.get("bench_requested") and "error" not in harness_problems
@@ -1088,6 +1090,7 @@ def run_experiment(options):
             report["harness_ok"]
             and bool((report.get("host_staging") or {}).get("ok"))
             and "ok" in (report.get("host_http") or {})
+            and "ok" in (report.get("host_linux") or {})
             and not report.get("error")
         )
     else:

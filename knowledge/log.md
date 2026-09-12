@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [HTTP/Linux host coverage](plans/rocci/html-scan-copy-host-coverage.md) Phase 2 on `main`: Linux coverage absent (Darwin, no Docker; CI and origin VPS not used). Product [scan/copy](plans/rocci/html-scan-copy-escape.md) stays narrowed to macOS Node Html and must keep repeating the Linux gap. Exploratory; not hosted-CI complete.
+
 - Recorded [HTTP/Linux host coverage](plans/rocci/html-scan-copy-host-coverage.md) Phase 1 on `main`: `GET /` and `GET /card` on `127.0.0.1` are byte-identical for fold versus scan/copy; renderer gain is not visible on this low-load path. Linux still unmeasured. Exploratory; not hosted-CI complete.
 
 - Recorded [HTTP/Linux host coverage](plans/rocci/html-scan-copy-host-coverage.md) Phase 0 on `main`: `--host` keeps a HostPage workspace, retargets a copied platform `Html.roc`, and `roc build`s fold versus scan from identical generated Roc. HTTP origin and Linux still unmeasured. Exploratory; not hosted-CI complete.

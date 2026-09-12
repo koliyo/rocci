@@ -72,8 +72,9 @@ Do not combine `--costs` with `--bench`, `--self-test`, or `--compat`.
 `crates/rocci-platform/platform` (including native `libhost.a`), rewrites the
 pin to a relative path, and `roc build`s fold/concat versus scan/copy Html from
 identical generated Roc. It then listens on `127.0.0.1` and compares `GET /`
-and `GET /card`. Product CLI is unchanged. Linux coverage is a later phase. Do
-not combine `--host` with `--bench`, `--self-test`, `--compat`, or `--costs`.
+and `GET /card`. On Darwin it records Linux coverage as absent rather than a
+zero. Product CLI is unchanged. Do not combine `--host` with `--bench`,
+`--self-test`, `--compat`, or `--costs`.
 
 Render cases are named. Summaries are `harness_ok`, `type_contract_ok`, and
 `html_compatible`. Compiler work records `--no-cache` and warm incremental

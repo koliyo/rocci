@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:52:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -48,6 +48,9 @@ sources:
   - id: phase-4-receipt
     resource: ./compile-time-template-preparation-phase-4-results.json
     title: Phase 4 representative fixtures, theme inspection, and host coverage limits
+  - id: host-coverage-phase-2
+    resource: ./html-scan-copy-host-coverage-phase-2-results.json
+    title: Kept-workspace origin compare; Linux absence on Darwin
   - id: costs
     resource: ../../../roc/template-preparation-experiment/costs.py
     title: Isolated kernel and Card variants copied only into the experiment work directory
@@ -705,6 +708,15 @@ Do not treat the basic-cli fixture match as HTTP performance.
 Narrow any later runtime change to macOS Node Html first. Do not claim
 cross-platform or webview-origin benefit from this phase.
 
+A later [HTTP/Linux coverage](/plans/rocci/html-scan-copy-host-coverage.md)
+kept the staged HostPage workspace, retargeted a copied platform, and compared
+fold versus scan/copy on `http://127.0.0.1`. `GET /` and `GET /card` were
+byte-identical; renderer gain was not visible on that low-load path.
+Linux coverage remains absent on Darwin. Keep the product scan/copy plan
+narrowed to macOS Node Html and keep repeating the Linux gap. Do not label
+those origin timings as HTTP throughput.
+[^host-coverage-plan][^host-coverage-phase-2]
+
 ### Disposition after the experiment
 
 The restricted-library idea passes the first viability test: type-safe
@@ -750,7 +762,8 @@ replacement for `.rocci`.
 [^follow-up-plan]: Separate plan for evidence quality, controlled comparisons, API boundaries, and representative host checks; not a product cutover.
 [^scan-copy-plan]: Scan/copy Node escape Phases 0–1 completed locally on `main`; HTTP/Linux/theme unmeasured; not an approved Decision.
 [^boolean-plan]: Follow-up to omit `boolean_attribute` when false; not started.
-[^host-coverage-plan]: Exploration of preview HTTP origin and Linux for the Node kernel.
+[^host-coverage-plan]: Phases 0–2 local: macOS origin bytes match, no visible renderer gain; Linux absent.
+[^host-coverage-phase-2]: Local Darwin receipt; Docker unavailable; origin VPS not used as a compile host.
 [^string-theme-plan]: Exploration of split/join string Html for painters; may close with no change.
 [^phase-0-receipt]: Phase 0 local baseline receipt; September 12 file preserved; claimed speed ordering reproduced.
 [^phase-1-receipt]: Phase 1 local matrix and helper probes; html5lib 1.1; no unexplained benchmarked Card differences.

@@ -434,17 +434,45 @@ def compare_http(orig, scan):
     return record
 
 
+def probe_linux(harness):
+    docker = harness.command(["docker", "info"], REPO, timeout=8)
+    system = py_platform.system()
+    on_linux = system == "Linux"
+    record = {
+        "ok": True,
+        "os": system,
+        "architecture": py_platform.machine(),
+        "linux_host": on_linux,
+        "docker_available": docker["exit"] == 0 and not docker.get("timed_out"),
+        "docker_exit": docker["exit"],
+        "ci_runner_used": False,
+        "allocator_notes": "native libhost.a is macOS arm64mac here; Linux would be x64musl or arm64musl",
+    }
+    if on_linux:
+        record["note"] = "This process is the Linux origin receipt."
+    else:
+        record["note"] = (
+            "Linux coverage absent. This Darwin machine has no Docker. "
+            "Hosted ubuntu-latest CI does not run this experiment, and the "
+            "origin VPS was not used as a compile host. Absence, not a zero result."
+        )
+    return record
+
+
 def run_host(harness, work, report):
     report["host_requested"] = True
+    linux = probe_linux(harness)
     cargo_cli = harness.command(["cargo", "build", "-q", "-p", "rocci-cli"], REPO, timeout=180)
     report["host"] = {
         "os": py_platform.system(),
         "architecture": py_platform.machine(),
         "candidate": "node_scan_escape",
         "original": "node_fold_escape",
-        "linux_coverage": py_platform.system() == "Linux",
+        "linux_coverage": bool(linux.get("linux_host")),
+        "linux": linux,
         "cargo_cli": {"exit": cargo_cli["exit"], "seconds": cargo_cli["seconds"]},
     }
+    report["host_linux"] = linux
     if cargo_cli["exit"] != 0:
         report["error"] = "cargo build -p rocci-cli failed"
         report["host_staging"] = {"ok": False, "error": "cargo build -p rocci-cli failed"}

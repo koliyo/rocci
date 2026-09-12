@@ -16,8 +16,10 @@ the same module: `element` / `void_element` / `attribute` /
 Node text and attribute escaping scans for whether a replacement is needed,
 then either returns the original string or copies into a pre-sized byte
 buffer. Attribute CR/LF stay `&#13;` / `&#10;`. This is not a second Html
-type or a language change. Linux, HTTP origin, and theme `Str` painters are
-unmeasured for this kernel.
+type or a language change. A macOS `127.0.0.1` HostPage origin compared fold
+versus scan/copy: responses were byte-identical; renderer gain was not
+visible on that low-load path. Linux remains unmeasured (keep repeating).
+Theme `Str` painters are unmeasured.
 
 `pf.Rocci` is hosted glue onto `crates/rocci-template`: `compile!` returns
 generated Roc source plus diagnostics; `parse!` returns a `format_ast`

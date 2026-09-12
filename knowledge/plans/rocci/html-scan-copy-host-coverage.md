@@ -4,7 +4,7 @@ title: Measure scan/copy Node escape on the preview HTTP origin and Linux
 description: "Fill the Phase 4 coverage gap now that product Node Html uses scan/copy: compare fold/concat versus product Html through a kept Rocci workspace on 127.0.0.1, then on Linux if a host exists. Do not claim throughput from this plan."
 tags: [domain/rocci, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:50:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:52:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -27,6 +27,9 @@ sources:
   - id: phase-1-receipt
     resource: ../../research/rocci/html-scan-copy-host-coverage-phase-1-results.json
     title: macOS 127.0.0.1 GET / and /card byte-equal; renderer gain not visible
+  - id: phase-2-receipt
+    resource: ../../research/rocci/html-scan-copy-host-coverage-phase-2-results.json
+    title: Darwin Linux absence; recommendation stays macOS Node Html
   - id: host
     resource: ../../../roc/template-preparation-experiment/host.py
     title: Kept-workspace capture and copied-platform roc builds
@@ -53,12 +56,14 @@ Exploratory coverage for [scan/copy Node escape](/plans/rocci/html-scan-copy-esc
 Product Node Html now uses that kernel. This plan still does not claim HTTP
 or Linux benefit, and it is not an approved Decision.
 
-**State:** draft; Phases 0–1 completed locally on `main`. `--host` keeps a
-HostPage workspace, copies the in-tree platform, and compares fold versus
-scan/copy on `http://127.0.0.1`. `GET /` and `GET /card` are byte-identical;
-renderer gain is not visible on this low-load path. Linux is still
-unmeasured. Not hosted-CI complete.
-[^investigation][^scan-copy][^phase-0-receipt][^phase-1-receipt]
+**State:** draft; Phases 0–2 completed locally on `main`. `--host` keeps a
+HostPage workspace and compares fold versus scan/copy on `http://127.0.0.1`.
+`GET /` and `GET /card` are byte-identical; renderer gain is not visible on
+that low-load path. Linux coverage is absent (Darwin, no Docker; CI and
+origin VPS were not used as this experiment). The product scan/copy plan
+stays narrowed to macOS Node Html and must keep repeating the Linux gap.
+Not hosted-CI complete.
+[^investigation][^scan-copy][^phase-0-receipt][^phase-1-receipt][^phase-2-receipt]
 
 ## Goal
 
@@ -152,6 +157,15 @@ Not HTTP throughput.
 **Exit:** Linux receipt, or an explicit absence that the product plan must
 keep repeating.
 
+**Outcome:** No Linux experiment host. This Darwin arm64 machine has no
+Docker. Hosted `ubuntu-latest` does not run `--host`. The origin VPS was not
+used as a compile host. Native `libhost.a` here is `arm64mac`; Linux would
+be `x64musl` or `arm64musl`. Recommendation: keep [scan/copy Node
+escape](/plans/rocci/html-scan-copy-escape.md) narrowed to macOS Node Html
+and keep repeating this Linux absence. Do not claim HTTP or
+cross-platform speedup. Theme `Str` remains a separate exploration.
+[^phase-2-receipt][^scan-copy][^platform-readme]
+
 ## Validation
 
 - Experiment: `--host` or a successor flag; harness faults still pass
@@ -171,3 +185,4 @@ keep repeating.
 [^theme]: Painters select `Str`; a different exploration owns that path.
 [^phase-0-receipt]: Local Phase 0; Apple M1 Max; kept workspace; fold versus scan binaries.
 [^phase-1-receipt]: Local Phase 1; `127.0.0.1` GET `/` and `/card` byte-equal; renderer gain not visible.
+[^phase-2-receipt]: Local Phase 2; Darwin; Docker unavailable; Linux absent, not a zero.
