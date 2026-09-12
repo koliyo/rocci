@@ -2,13 +2,14 @@ from hashlib import sha256
 
 from rocci_ops.archive import (
     archive_stem,
+    cmd_wait_ci,
     collect_release_artifacts,
     merge_libhost_artifacts,
     package_platform_bundle,
     release_params,
     version_from_ref,
 )
-from rocci_ops.ghutil import DEFAULT_CHECKS, parse_check_line, wait_for_check
+from rocci_ops.ghutil import parse_check_line, wait_for_check
 
 
 def test_tag_version() -> None:
@@ -51,12 +52,16 @@ def test_parse_check_line() -> None:
     assert parse_check_line("") is None
 
 
-def test_default_checks_include_lint_and_workspace_tests() -> None:
-    assert DEFAULT_CHECKS == (
-        "Code Formatting & Lints",
-        "Test Workspace (macos-latest)",
-        "Test Workspace (ubuntu-latest)",
+def test_cmd_wait_ci_uses_parent_fallback(monkeypatch) -> None:
+    seen: list[tuple[str, str | None]] = []
+    monkeypatch.setattr("rocci_ops.archive.git_parent_sha", lambda sha: "parent")
+    monkeypatch.setattr(
+        "rocci_ops.archive.wait_for_existing_ci",
+        lambda sha, parent_sha=None, **kwargs: seen.append((sha, parent_sha)),
     )
+    ns = type("NS", (), {"sha": "child", "repo": None})()
+    assert cmd_wait_ci(ns) == 0
+    assert seen == [("child", "parent")]
 
 
 def test_wait_for_check_success() -> None:

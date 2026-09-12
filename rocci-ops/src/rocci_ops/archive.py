@@ -8,7 +8,7 @@ import tarfile
 import time
 from pathlib import Path
 
-from rocci_ops.ghutil import DEFAULT_CHECKS, gh_run, wait_for_check
+from rocci_ops.ghutil import gh_run, wait_for_existing_ci
 from rocci_ops.paths import repo_root
 
 RELEASE_BINARIES = (
@@ -182,16 +182,27 @@ def cmd_params(ns: argparse.Namespace) -> int:
     return 0
 
 
+def git_parent_sha(sha: str) -> str | None:
+    result = subprocess.run(
+        ["git", "rev-parse", f"{sha}^"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    parent = result.stdout.strip()
+    return parent or None
+
+
 def cmd_wait_ci(ns: argparse.Namespace) -> int:
-    repo = ns.repo or os.environ["GITHUB_REPOSITORY"]
     sha = ns.sha or os.environ["GITHUB_SHA"]
+    parent = git_parent_sha(sha)
 
     def gh(args: list[str]) -> str:
         result = gh_run(args)
         return result.stdout
 
-    for check in DEFAULT_CHECKS:
-        wait_for_check(repo=repo, sha=sha, check=check, gh=gh, sleep=time.sleep)
+    wait_for_existing_ci(sha, parent_sha=parent, gh=gh, sleep=time.sleep)
     return 0
 
 

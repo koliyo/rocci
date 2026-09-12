@@ -4,7 +4,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from rocci_ops.ghutil import DEFAULT_CHECKS, gh_run, wait_for_check
+from rocci_ops.ghutil import gh_run, wait_for_existing_ci
 from rocci_ops.paths import repo_root
 from rocci_ops.version import (
     BUMP_LEVELS,
@@ -38,40 +38,15 @@ def git_capture(argv: list[str], *, cwd: Path | None = None) -> subprocess.Compl
     )
 
 
-def github_repo() -> str:
-    result = subprocess.run(
-        ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
-        cwd=repo_root(),
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return result.stdout.strip()
-
-
-def dispatch_hosted_ci(from_ref: str) -> None:
-    gh_run(["workflow", "run", "ci.yml", "--ref", from_ref])
-
-
 def dispatch_hosted_release(tag: str) -> None:
     gh_run(["workflow", "run", "release.yml", "--ref", tag])
 
 
-def wait_for_release_ci(sha: str, from_ref: str = "main") -> None:
-    if os.environ.get("GITHUB_ACTIONS"):
-        print(
-            "GITHUB_TOKEN pushes do not start CI; dispatching ci.yml on "
-            f"{from_ref}",
-            flush=True,
-        )
-        dispatch_hosted_ci(from_ref)
-    repo = github_repo()
-
+def wait_for_release_ci(sha: str) -> None:
     def gh(args: list[str]) -> str:
         return gh_run(args).stdout
 
-    for check in DEFAULT_CHECKS:
-        wait_for_check(repo=repo, sha=sha, check=check, gh=gh, sleep=time.sleep)
+    wait_for_existing_ci(sha, gh=gh, sleep=time.sleep)
 
 
 def push_version_update(version: str, from_ref: str, remote_sha: str) -> str:
@@ -160,9 +135,9 @@ def run_release(
             matched = release_files_match_at_sha(sha, parse_release_version(tag))
             print(f"dry-run: release files match={str(matched).lower()}", flush=True)
         return 0
+    wait_for_release_ci(sha)
     if not movable:
         sha = push_version_update(parse_release_version(tag), from_ref, sha)
-    wait_for_release_ci(sha, from_ref=from_ref)
     tag_argv = ["git", "tag", "-a", tag, "-m", tag, sha]
     push_argv = ["git", "push", "origin", tag]
     if movable or force:

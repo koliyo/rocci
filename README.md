@@ -197,10 +197,12 @@ until staging has been smoked.
 To publish a GitHub release from `origin/main`, run
 `uv run --no-dev rocci-ops release patch` (or `minor`, `major`, or `vX.Y.Z`,
 optionally `--from BRANCH`). That is the only operator path that creates an
-immutable `v*` tag. It writes the workspace version to `Cargo.toml` and
-`Cargo.lock`, pushes that commit to the target branch, waits for hosted lint
-and Test Workspace checks, then pushes the tag so `release.yml` can package
-archives. `--dry-run` prints the resolved tag and whether those files already
+immutable `v*` tag. It waits for an existing hosted `ci.yml` run on that SHA
+(lint, tests, roc, fixtures, and editors; Knowledge is a sibling workflow and is
+not a ship gate), then writes the workspace version to `Cargo.toml` and
+`Cargo.lock`, pushes that commit to the target branch, and pushes the tag so
+`release.yml` can package archives. The cut job does not start CI and does not
+lint. `--dry-run` prints the resolved tag and whether those files already
 match. Pass `--force` only to move an existing `v*`.
 `uv run --no-dev rocci-ops release dev` force-moves the rolling `dev`
 prerelease tag (no version rewrite). The same cut can run from
