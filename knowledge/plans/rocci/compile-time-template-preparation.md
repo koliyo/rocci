@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T11:45:00Z }
+generated: { by: process:cursor, at: 2026-09-12T12:05:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -90,7 +90,7 @@ one-shot workloads, while the new experiment uses repeated rendering and
 activate the older plan's skipped fusion or runtime-unification phases.
 [^prior-html-plan][^native-plan]
 
-**State:** draft; Phases 0–2 completed locally on `compile-time-template-preparation`.
+**State:** draft; Phases 0–3 completed locally on `compile-time-template-preparation`.
 The September 12 receipt is preserved. Phase 0 reproduced the claimed speed
 ordering. Phase 1 has a compatibility matrix with no unexplained benchmarked
 differences; CR-in-attribute remains a real DOM-value split, and
@@ -98,14 +98,16 @@ differences; CR-in-attribute remains a real DOM-value split, and
 Phase 2 attributes the large-fixture gap to escaping algorithms, not
 compile-time preparation: a matched string builder beat prepared rendering,
 and `node_scan_escape` is the selected runtime candidate for Phase 4.
-Not hosted-CI complete. Phases 3–5 have not started.
-[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt]
+Phase 3 defers generator-free library consumption: the Phase 1 subset plus
+typed-closure probes remain the supported contract; no library candidate
+is carried into Phase 4. Not hosted-CI complete. Phases 4–5 have not started.
+[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^adapter]
 
 ## Evidence and open questions
 
 | Established local evidence | What remains unproven |
 | --- | --- |
-| A closure sharing the sample/input type passes 16 focused probes; added, missing, and nested fields are rejected. | Exported, inferred, nominal, and higher-order uses across modules; typed composition; behavior on a later compiler. |
+| A closure sharing the sample/input type passes 16 focused probes; added, missing, and nested fields are rejected. Phase 3 defers exported, inferred, nominal, and higher-order library APIs rather than expanding the spike. | A later compiler, and a separately scoped library experiment if generator-free consumption is chosen later. |
 | The receipt reports 62 upstream tests passing. | The final receipt's upstream invocation used cached results; a fresh checkpoint should distinguish cached and uncached runs. |
 | Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. Phase 2 shows the gap is mostly escaping/growth, not preparation: a matched builder beat prepared rendering, and scan/copy escape is ~34% faster than current node escape on the 100-row escaped Card. | Other workloads, platforms, and actual HTTP serving for the selected `node_scan_escape` candidate. |
 | Product nodes won the smallest runtime fixture, and prepared templates cost more to check/build. | Warm incremental behavior, many-template scaling, first-use latency, and practical authoring cost. |

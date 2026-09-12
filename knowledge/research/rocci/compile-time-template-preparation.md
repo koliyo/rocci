@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T11:45:00Z }
+generated: { by: process:cursor, at: 2026-09-12T12:05:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -328,8 +328,9 @@ matrix: benchmarked Card cases have no unexplained differences; quotes are
 equivalent serialization; a raw CR in an attribute is a real DOM-value split.
 Phase 2 attributes the large-fixture speed gap to escaping algorithms, not
 compile-time preparation: a matched string builder beat prepared rendering,
-and `node_scan_escape` is the selected runtime candidate. Remaining phases
-have not started; the earlier source-lowering decision remains intact.
+and `node_scan_escape` is the selected runtime candidate. Phase 3 defers
+the generator-free library spike. Remaining phases have not started; the
+earlier source-lowering decision remains intact.
 [^follow-up-plan][^phase-0-receipt][^phase-1-receipt][^phase-2-receipt]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
@@ -619,6 +620,41 @@ a 34% empty-card regression). Join growth alone fails the 15% rule. Correct
 output is unchanged versus the current node contract, including `&#13;` in
 attributes. No product Html file was edited.
 [^phase-2-receipt][^costs][^product-html]
+
+### Phase 3 library boundaries
+
+Phase 3 is conditional on generator-free consumption remaining a goal in its
+own right. After the Phase 2 stop condition, that path is **deferred**, not
+expanded. No new module-export, nominal-record, higher-order, or structured-error
+probes were added. The supported/unsupported contract below is the existing
+typed-adapter and Phase 1 subset, recorded as the library boundary for this
+investigation.[^typed-adapter][^phase-1-receipt][^follow-up-plan]
+
+Supported in this experiment:
+
+- `prepare : Str, Str, a -> (a -> Str)` with one shared sample/renderer type
+  variable. Added, missing, and nested-field shape changes fail `roc check`.
+- Ordinary text and complete double-quoted ordinary attribute values.
+- Bool sections and list sections when the checking sample contains a
+  representative item.
+- Empty runtime lists when the checking sample was non-empty.
+- Reordered record fields in a literal (not a distinct shape).
+
+Unsupported, and not promised:
+
+- Dynamic tag or attribute names; script, style, and event-handler contexts;
+  raw HTML; arbitrary Roc expressions inside template strings.
+- Empty checking samples whose bodies read item fields.
+- U8 fields, tag unions, and unused unsupported encoder fields.
+- Nested Rocci components, Html body parameters, and valueless boolean
+  attributes as Mustache forms.
+- An untyped prepared `Template` as the public API.
+- Rocci byte spans, `RCxxxx` IDs, or LSP source maps.
+- Wrapping a string renderer result as a trusted Html body.
+
+Choose **defer**. Do not carry a library candidate into Phase 4. A later
+packaging experiment can reopen these API questions; this plan does not.
+[^typed-adapter][^follow-up-plan]
 
 ### Disposition after the experiment
 

@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 3 on `compile-time-template-preparation`: deferred generator-free library consumption; Phase 1 subset plus typed-closure probes remain the contract; no library candidate for Phase 4. Exploratory; not hosted-CI complete.
+
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 2 on `compile-time-template-preparation`: isolated escape/growth/encoding table; `node_scan_escape` selected; builder-control beat prepared rendering so preparation is not the performance opportunity. Exploratory; not hosted-CI complete.
 
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 1 on `compile-time-template-preparation`: compatibility matrix with html5lib 1.1, no unexplained benchmarked Card differences, CR-in-attribute DOM split, and a scoped `boolean_attribute(False)` repair note. Exploratory; not hosted-CI complete.
