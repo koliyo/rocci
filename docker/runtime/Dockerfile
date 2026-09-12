@@ -10,9 +10,9 @@ ARG UBUNTU_IMAGE=ubuntu:24.04
 
 FROM ${UBUNTU_IMAGE} AS builder
 ARG TARGETARCH
-ARG ROC_NIGHTLY_DATE=2026-09-03
-ARG ROC_NIGHTLY_SHA=62fcb65
-ARG ROC_NIGHTLY_TAG=nightly-2026-09-03-62fcb65
+ARG ROC_NIGHTLY_DATE
+ARG ROC_NIGHTLY_SHA
+ARG ROC_NIGHTLY_TAG
 ENV DEBIAN_FRONTEND=noninteractive \
     CARGO_HOME=/usr/local/cargo \
     RUSTUP_HOME=/usr/local/rustup \
@@ -21,10 +21,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/root
 
 COPY docker/install-linux-deps.sh docker/install-roc.sh /tmp/docker/
+COPY .roc-version /tmp/docker/.roc-version
 RUN chmod +x /tmp/docker/*.sh \
     && /tmp/docker/install-linux-deps.sh builder \
-    && TARGETARCH="${TARGETARCH}" ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE}" \
-       ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA}" ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG}" \
+    && TARGETARCH="${TARGETARCH}" ROC_VERSION_FILE=/tmp/docker/.roc-version \
+       ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE:-}" ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA:-}" \
+       ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG:-}" \
        /tmp/docker/install-roc.sh \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
        | sh -s -- -y --default-toolchain stable --profile minimal \
@@ -41,9 +43,9 @@ RUN cargo build --release -p rocci-cli -p rocci-rocdown-cli \
 
 FROM ${UBUNTU_IMAGE} AS runtime
 ARG TARGETARCH
-ARG ROC_NIGHTLY_DATE=2026-09-03
-ARG ROC_NIGHTLY_SHA=62fcb65
-ARG ROC_NIGHTLY_TAG=nightly-2026-09-03-62fcb65
+ARG ROC_NIGHTLY_DATE
+ARG ROC_NIGHTLY_SHA
+ARG ROC_NIGHTLY_TAG
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/usr/local/bin:/opt/roc:${PATH}" \
     ROCCI_CACHE=/var/cache/rocci \
@@ -54,10 +56,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
 WORKDIR /src/site
 
 COPY docker/install-linux-deps.sh docker/install-roc.sh /tmp/docker/
+COPY .roc-version /tmp/docker/.roc-version
 RUN chmod +x /tmp/docker/*.sh \
     && /tmp/docker/install-linux-deps.sh runtime \
-    && TARGETARCH="${TARGETARCH}" ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE}" \
-       ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA}" ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG}" \
+    && TARGETARCH="${TARGETARCH}" ROC_VERSION_FILE=/tmp/docker/.roc-version \
+       ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE:-}" ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA:-}" \
+       ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG:-}" \
        /tmp/docker/install-roc.sh \
     && mkdir -p /var/lib/rocci "${ROCCI_CACHE}" /src/site \
     && rm -rf /tmp/docker

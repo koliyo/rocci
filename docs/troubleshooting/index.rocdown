@@ -25,5 +25,5 @@ Rocdown catalog codes (`RD2101`, …) and `rocdown check` failures belong on the
 codes that are not in the [diagnostics](/docs/reference/diagnostics/) catalog.
 
 If the issue persists, reduce it to one `.rocci` file and include the command,
-platform, Roc nightly (`docker/install-roc.sh`), the `RCxxxx` code, and the
+platform, Roc nightly (`.roc-version`), the `RCxxxx` code, and the
 complete diagnostic in a repository issue.

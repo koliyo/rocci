@@ -22,7 +22,7 @@ the Rocci repository using GitHub CLI (`gh`) and local verification tools.
      - `lint`: Workspace-deps, `rocci-ungram --check`, Rust formatting (`cargo fmt`), clippy (`cargo clippy -D warnings`), and `uv run --group dev pytest` under `rocci-ops` on `ubuntu-latest` when hosted.
      - `test`: Cross-platform matrix unit/integration/doc tests on `macos-latest` and `ubuntu-latest` when hosted. Offline: no Roc compiles.
      - `fixtures-and-docs`: `rocdown check docs` / `check site` and example-docs stage on `ubuntu-latest` when hosted.
-     - `roc`: Pinned Roc nightly via `docker/install-roc.sh`, then `ROCCI_REQUIRE_ROC=1` crate tests on `ubuntu-latest` when hosted.
+     - `roc`: Pinned Roc nightly via `.github/actions/setup-roc` (`.roc-version`), then `ROCCI_REQUIRE_ROC=1` crate tests on `ubuntu-latest` when hosted. Local `rocci-ops ci roc` still runs `docker/install-roc.sh` when `roc` is not on `PATH`.
      - `editors`: VS Code extension lint/compilation/packaging and Zed WebAssembly WASI check on `macos-latest` when hosted.
    - `knowledge.yml`: Open Knowledge Format (OKF) validation, graph integrity, retrieval benchmarks, and deterministic build diffs. Hosted on `ubuntu-latest`. Installs the pinned released `okmate` Linux CLI from `koliyo/okmate` (`.github/okmate-version`); does not compile okmate.
    - `site.yml`: Packages and deploys `site/` from `staging` or `production` only (matching GitHub Environment) on `ubuntu-latest`. `main` lands PRs and does not publish. **Run workflow** on any other ref is a no-op. Deploy secrets stay Environment-only.
@@ -108,7 +108,7 @@ Categorize the root cause by examining the failing job and log output:
 | `lint` | Unformatted code, clippy warnings, stale `ast.generated.rs`, rocci-ops pytest | Run `uv run rocci-ops ci lint` (or `check deps` plus `cargo fmt` / clippy). Pytest: `uv run --group dev pytest` under `rocci-ops`. Regenerate AST with `cargo run -q -p rocci-ungram -- generate` if `--check` fails. |
 | `test` (macOS / Ubuntu) | Logic regressions, platform differences, socket permissions, timing/budget assertions | Run `cargo test -p CRATE` for the failing test. This job is offline (no Roc). Ensure timing assertions account for unoptimized debug mode on shared CI VMs (`cfg!(debug_assertions)`). |
 | `fixtures-and-docs` | Broken docs/site check, example-docs stage failure | Check documentation with `cargo run -q -p rocci-rocdown-cli -- check docs` and `check site`. |
-| `roc` | Generated-app HTTP, islands, or `roc build` failure | Install the pinned nightly with `docker/install-roc.sh`, then `ROCCI_REQUIRE_ROC=1 cargo test -p rocci-cli -p rocci-rocdown -p rocci-rocdown-cli`. |
+| `roc` | Generated-app HTTP, islands, or `roc build` failure | Install the pin in `.roc-version` (`docker/install-roc.sh` locally, `.github/actions/setup-roc` in Actions), then `ROCCI_REQUIRE_ROC=1 cargo test -p rocci-cli -p rocci-rocdown -p rocci-rocdown-cli`. |
 | `editors` | TypeScript/ESLint errors, VS Code packaging issues, Zed Wasm build errors | Run `npm --prefix editors/vscode ci && npm --prefix editors/vscode run lint && npm --prefix editors/vscode run compile` and `cargo check --manifest-path editors/zed/Cargo.toml --target wasm32-wasip1`. |
 | `knowledge` | OKF schema errors, broken cross-references, graph cycles, benchmark regressions | Run `okmate check knowledge --profile base` (or `uv run --no-dev rocci-ops ci knowledge` with `okmate` on `PATH` or a sibling `../okmate`). Engine tests run in the okmate repo. |
 

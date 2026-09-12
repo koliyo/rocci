@@ -98,6 +98,8 @@ jobs:
         with:
           targets: x86_64-unknown-linux-musl
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - name: Install pinned Roc nightly
+        uses: ./.github/actions/setup-roc
       - name: Run Roc-gated tests
         run: uv run --no-dev rocci-ops ci roc
       - name: Upload rocci-platform bundle

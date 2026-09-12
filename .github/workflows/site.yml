@@ -42,13 +42,7 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Install pinned Roc nightly
-        run: |
-          prefix="$HOME/.local/roc"
-          link_dir="$HOME/.local/bin"
-          mkdir -p "$prefix" "$link_dir"
-          ROC_PREFIX="$prefix" ROC_LINK_DIR="$link_dir" ./docker/install-roc.sh
-          echo "$prefix" >> "$GITHUB_PATH"
-          echo "$link_dir" >> "$GITHUB_PATH"
+        uses: ./.github/actions/setup-roc
       - name: Package site and live example apps
         run: |
           set -euo pipefail

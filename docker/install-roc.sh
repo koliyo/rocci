@@ -2,9 +2,37 @@
 set -euo pipefail
 
 # Pinned to the basic-webserver 0.16.0 platform night (see examples/rocci/standalone/counter).
-ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE:-2026-09-03}"
-ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA:-62fcb65}"
-ROC_NIGHTLY_TAG="${ROC_NIGHTLY_TAG:-nightly-${ROC_NIGHTLY_DATE}-${ROC_NIGHTLY_SHA}}"
+# Product pin lives in .roc-version; env vars override for Docker build-args.
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -z "${ROC_NIGHTLY_TAG:-}" ]]; then
+    version_file="${ROC_VERSION_FILE:-}"
+    if [[ -z "$version_file" ]]; then
+        for candidate in \
+            "${PWD}/.roc-version" \
+            "${script_dir}/../.roc-version" \
+            "${script_dir}/.roc-version"; do
+            if [[ -f "$candidate" ]]; then
+                version_file="$candidate"
+                break
+            fi
+        done
+    fi
+    if [[ -z "${version_file:-}" || ! -f "$version_file" ]]; then
+        echo "Missing Roc version file (.roc-version)" >&2
+        exit 1
+    fi
+    ROC_NIGHTLY_TAG="$(sed 's/\r$//' "$version_file" | head -n 1)"
+fi
+
+if [[ ! "$ROC_NIGHTLY_TAG" =~ ^nightly-(.+)-([0-9a-f]{7})$ ]]; then
+    echo "Invalid Roc nightly tag: $ROC_NIGHTLY_TAG" >&2
+    exit 1
+fi
+
+ROC_NIGHTLY_DATE="${ROC_NIGHTLY_DATE:-${BASH_REMATCH[1]}}"
+ROC_NIGHTLY_SHA="${ROC_NIGHTLY_SHA:-${BASH_REMATCH[2]}}"
 TARGETARCH="${TARGETARCH:-amd64}"
 
 case "$TARGETARCH" in
