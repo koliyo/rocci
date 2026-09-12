@@ -350,9 +350,11 @@ def capture_environment(work, repetitions, bench, allocations):
         "costs.py": HERE / "costs.py",
         "host.py": HERE / "host.py",
         "HostPage.rocci": HERE / "HostPage.rocci",
+        "theme_escape.py": HERE / "theme_escape.py",
     }
     product = {
         "crates/rocci-ui/runtime/Html.roc": REPO / "crates/rocci-ui/runtime/Html.roc",
+        "crates/rocci-rocdown/runtime/Html.roc": REPO / "crates/rocci-rocdown/runtime/Html.roc",
         "crates/rocci-platform/platform/Html.roc": REPO / "crates/rocci-platform/platform/Html.roc",
         "crates/rocci-platform/platform/Attribute.roc": REPO / "crates/rocci-platform/platform/Attribute.roc",
         "crates/rocci-cli/runtime/Html.roc": REPO / "crates/rocci-cli/runtime/Html.roc",
@@ -406,6 +408,7 @@ def summarize(report):
         not report.get("compat_requested")
         and not report.get("costs_requested")
         and not report.get("host_requested")
+        and not report.get("theme_escape_requested")
         and not missing_probes
         and probes
         and all(item.get("passed") for item in probes)
@@ -431,7 +434,7 @@ def summarize(report):
         harness_problems.append("harness_fault_probe")
     if not receipt_complete(report):
         harness_problems.append("incomplete_receipt")
-    if missing_probes and not report.get("compat_requested") and not report.get("costs_requested") and not report.get("host_requested"):
+    if missing_probes and not report.get("compat_requested") and not report.get("costs_requested") and not report.get("host_requested") and not report.get("theme_escape_requested"):
         harness_problems.append("missing_probes")
     if report.get("bench_requested"):
         for backend in BACKENDS:
@@ -538,6 +541,12 @@ def summarize(report):
             harness_problems.append("missing_host_http")
         if "ok" not in (report.get("host_linux") or {}):
             harness_problems.append("missing_host_linux")
+    if report.get("theme_escape_requested"):
+        theme = report.get("theme_escape") or {}
+        if not (theme.get("screen") or {}).get("decision"):
+            harness_problems.append("missing_theme_escape_screen")
+        if not theme.get("ok"):
+            harness_problems.append("theme_escape_failed")
     report["html_compatible"] = bool(html_compatible and report.get("bench_requested") and not report.get("error"))
     report["html_expected_findings_confirmed"] = bool(
         findings_ok and report.get("bench_requested") and "error" not in harness_problems
@@ -1054,6 +1063,13 @@ def run_experiment(options):
             spec.loader.exec_module(host)
             report["host_requested"] = True
             host.run_host(sys.modules[__name__], work, report)
+        elif options.theme_escape:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("theme_escape", HERE / "theme_escape.py")
+            theme_escape = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(theme_escape)
+            report["theme_escape_requested"] = True
+            theme_escape.run_theme_escape(sys.modules[__name__], work, report)
         else:
             report["probes"] = type_probes(work, "default")
             report["probes_no_cache"] = type_probes(work, "no-cache")
@@ -1093,6 +1109,8 @@ def run_experiment(options):
             and "ok" in (report.get("host_linux") or {})
             and not report.get("error")
         )
+    elif options.theme_escape:
+        ok = report["harness_ok"] and bool((report.get("theme_escape") or {}).get("ok"))
     else:
         ok = (
             report["harness_ok"]
@@ -1114,17 +1132,20 @@ def main():
     parser.add_argument("--compat", action="store_true", help="Build the Phase 1 HTML compatibility matrix")
     parser.add_argument("--costs", action="store_true", help="Run Phase 2 isolated escape/growth cost experiments")
     parser.add_argument("--host", action="store_true", help="Keep a staged Rocci workspace, retarget copied platform Html, and roc-build fold versus scan/copy")
+    parser.add_argument("--theme-escape", action="store_true", help="Remeasure string split/join versus scan/copy on isolated kernels and a RocdownTheme painter")
     options = parser.parse_args()
     if options.repetitions <= 0:
         parser.error("--repetitions must be positive")
     if options.allocations and not options.bench:
         parser.error("--allocations requires --bench")
-    if options.compat and (options.bench or options.self_test or options.costs or options.host):
-        parser.error("--compat cannot be combined with --bench, --self-test, --costs, or --host")
-    if options.costs and (options.bench or options.self_test or options.host):
-        parser.error("--costs cannot be combined with --bench, --self-test, or --host")
-    if options.host and (options.bench or options.self_test):
-        parser.error("--host cannot be combined with --bench or --self-test")
+    if options.compat and (options.bench or options.self_test or options.costs or options.host or options.theme_escape):
+        parser.error("--compat cannot be combined with --bench, --self-test, --costs, --host, or --theme-escape")
+    if options.costs and (options.bench or options.self_test or options.host or options.theme_escape):
+        parser.error("--costs cannot be combined with --bench, --self-test, --host, or --theme-escape")
+    if options.host and (options.bench or options.self_test or options.theme_escape):
+        parser.error("--host cannot be combined with --bench, --self-test, or --theme-escape")
+    if options.theme_escape and (options.bench or options.self_test):
+        parser.error("--theme-escape cannot be combined with --bench or --self-test")
     if options.self_test:
         raise SystemExit(run_self_test(options.output))
     raise SystemExit(run_experiment(options))

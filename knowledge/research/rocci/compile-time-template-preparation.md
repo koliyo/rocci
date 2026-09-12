@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T14:07:47Z }
+generated: { by: process:cursor, at: 2026-09-12T14:25:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -23,7 +23,10 @@ sources:
     title: Exploration of HTTP origin and Linux coverage for node_scan_escape
   - id: string-theme-plan
     resource: ../../plans/rocci/html-string-theme-escape.md
-    title: Phase 0 named Str owners; painter remeasure not started
+    title: Phases 0–1 local; painter screen passed; product string Html unchanged
+  - id: string-theme-phase-1
+    resource: ./html-string-theme-escape-phase-1-results.json
+    title: Isolated kernels and RocdownTheme siteShell screen; no product Html edit
   - id: experiment
     resource: ../../../roc/template-preparation-experiment/run.py
     title: Reproducible type, diagnostics, HTML, compiler, and runtime experiment
@@ -360,13 +363,14 @@ rendering. Keep Rust-owned `.rocci` parsing and source lowering.
 | `node_scan_escape` matches representative Node fixtures and is ~34% faster on the 100-row escaped Card | [Scan/copy escape in platform Html](/plans/rocci/html-scan-copy-escape.md) completed locally on `main`. Constructor lowering and `&#13;` kept. Linux and HTTP origin remain unmeasured; theme `Str` owners are named. |
 | Restricted library subset plus typed closure | Defer. No generator-free packaging from this investigation. |
 | Builder-control beat prepared rendering | No fusion, unification, or second emit mode. The September 9 NavList status quo stands. |
-| Theme painters use `Str`; candidate HTTP and Linux coverage absent | Explore separately: [HTTP/Linux Node coverage](/plans/rocci/html-scan-copy-host-coverage.md) Phases 0–2 local; [string/theme escape](/plans/rocci/html-string-theme-escape.md) Phase 0 named RocdownTheme/DocsComponents plus playground ui copy. Do not claim a string kernel until that plan remeasures. |
+| Theme painters use `Str`; candidate HTTP and Linux coverage absent | Explore separately: [HTTP/Linux Node coverage](/plans/rocci/html-scan-copy-host-coverage.md) Phases 0–2 local; [string/theme escape](/plans/rocci/html-string-theme-escape.md) Phases 0–1 local: scan/copy passed the painter screen (~21% on RocdownTheme `siteShell`; small case inside 5ms floor). Product string Html is still split/join. |
 
 These follow-ups are exploratory plans, not approved Decisions. Scan/copy
 Node escape shipped locally in platform Html; `boolean_attribute(False)`
 is not started. This investigation's own phases did not ship the algorithms.
-HTTP origin and Linux remain unmeasured. Theme `Str` owners are named; painter remeasure is not started.
-[^follow-up-plan][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^phase-2-receipt][^phase-4-receipt][^html-research][^native-research]
+HTTP origin and Linux remain unmeasured. Theme `Str` owners are named;
+painter remeasure passed the local screen; product string Html is unchanged.
+[^follow-up-plan][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^string-theme-phase-1][^phase-2-receipt][^phase-4-receipt][^html-research][^native-research]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
 The existing native-compiler research remains relevant to a **Roc program
@@ -764,7 +768,8 @@ replacement for `.rocci`.
 [^boolean-plan]: Follow-up to omit `boolean_attribute` when false; not started.
 [^host-coverage-plan]: Phases 0–2 local: macOS origin bytes match, no visible renderer gain; Linux absent.
 [^host-coverage-phase-2]: Local Darwin receipt; Docker unavailable; origin VPS not used as a compile host.
-[^string-theme-plan]: Phase 0 named RocdownTheme/DocsComponents and playground ui copy; painter remeasure not started.
+[^string-theme-plan]: Phases 0–1 local; painter screen passed (~21% on siteShell); product Html unchanged.
+[^string-theme-phase-1]: Local Phase 1 receipt; 20.6% painter gain; small inside 5ms floor; CR bytes equal.
 [^phase-0-receipt]: Phase 0 local baseline receipt; September 12 file preserved; claimed speed ordering reproduced.
 [^phase-1-receipt]: Phase 1 local matrix and helper probes; html5lib 1.1; no unexplained benchmarked Card differences.
 [^phase-2-receipt]: Phase 2 local cost table; process totals; `node_scan_escape` selected; builder-control beat prepared rendering.

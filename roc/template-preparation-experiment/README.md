@@ -74,7 +74,13 @@ pin to a relative path, and `roc build`s fold/concat versus scan/copy Html from
 identical generated Roc. It then listens on `127.0.0.1` and compares `GET /`
 and `GET /card`. On Darwin it records Linux coverage as absent rather than a
 zero. Product CLI is unchanged. Do not combine `--host` with `--bench`,
-`--self-test`, `--compat`, or `--costs`.
+`--self-test`, `--compat`, `--costs`, or `--theme-escape`.
+
+`--theme-escape` remeasures string split/join versus scan/copy (no CR
+encoding) on isolated kernels and the actual RocdownTheme `siteShell` painter
+(nested chrome, scoped CSS text, ordinary attributes). It copies string Html
+only into the work directory. Do not combine it with `--bench`, `--self-test`,
+`--compat`, `--costs`, or `--host`.
 
 Render cases are named. Summaries are `harness_ok`, `type_contract_ok`, and
 `html_compatible`. Compiler work records `--no-cache` and warm incremental

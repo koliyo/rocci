@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [theme/string Html escaping](plans/rocci/html-string-theme-escape.md) Phase 1 on `main`: isolated string scan/copy (no CR encoding) passed the painter screen (~21% on RocdownTheme `siteShell`; small case inside 5ms floor; CR bytes equal). Product Html unchanged. Exploratory; not hosted-CI complete.
+
 - Recorded [theme/string Html escaping](plans/rocci/html-string-theme-escape.md) Phase 0 on `main`: RocdownTheme and DocsComponents compile with `html_type: Str` over the Rocdown Html copy; playground and `rocci test` use the identical ui copy; string contract stays raw CR (LF after parse), no Node `&#13;`. Painter remeasure not started. Exploratory; not hosted-CI complete.
 
 - Recorded [HTTP/Linux host coverage](plans/rocci/html-scan-copy-host-coverage.md) Phase 2 on `main`: Linux coverage absent (Darwin, no Docker; CI and origin VPS not used). Product [scan/copy](plans/rocci/html-scan-copy-escape.md) stays narrowed to macOS Node Html and must keep repeating the Linux gap. Exploratory; not hosted-CI complete.

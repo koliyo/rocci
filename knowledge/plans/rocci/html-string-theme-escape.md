@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Decide whether theme and string Html split/join escaping deserves a kernel change
-description: "Phase 0 named Str owners: RocdownTheme/DocsComponents via Rocdown Html.roc, plus playground/rocci test via the identical ui copy. string_scan_escape failed the Card small-case screen; remeasure on a painter, then close or file. Do not switch painters to Html.Node."
+description: "Phase 0 named Str owners. Phase 1: string scan/copy (no CR encoding) passed the painter screen (~21% on RocdownTheme siteShell; small case inside 5ms floor). Phase 2 will file or close. Do not switch painters to Html.Node."
 tags: [domain/rocci, domain/rocdown, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T14:07:47Z }
+generated: { by: process:cursor, at: 2026-09-12T14:25:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -27,6 +27,12 @@ sources:
   - id: phase-0-receipt
     resource: ../../research/rocci/html-string-theme-escape-phase-0-results.json
     title: Owner table, identical ui/Rocdown Html.roc hashes, string escape contract
+  - id: phase-1-receipt
+    resource: ../../research/rocci/html-string-theme-escape-phase-1-results.json
+    title: Painter screen passed (~21%); CR bytes equal; no product Html edit
+  - id: theme-escape
+    resource: ../../../roc/template-preparation-experiment/theme_escape.py
+    title: Isolated string kernels plus RocdownTheme siteShell runner
   - id: ui-html
     resource: ../../../crates/rocci-ui/runtime/Html.roc
     title: Split/join escape used by playground, rocci test, and rocci-string
@@ -61,11 +67,13 @@ sources:
 Exploratory follow-up from [template preparation and Html runtime costs](/plans/rocci/compile-time-template-preparation.md).
 Not an approved Decision. Closing with no change is a valid Exit.
 
-**State:** draft; Phase 0 completed locally on `main`. Owners are RocdownTheme
-and DocsComponents (`html_type: Str` over the Rocdown Html copy) plus
-playground/`rocci test` over the identical ui copy. Isolated string scan/copy
-is still unmeasured on a painter. Not hosted-CI complete.
-[^investigation][^research][^phase-0-receipt]
+**State:** draft; Phases 0–1 completed locally on `main`. Owners are
+RocdownTheme and DocsComponents (`html_type: Str` over the Rocdown Html
+copy) plus playground/`rocci test` over the identical ui copy. Isolated
+string scan/copy (no CR encoding) passed the painter screen on
+RocdownTheme `siteShell`. Product Html is unchanged. Not hosted-CI
+complete.
+[^investigation][^research][^phase-0-receipt][^phase-1-receipt]
 
 ## Goal
 
@@ -155,6 +163,19 @@ is crate-test only.
 **Exit:** keep status quo, or evidence that a string kernel would pass the
 screen on a real Str consumer.
 
+**Outcome:** `--theme-escape` copied string Html only into the work
+directory. Split versus scan/copy (no `&#13;` / `&#10;`) were
+byte-identical for small (61824), painter (165871), and a painter
+page whose title is `a` then CR then `b` (165736). Isolated kernels (20k reps): scan ~63% faster on clean text
+and ~55% on escaped text. Painter-shaped RocdownTheme `siteShell` (800
+reps): split 0.215s, scan 0.170s, 20.6% gain. Small case 0.032s versus
+0.031s, inside the stated 5ms noise floor (recorded 0% regression).
+Screen passed (`string_kernel`). Stated departure: `rocci-template
+build` default `embed_css: true` puts scoped CSS through `Html.text`;
+product theme compile sets `embed_css: false`. Darwin arm64, Roc
+`nightly-2026-09-03-62fcb65`. Product Html hashes unchanged.
+[^theme-escape][^phase-1-receipt][^rocdown-theme]
+
 ## Phase 2 — Close or file an implementation plan
 
 **Bound**
@@ -189,3 +210,5 @@ does not itself edit product Html.
 [^playground]: `rocci render` stages `rocci_ui::HTML_ROC`.
 [^rocci-test]: Rewrites `-> Html` to `-> Str` before `roc test`.
 [^prior-html-plan]: Unification and fusion stay skipped.
+[^phase-1-receipt]: Local Phase 1; painter gain 20.6%; small inside 5ms floor; CR bytes equal.
+[^theme-escape]: `--theme-escape` runner; copies Rocdown string Html in the work dir only.

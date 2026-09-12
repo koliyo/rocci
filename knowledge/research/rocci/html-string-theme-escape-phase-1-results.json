@@ -1,0 +1,1430 @@
+{
+  "timestamp": "2026-09-12T14:19:18.539193+00:00",
+  "timestamp_end": "2026-09-12T14:19:40.655417+00:00",
+  "engine_revision": "e13a34b63ee466a03588e1e3cba85fcb4d045f71",
+  "engine_sha256": {
+    "Template.roc": "c4c65a2a15553e2c805d9c5258e315b044535fd18d4bc299d67161c1868bc78f",
+    "Value.roc": "ce0029d866f81f0f7979ce87908c91106be3628892de42074fe42dcf8b315790",
+    "Formatters.roc": "f52550ec833b5f62807ae9d1a3175f1e20e9891ce3042b125cd6a278f0d71060",
+    "RuntimeFormatters.roc": "743063f3dd49195bc06968a7c339f6ec5333c1e1a99085ac1754ddd4a2142439"
+  },
+  "os": "Darwin",
+  "architecture": "arm64",
+  "cpu": "Apple M1 Max",
+  "machine": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "roc": "Roc compiler version nightly-2026-09-03-62fcb65",
+  "roc_flags": {
+    "check_no_cache": [
+      "roc",
+      "check",
+      "--no-cache"
+    ],
+    "check_warm": [
+      "roc",
+      "check"
+    ],
+    "build_no_cache": [
+      "roc",
+      "build",
+      "--no-cache",
+      "--opt=speed"
+    ],
+    "build_warm": [
+      "roc",
+      "build",
+      "--opt=speed"
+    ],
+    "test_default": [
+      "roc",
+      "test"
+    ],
+    "test_no_cache": [
+      "roc",
+      "test",
+      "--no-cache"
+    ]
+  },
+  "rocci_revision": "f3b3d6145196b728dd511e1e94353ef20acea5c7",
+  "input_hashes": {
+    "run.py": "e05b6061c837bd85841d6d6334b3de536abdf872fcd64bb903a2daf985b1494d",
+    "TypedTemplate.roc": "1745ececef9dc95628da1f800dd24a3f66e0a9717aafcd7c6c93f147633634f0",
+    "Card.rocci": "ca5b2d310a86f9001eaff7fca3a560db1622b7103c5a6c2c2c64709270fcbbad",
+    "card.mustache.html": "bc96664fd252cab9a06c47a4933a8e6398c19d068a2813fc94353c1e75b21135",
+    "allocations.c": "3c38eb25e617675d44c4984883f0519e0ef6dea044e1d2ea656f8d0b05338931",
+    "README.md": "6ec7bc5d6b87aa64ae50000398ed215557e692aee8095f39a16106395bc803ee",
+    "Compat.rocci": "8d171c61a0756f90e8591e85a8d0fc614f9823ff65b147b3b5be1cef8ee9268c",
+    "compat.mustache.html": "1b221af964fed17481422c7aaa3ca01d35665e3292d3a2ba140b14853e588e46",
+    "compat.py": "a61241d4f749929a6754f3b4d45ef4b99236b8fb687b0948826ed26846fdc025",
+    "costs.py": "9b007955a4426c94134eb12f80012f9150dcd51b55194b7a80e96b57fe9dedba",
+    "host.py": "7d53e3923bfaa69cf3f9a653a6dc88ae362345d7453c8d03b85e39ca91ebb2b4",
+    "HostPage.rocci": "93c1fb2d0c01a1a87d7e04800ce95a212cae93d0b1ac395d815a4e20f2d78490",
+    "theme_escape.py": "d515afa88c1c531881df37edff3107df13b4c41f59d1b6175dea04f6936eeaba"
+  },
+  "product_html_hashes": {
+    "crates/rocci-ui/runtime/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "crates/rocci-rocdown/runtime/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "crates/rocci-platform/platform/Html.roc": "f8df1032b918e30fd3a8672f6e6a5a19f9295a1dcb3f56ab98c5759624bd574f",
+    "crates/rocci-platform/platform/Attribute.roc": "e3bd122a88188b1586aef6e6158981af82dba8fb8be5f42b65bbde16654bb916",
+    "crates/rocci-cli/runtime/Html.roc": "7e0439aa96a2bddc665798907880324599e2fb556afc4f6c498b7f1886d69439"
+  },
+  "generated_hashes": {},
+  "platform_artifact": {
+    "url": "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
+    "path": "/Users/nils/.cache/roc/packages/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
+    "sha256": "d38c5449760953820721ff7f9236df4e085d828918045bd90dfb932d6520ee47",
+    "present": true,
+    "bytes": 20377365
+  },
+  "dirty_tracked": [
+    "roc/template-preparation-experiment/README.md",
+    "roc/template-preparation-experiment/run.py"
+  ],
+  "untracked_experimental": [
+    "roc/template-preparation-experiment/theme_escape.py"
+  ],
+  "work_dir": "/tmp/rocci-theme-escape-phase1b",
+  "repetitions": 5000,
+  "workloads": [
+    {
+      "name": "small-clean",
+      "rows": 0,
+      "text": "plain"
+    },
+    {
+      "name": "large-clean",
+      "rows": 100,
+      "text": "plain"
+    },
+    {
+      "name": "large-escaped",
+      "rows": 100,
+      "text": "<& caf\u00e9>"
+    }
+  ],
+  "render_cases": [
+    {
+      "name": "ordinary_text",
+      "active": 1,
+      "rows": 2,
+      "text": "plain"
+    },
+    {
+      "name": "empty_data",
+      "active": 0,
+      "rows": 0,
+      "text": ""
+    },
+    {
+      "name": "quotes_ampersands_angles",
+      "active": 1,
+      "rows": 2,
+      "text": "&<>\"' caf\u00e9 \ud83d\ude00"
+    },
+    {
+      "name": "html_looking_amp",
+      "active": 0,
+      "rows": 3,
+      "text": "<&amp;>"
+    },
+    {
+      "name": "script_looking",
+      "active": 1,
+      "rows": 1,
+      "text": "\"><script>alert(1)</script>"
+    },
+    {
+      "name": "cr_in_attribute",
+      "active": 0,
+      "rows": 1,
+      "text": "a\nb\rc\td",
+      "expected_compatible": {
+        "prepared": false,
+        "rocci-string": false,
+        "rocci-node": true
+      }
+    },
+    {
+      "name": "template_looking",
+      "active": 1,
+      "rows": 3,
+      "text": "{{ name }} @if {}"
+    }
+  ],
+  "probes": [],
+  "probes_no_cache": [],
+  "upstream_tests": {},
+  "comparisons": {},
+  "bench_requested": false,
+  "allocations_requested": false,
+  "allocations": {},
+  "harness_ok": true,
+  "type_contract_ok": false,
+  "html_compatible": false,
+  "html_expected_findings_confirmed": false,
+  "error": null,
+  "harness_fault_probes": [
+    {
+      "name": "absent_backend",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "problems": [
+        "missing_probes",
+        "missing_variant:prepared:ordinary_text",
+        "missing_variant:prepared:empty_data",
+        "missing_variant:prepared:quotes_ampersands_angles",
+        "missing_variant:prepared:html_looking_amp",
+        "missing_variant:prepared:script_looking",
+        "missing_variant:prepared:cr_in_attribute",
+        "missing_variant:prepared:template_looking",
+        "missing_timing:prepared:small-clean",
+        "missing_timing:prepared:large-clean",
+        "missing_timing:prepared:large-escaped",
+        "missing_variant:rocci-string:ordinary_text",
+        "missing_variant:rocci-string:empty_data",
+        "missing_variant:rocci-string:quotes_ampersands_angles",
+        "missing_variant:rocci-string:html_looking_amp",
+        "missing_variant:rocci-string:script_looking",
+        "missing_variant:rocci-string:cr_in_attribute",
+        "missing_variant:rocci-string:template_looking",
+        "missing_timing:rocci-string:small-clean",
+        "missing_timing:rocci-string:large-clean",
+        "missing_timing:rocci-string:large-escaped",
+        "absent_backend:rocci-node"
+      ]
+    },
+    {
+      "name": "same_length_wrong_output",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "length_equal": true,
+      "digest_equal": false
+    },
+    {
+      "name": "wrong_expected_error",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "probe_outcome_rejected": true
+    },
+    {
+      "name": "corrupted_source_hash",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false
+    },
+    {
+      "name": "timed_out_child",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "timed_out": true,
+      "exit": null,
+      "negative_test_rejected": true
+    },
+    {
+      "name": "porcelain_paths",
+      "passed": true,
+      "complete": true,
+      "dirty": [
+        "docs/appendix/glossary.rocdown",
+        "src/lib.rs"
+      ],
+      "untracked": [
+        "roc/template-preparation-experiment/"
+      ]
+    }
+  ],
+  "theme_escape_requested": true,
+  "theme_escape": {
+    "kernels": {
+      "string_split_escape": {
+        "clean": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.010844290954992175,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.00928816688247025,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.008570624981075525,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.00928816688247025,
+            "checksums": [
+              "110000\n",
+              "110000\n",
+              "110000\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.008608541917055845,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.008426874876022339,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.007558499928563833,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.008426874876022339,
+            "checksums": [
+              "110000\n",
+              "110000\n",
+              "110000\n"
+            ]
+          },
+          "median": 0.008857520879246294
+        },
+        "escaped": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.014865834033116698,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.01456966600380838,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.014580500079318881,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.014580500079318881,
+            "checksums": [
+              "610000\n",
+              "610000\n",
+              "610000\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.013266957830637693,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.014791832771152258,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_split_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.014129166956990957,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.014129166956990957,
+            "checksums": [
+              "610000\n",
+              "610000\n",
+              "610000\n"
+            ]
+          },
+          "median": 0.01435483351815492
+        }
+      },
+      "string_scan_escape": {
+        "clean": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.0035687091294676065,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.003209291025996208,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.0032818331383168697,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.0032818331383168697,
+            "checksums": [
+              "110000\n",
+              "110000\n",
+              "110000\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.0031744579318910837,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.0034337500110268593,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.0033556250855326653,
+                "timed_out": false,
+                "stdout": "110000\n",
+                "stderr": "",
+                "stdout_sha256": "f71baa037bae6da32c1c088449520bb18cefe12b5be48d8bb13a68ef516e3570",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.0033556250855326653,
+            "checksums": [
+              "110000\n",
+              "110000\n",
+              "110000\n"
+            ]
+          },
+          "median": 0.0033187291119247675
+        },
+        "escaped": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.006693749921396375,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.006363583030179143,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.00644441694021225,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.00644441694021225,
+            "checksums": [
+              "610000\n",
+              "610000\n",
+              "610000\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.006459292024374008,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.006443625083193183,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/costs/kernels/string_scan_escape/app",
+                  "20000",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.006893832935020328,
+                "timed_out": false,
+                "stdout": "610000\n",
+                "stderr": "",
+                "stdout_sha256": "8eced9f235bc31ba8223db8d149c74ee03c642022b37951bdc10fbdefb72d58f",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 7,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.006459292024374008,
+            "checksums": [
+              "610000\n",
+              "610000\n",
+              "610000\n"
+            ]
+          },
+          "median": 0.006451854482293129
+        }
+      }
+    },
+    "painter": {
+      "string_split": {
+        "small": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.03245962504297495,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.0323363330680877,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.031733250012621284,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.0323363330680877,
+            "checksums": [
+              "49459600\n",
+              "49459600\n",
+              "49459600\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.03197308303788304,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.03255158290266991,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.03164849989116192,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.03197308303788304,
+            "checksums": [
+              "49459600\n",
+              "49459600\n",
+              "49459600\n"
+            ]
+          },
+          "median": 0.03215470805298537,
+          "reps": 800
+        },
+        "painter": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.21582895796746016,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.21317904186435044,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.2179839159362018,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.21582895796746016,
+            "checksums": [
+              "132698000\n",
+              "132698000\n",
+              "132698000\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.21354749985039234,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.2131419579964131,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_split/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.21550749987363815,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.21354749985039234,
+            "checksums": [
+              "132698000\n",
+              "132698000\n",
+              "132698000\n"
+            ]
+          },
+          "median": 0.21468822890892625,
+          "reps": 800
+        }
+      },
+      "string_scan": {
+        "small": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.030271583003923297,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.030231292126700282,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.030253499979153275,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.030253499979153275,
+            "checksums": [
+              "49459600\n",
+              "49459600\n",
+              "49459600\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.03089245781302452,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.03027187497355044,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "small",
+                  "plain"
+                ],
+                "exit": 0,
+                "seconds": 0.031063250033184886,
+                "timed_out": false,
+                "stdout": "49459600\n",
+                "stderr": "",
+                "stdout_sha256": "c963809698e01c359688bd4e77247535a718121f39727dfeaad0ba1b86a60b52",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 9,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.03089245781302452,
+            "checksums": [
+              "49459600\n",
+              "49459600\n",
+              "49459600\n"
+            ]
+          },
+          "median": 0.030572978896088898,
+          "reps": 800
+        },
+        "painter": {
+          "batch1": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.17378583317622542,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.1684344580862671,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.17101937509141862,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.17101937509141862,
+            "checksums": [
+              "132698000\n",
+              "132698000\n",
+              "132698000\n"
+            ]
+          },
+          "batch2": {
+            "ok": true,
+            "runs": [
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.16989625012502074,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.1695905418600887,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              },
+              {
+                "command": [
+                  "/tmp/rocci-theme-escape-phase1b/theme-escape/painter/string_scan/app",
+                  "bench",
+                  "800",
+                  "painter",
+                  "<&\"' caf\u00e9>"
+                ],
+                "exit": 0,
+                "seconds": 0.17189533286727965,
+                "timed_out": false,
+                "stdout": "132698000\n",
+                "stderr": "",
+                "stdout_sha256": "b93bf1f903895f1a02b40ec548c4aea6b7326ecd17da9ddbcbeddd8c6c22234e",
+                "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "stdout_len": 10,
+                "stderr_len": 0,
+                "invalid_utf8": false
+              }
+            ],
+            "median_seconds": 0.16989625012502074,
+            "checksums": [
+              "132698000\n",
+              "132698000\n",
+              "132698000\n"
+            ]
+          },
+          "median": 0.17045781260821968,
+          "reps": 800
+        }
+      }
+    },
+    "builds": {
+      "kernel_string_split_escape": {
+        "exit": 0,
+        "seconds": 0.5716482501011342,
+        "stderr": ""
+      },
+      "kernel_string_scan_escape": {
+        "exit": 0,
+        "seconds": 0.6477280419785529,
+        "stderr": ""
+      },
+      "lower": {
+        "ok": true
+      },
+      "string_split": {
+        "exit": 0,
+        "seconds": 6.866603916976601,
+        "stderr": "",
+        "binary_bytes": 763152
+      },
+      "string_scan": {
+        "exit": 0,
+        "seconds": 7.96535116690211,
+        "stderr": "",
+        "binary_bytes": 828816
+      }
+    },
+    "bytes_equal": {
+      "small": {
+        "equal": true,
+        "split_exit": 0,
+        "scan_exit": 0,
+        "split_bytes": 61824,
+        "scan_bytes": 61824
+      },
+      "painter": {
+        "equal": true,
+        "split_exit": 0,
+        "scan_exit": 0,
+        "split_bytes": 165871,
+        "scan_bytes": 165871
+      },
+      "cr": {
+        "equal": true,
+        "split_exit": 0,
+        "scan_exit": 0,
+        "split_bytes": 165736,
+        "scan_bytes": 165736
+      }
+    },
+    "screen": {
+      "painter_gain": 0.20602161807143013,
+      "small_regression": 0.0,
+      "small_noise_floor_s": 0.005,
+      "painter_split_median": 0.21468822890892625,
+      "painter_scan_median": 0.17045781260821968,
+      "small_split_median": 0.03215470805298537,
+      "small_scan_median": 0.030572978896088898,
+      "passes_screen": true,
+      "rule": ">=15% painter-shaped vs current string split/join, <=5% small-case regression after noise",
+      "decision": "string_kernel",
+      "embed_css_note": "rocci-template default embed_css true puts scoped CSS through Html.text; product theme compile sets embed_css false."
+    },
+    "html_copies_identical": true,
+    "generated": {
+      "NavList": {
+        "bytes": 26030,
+        "sha256": "56ae2a983460cdf4427ef4fffcdf2e7bdb98da5d8968860ae75148efae4406f3"
+      },
+      "Breadcrumbs": {
+        "bytes": 1805,
+        "sha256": "68d6aac85a5075fa793f133d5cb856a5823088b395a0fc07aeded0ebc08c24cd"
+      },
+      "PageOutline": {
+        "bytes": 1326,
+        "sha256": "26f2c0862dede87cdc9db70e0751500c9c7d74ea2148e2cbc0efdcbaedf8247e"
+      },
+      "RocdownTheme": {
+        "bytes": 200448,
+        "sha256": "a666f1c7df5f13b6546e1a32b4edcd3dc42fbc4305597d2a1b4f1efec1ab4952"
+      }
+    },
+    "ok": true
+  },
+  "missing_probes": [
+    "same",
+    "reordered",
+    "extra",
+    "missing",
+    "scalar_type",
+    "nested_extra",
+    "nested_type",
+    "list_extra",
+    "list_type",
+    "empty_runtime",
+    "empty_sample",
+    "empty_static_body",
+    "bad_field",
+    "bad_syntax",
+    "unsupported_u8",
+    "unsupported_union"
+  ],
+  "harness_problems": []
+}
