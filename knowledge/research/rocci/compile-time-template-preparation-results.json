@@ -1,0 +1,1372 @@
+{
+  "engine_revision": "e13a34b63ee466a03588e1e3cba85fcb4d045f71",
+  "engine_sha256": {
+    "Template.roc": "c4c65a2a15553e2c805d9c5258e315b044535fd18d4bc299d67161c1868bc78f",
+    "Value.roc": "ce0029d866f81f0f7979ce87908c91106be3628892de42074fe42dcf8b315790",
+    "Formatters.roc": "f52550ec833b5f62807ae9d1a3175f1e20e9891ce3042b125cd6a278f0d71060",
+    "RuntimeFormatters.roc": "743063f3dd49195bc06968a7c339f6ec5333c1e1a99085ac1754ddd4a2142439"
+  },
+  "machine": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "roc": "Roc compiler version nightly-2026-09-03-62fcb65",
+  "rocci_revision": "1f669b7821581854fd8030cd25a6067652d1db8b",
+  "work_dir": "/tmp/rocci-preparation-experiment-final",
+  "repetitions": 5000,
+  "workloads": [
+    [
+      "small-clean",
+      0,
+      "plain"
+    ],
+    [
+      "large-clean",
+      100,
+      "plain"
+    ],
+    [
+      "large-escaped",
+      100,
+      "<& café>"
+    ]
+  ],
+  "render_cases": [
+    [
+      1,
+      2,
+      "plain"
+    ],
+    [
+      0,
+      0,
+      ""
+    ],
+    [
+      1,
+      2,
+      "&<>\"' café 😀"
+    ],
+    [
+      0,
+      3,
+      "<&amp;>"
+    ],
+    [
+      1,
+      1,
+      "\"><script>alert(1)</script>"
+    ],
+    [
+      0,
+      1,
+      "a\nb\rc\td"
+    ],
+    [
+      1,
+      3,
+      "{{ name }} @if {}"
+    ]
+  ],
+  "probes": [
+    {
+      "command": [
+        "roc",
+        "check",
+        "same.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.06046962505206466,
+      "stdout": "No errors found in 50ms for same.roc\n",
+      "stderr": "",
+      "execution": {
+        "command": [
+          "roc",
+          "same.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.051090250024572015,
+        "stdout": "Ada",
+        "stderr": ""
+      },
+      "name": "same",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "reordered.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.030048958957195282,
+      "stdout": "No errors found in 20ms for reordered.roc\n",
+      "stderr": "",
+      "execution": {
+        "command": [
+          "roc",
+          "reordered.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03231574990786612,
+        "stdout": "Ada:Dr",
+        "stderr": ""
+      },
+      "name": "reordered",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2439335419330746,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ────────────────────────────────────────────── extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ aaa: \"WRONG\", name: \"Ada\" }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { aaa: b, name: Str }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n── 1 error and 0 warnings ──────────────────────────────────────────── extra.roc\n\n",
+      "name": "extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "missing.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.20097733312286437,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ──────────────────────────────────────────── missing.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ name: \"Ada\" }))\n             ^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: Str }\n\nBut render needs the first argument to be:\n\n    { name: Str, title: Str }\n\nHint: This record is missing the field: title\n\n── 1 error and 0 warnings ────────────────────────────────────────── missing.roc\n\n",
+      "name": "missing",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "scalar_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.19730762485414743,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ──────────────────────────────────────── scalar_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ name: 1.I64 }))\n             ^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: I64 }\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n── 1 error and 0 warnings ────────────────────────────────────── scalar_type.roc\n\n",
+      "name": "scalar_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "nested_extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2033657911233604,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ─────────────────────────────────────── nested_extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ user: { aaa: \"WRONG\", name: \"Ada\" } }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { user: { aaa: b, name: Str } }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { user: { name: Str } }\n\n── 1 error and 0 warnings ───────────────────────────────────── nested_extra.roc\n\n",
+      "name": "nested_extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "nested_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21146862511523068,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ──────────────────────────────────────── nested_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ user: { name: 1.I64 } }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { user: { name: I64 } }\n\nBut render needs the first argument to be:\n\n    { user: { name: Str } }\n\n── 1 error and 0 warnings ────────────────────────────────────── nested_type.roc\n\n",
+      "name": "nested_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "list_extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.20450975000858307,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ───────────────────────────────────────── list_extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ items: [{ aaa: \"WRONG\", name: \"Ada\" }] }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { aaa: b, name: Str }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n── 1 error and 0 warnings ─────────────────────────────────────── list_extra.roc\n\n",
+      "name": "list_extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "list_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.19837375008501112,
+      "stdout": "",
+      "stderr": "── ✗ type mismatch ────────────────────────────────────────── list_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ items: [{ name: 1.I64 }] }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: I64 }\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n── 1 error and 0 warnings ──────────────────────────────────────── list_type.roc\n\n",
+      "name": "list_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "empty_runtime.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.026363166980445385,
+      "stdout": "No errors found in 17ms for empty_runtime.roc\n",
+      "stderr": "",
+      "execution": {
+        "command": [
+          "roc",
+          "empty_runtime.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03270362503826618,
+        "stdout": "empty",
+        "stderr": ""
+      },
+      "name": "empty_runtime",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "empty_sample.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21305445884354413,
+      "stdout": "",
+      "stderr": "── ✗ compile time crash ─────────────────────────────────── empty_sample.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"empty_sample.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module TypedTemplate (line 10, column 13), with this\nmessage:\n\n    empty_sample.mustache: line 1: sample list `items` is empty, so the section\n    body cannot be checked; give the sample at least one item\n\n── ✗ compile time crash ─────────────────────────────────── empty_sample.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ items: [] }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    empty_sample.mustache: line 1: sample list `items` is empty, so the section\n    body cannot be checked; give the sample at least one item\n\n── 2 errors and 0 warnings ──────────────────────────────────── empty_sample.roc\n\n",
+      "name": "empty_sample",
+      "passed": true,
+      "expected_diagnostic": "sample list `items` is empty"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "empty_static_body.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.029879583045840263,
+      "stdout": "No errors found in 18ms for empty_static_body.roc\n",
+      "stderr": "",
+      "execution": {
+        "command": [
+          "roc",
+          "empty_static_body.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.030546833062544465,
+        "stdout": "xx",
+        "stderr": ""
+      },
+      "name": "empty_static_body",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "bad_field.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2083454579114914,
+      "stdout": "",
+      "stderr": "── ✗ compile time crash ────────────────────────────────────── bad_field.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"bad_field.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module TypedTemplate (line 10, column 13), with this\nmessage:\n\n    bad_field.mustache: line 2: `missing` is not in the context (`missing`\n    missing)\n\n── ✗ compile time crash ────────────────────────────────────── bad_field.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ name: \"Ada\" }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    bad_field.mustache: line 2: `missing` is not in the context (`missing`\n    missing)\n\n── 2 errors and 0 warnings ─────────────────────────────────────── bad_field.roc\n\n",
+      "name": "bad_field",
+      "passed": true,
+      "expected_diagnostic": "bad_field.mustache: line 2"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "bad_syntax.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.20345987495966256,
+      "stdout": "",
+      "stderr": "── ✗ compile time crash ───────────────────────────────────── bad_syntax.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"bad_syntax.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module Template (line 76, column 5), with this\nmessage:\n\n    template bad_syntax.mustache: line 2: section `name` is never closed\n\n── ✗ compile time crash ───────────────────────────────────── bad_syntax.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ name: \"Ada\" }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    template bad_syntax.mustache: line 2: section `name` is never closed\n\n── 2 errors and 0 warnings ────────────────────────────────────── bad_syntax.roc\n\n",
+      "name": "bad_syntax",
+      "passed": true,
+      "expected_diagnostic": "bad_syntax.mustache"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "unsupported_u8.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.028964542085304856,
+      "stdout": "",
+      "stderr": "── ✗ missing method ──────────────────────────────────── unsupported_u8.roc:5:10\n\nThis encode_u8 method is being called on a value whose type doesn't have that\nmethod.\n\nrender = TypedTemplate.prepare(\"unsupported_u8.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^\n\nThe value's type, which does not have a method named encode_u8, is:\n\n    Value.Encoding\n\nHint: For this to work, the type would need to have a method named encode_u8\nassociated with it in the type's declaration.\n\n── ✗ compile time crash ──────────────────────────────── unsupported_u8.roc:5:10\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"unsupported_u8.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThe crash happened with this message:\n\n    runtime error\n\n── 2 errors and 0 warnings ────────────────────────────────── unsupported_u8.roc\n\n",
+      "name": "unsupported_u8",
+      "passed": true,
+      "expected_diagnostic": "encode_u8"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "unsupported_union.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.031181500060483813,
+      "stdout": "",
+      "stderr": "── ✗ missing method ───────────────────────────────── unsupported_union.roc:5:10\n\nThis encode_tag method is being called on a value whose type doesn't have that\nmethod.\n\nrender = TypedTemplate.prepare(\"unsupported_union.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^\n\nThe value's type, which does not have a method named encode_tag, is:\n\n    Value.Encoding\n\nHint: For this to work, the type would need to have a method named encode_tag\nassociated with it in the type's declaration.\n\n── ✗ compile time crash ───────────────────────────── unsupported_union.roc:5:10\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"unsupported_union.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThe crash happened with this message:\n\n    runtime error\n\n── 2 errors and 0 warnings ─────────────────────────────── unsupported_union.roc\n\n",
+      "name": "unsupported_union",
+      "passed": true,
+      "expected_diagnostic": "encode_tag"
+    }
+  ],
+  "upstream_tests": {
+    "command": [
+      "roc",
+      "test",
+      "Template.roc"
+    ],
+    "exit": 0,
+    "seconds": 0.029664041940122843,
+    "stdout": "All (62) tests passed in 19.6 ms. (cached)\n",
+    "stderr": ""
+  },
+  "inspect": {
+    "command": [
+      "/Users/nils/Projects/rocci/target/debug/rocci-template",
+      "inspect",
+      "--ast",
+      "/Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci"
+    ],
+    "exit": 0,
+    "seconds": 0.00553504191339016,
+    "stdout": "# components (1)\n- card (title, active, items)\n# fixtures (0)\n# tests (0)\n# handlers (0)\n# styles (0)\n\n# ast\n(module\n  (component Card\n    (params \"|{ title, active, items }|\")\n    (element section\n      (attr title title)\n      (element h1\n        (interp title))\n      (if active\n        (element b\n          (text \"active\")))\n      (element ul\n        (for item items\n          (element li\n            (attr title item.name)\n            (interp item.name)))))))\n\n\n# generated roc\nimport Html\n\ncard = |{ title, active, items }| {\n    Html.element(\n        \"section\",\n        [\n            Html.attribute(\"title\", title),\n        ],\n        [\n            Html.element(\n                \"h1\",\n                [],\n                [\n                    Html.text(title),\n                ],\n            ),\n            if active {\n                Html.element(\n                    \"b\",\n                    [],\n                    [\n                        Html.text(\"active\"),\n                    ],\n                )\n            } else {\n                Html.empty\n            },\n            Html.element(\n                \"ul\",\n                [],\n                List.map(items, |item| {\n                    Html.element(\n                        \"li\",\n                        [\n                            Html.attribute(\"title\", item.name),\n                        ],\n                        [\n                            Html.text(item.name),\n                        ],\n                    )\n                }),\n            ),\n        ],\n    )\n}\n\n\n# segments (18)\n- generated 13..17 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:1:12 component_signature (Card)\n- generated 20..46 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:1:19 component_signature (|{ title, active, items }|)\n- generated 75..84 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:6 static_markup (section)\n- generated 123..130 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:14 static_markup (title)\n- generated 132..137 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:21 attribute_expression (title)\n- generated 203..207 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:29 static_markup (h1)\n- generated 277..282 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:33 text_expression (title)\n- generated 334..340 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:48 directive (active)\n- generated 393..396 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:58 static_markup (b)\n- generated 478..486 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:60 static_markup (active)\n- generated 635..639 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:73 static_markup (ul)\n- generated 686..691 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:89 directive (items)\n- generated 694..698 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:81 directive (item)\n- generated 760..764 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:98 static_markup (li)\n- generated 835..842 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:101 static_markup (title)\n- generated 844..853 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:108 attribute_expression (item.name)\n- generated 947..956 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:120 text_expression (item.name)\n- generated 1062..1063 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:152 ordinary_roc (\\n)\n",
+    "stderr": ""
+  },
+  "comparisons": {
+    "prepared": {
+      "checks": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.28182229097001255,
+          "stdout": "No errors found in 270ms for main.roc\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.2827680001500994,
+          "stdout": "No errors found in 271ms for main.roc\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.2933404999785125,
+          "stdout": "No errors found in 282ms for main.roc\n",
+          "stderr": ""
+        }
+      ],
+      "build": {
+        "command": [
+          "roc",
+          "build",
+          "--no-cache",
+          "--opt=speed",
+          "--output=app",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 1.9400747080799192,
+        "stdout": "0 errors and 0 warnings found in 1.9s while successfully building:\n\n    app\n",
+        "stderr": ""
+      },
+      "binary_bytes": 460032,
+      "outputs": [
+        "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li></ul></section>",
+        "<section title=\"\"><h1></h1><ul></ul></section>",
+        "<section title=\"&amp;&lt;&gt;&quot;&#39; café 😀\"><h1>&amp;&lt;&gt;&quot;&#39; café 😀</h1><b>active</b><ul><li title=\"&amp;&lt;&gt;&quot;&#39; café 😀0\">&amp;&lt;&gt;&quot;&#39; café 😀0</li><li title=\"&amp;&lt;&gt;&quot;&#39; café 😀1\">&amp;&lt;&gt;&quot;&#39; café 😀1</li></ul></section>",
+        "<section title=\"&lt;&amp;amp;&gt;\"><h1>&lt;&amp;amp;&gt;</h1><ul><li title=\"&lt;&amp;amp;&gt;0\">&lt;&amp;amp;&gt;0</li><li title=\"&lt;&amp;amp;&gt;1\">&lt;&amp;amp;&gt;1</li><li title=\"&lt;&amp;amp;&gt;2\">&lt;&amp;amp;&gt;2</li></ul></section>",
+        "<section title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"><h1>&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</h1><b>active</b><ul><li title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0\">&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0</li></ul></section>",
+        "<section title=\"a\nb\rc\td\"><h1>a\nb\rc\td</h1><ul><li title=\"a\nb\rc\td0\">a\nb\rc\td0</li></ul></section>",
+        "<section title=\"{{ name }} @if {}\"><h1>{{ name }} @if {}</h1><b>active</b><ul><li title=\"{{ name }} @if {}0\">{{ name }} @if {}0</li><li title=\"{{ name }} @if {}1\">{{ name }} @if {}1</li><li title=\"{{ name }} @if {}2\">{{ name }} @if {}2</li></ul></section>"
+      ],
+      "reference_cases": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true
+      ],
+      "matches_reference": false,
+      "timings": {
+        "small-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.012656749924644828,
+              "stdout": "317500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.012667916947975755,
+              "stdout": "317500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.012560665840283036,
+              "stdout": "317500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.012656749924644828
+        },
+        "large-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.11999841686338186,
+              "stdout": "16217500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.09864837513305247,
+              "stdout": "16217500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.09734758292324841,
+              "stdout": "16217500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.09864837513305247
+        },
+        "large-escaped": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.20841587497852743,
+              "stdout": "30357500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.21158879180438817,
+              "stdout": "30357500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.22097520786337554,
+              "stdout": "30357500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.21158879180438817
+        }
+      }
+    },
+    "rocci-string": {
+      "checks": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10597824980504811,
+          "stdout": "No errors found in 95ms for main.roc\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.11667041690088809,
+          "stdout": "No errors found in 105ms for main.roc\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10900129191577435,
+          "stdout": "No errors found in 97ms for main.roc\n",
+          "stderr": ""
+        }
+      ],
+      "build": {
+        "command": [
+          "roc",
+          "build",
+          "--no-cache",
+          "--opt=speed",
+          "--output=app",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.7170136671047658,
+        "stdout": "0 errors and 0 warnings found in 702ms while successfully building:\n\n    app\n",
+        "stderr": ""
+      },
+      "binary_bytes": 425120,
+      "outputs": [
+        "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li></ul></section>",
+        "<section title=\"\"><h1></h1><ul></ul></section>",
+        "<section title=\"&amp;&lt;&gt;&quot;&#39; café 😀\"><h1>&amp;&lt;&gt;&quot;&#39; café 😀</h1><b>active</b><ul><li title=\"&amp;&lt;&gt;&quot;&#39; café 😀0\">&amp;&lt;&gt;&quot;&#39; café 😀0</li><li title=\"&amp;&lt;&gt;&quot;&#39; café 😀1\">&amp;&lt;&gt;&quot;&#39; café 😀1</li></ul></section>",
+        "<section title=\"&lt;&amp;amp;&gt;\"><h1>&lt;&amp;amp;&gt;</h1><ul><li title=\"&lt;&amp;amp;&gt;0\">&lt;&amp;amp;&gt;0</li><li title=\"&lt;&amp;amp;&gt;1\">&lt;&amp;amp;&gt;1</li><li title=\"&lt;&amp;amp;&gt;2\">&lt;&amp;amp;&gt;2</li></ul></section>",
+        "<section title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"><h1>&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</h1><b>active</b><ul><li title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0\">&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0</li></ul></section>",
+        "<section title=\"a\nb\rc\td\"><h1>a\nb\rc\td</h1><ul><li title=\"a\nb\rc\td0\">a\nb\rc\td0</li></ul></section>",
+        "<section title=\"{{ name }} @if {}\"><h1>{{ name }} @if {}</h1><b>active</b><ul><li title=\"{{ name }} @if {}0\">{{ name }} @if {}0</li><li title=\"{{ name }} @if {}1\">{{ name }} @if {}1</li><li title=\"{{ name }} @if {}2\">{{ name }} @if {}2</li></ul></section>"
+      ],
+      "reference_cases": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true
+      ],
+      "matches_reference": false,
+      "timings": {
+        "small-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.016878583002835512,
+              "stdout": "317500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.01750408299267292,
+              "stdout": "317500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.01720362505875528,
+              "stdout": "317500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.01720362505875528
+        },
+        "large-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.7094128332100809,
+              "stdout": "16217500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.7151838750578463,
+              "stdout": "16217500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.7267675409093499,
+              "stdout": "16217500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.7151838750578463
+        },
+        "large-escaped": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.8665836669970304,
+              "stdout": "30357500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.8729584170505404,
+              "stdout": "30357500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.8681784579530358,
+              "stdout": "30357500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.8681784579530358
+        }
+      }
+    },
+    "rocci-node": {
+      "checks": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.1046142082195729,
+          "stdout": "No errors found in 90ms for main.roc\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.09807212487794459,
+          "stdout": "No errors found in 88ms for main.roc\n",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.09821116691455245,
+          "stdout": "No errors found in 88ms for main.roc\n",
+          "stderr": ""
+        }
+      ],
+      "build": {
+        "command": [
+          "roc",
+          "build",
+          "--no-cache",
+          "--opt=speed",
+          "--output=app",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.7640954579692334,
+        "stdout": "0 errors and 0 warnings found in 751ms while successfully building:\n\n    app\n",
+        "stderr": ""
+      },
+      "binary_bytes": 425024,
+      "outputs": [
+        "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li></ul></section>",
+        "<section title=\"\"><h1></h1><ul></ul></section>",
+        "<section title=\"&amp;&lt;&gt;&quot;&#39; café 😀\"><h1>&amp;&lt;&gt;\"' café 😀</h1><b>active</b><ul><li title=\"&amp;&lt;&gt;&quot;&#39; café 😀0\">&amp;&lt;&gt;\"' café 😀0</li><li title=\"&amp;&lt;&gt;&quot;&#39; café 😀1\">&amp;&lt;&gt;\"' café 😀1</li></ul></section>",
+        "<section title=\"&lt;&amp;amp;&gt;\"><h1>&lt;&amp;amp;&gt;</h1><ul><li title=\"&lt;&amp;amp;&gt;0\">&lt;&amp;amp;&gt;0</li><li title=\"&lt;&amp;amp;&gt;1\">&lt;&amp;amp;&gt;1</li><li title=\"&lt;&amp;amp;&gt;2\">&lt;&amp;amp;&gt;2</li></ul></section>",
+        "<section title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"><h1>\"&gt;&lt;script&gt;alert(1)&lt;/script&gt;</h1><b>active</b><ul><li title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0\">\"&gt;&lt;script&gt;alert(1)&lt;/script&gt;0</li></ul></section>",
+        "<section title=\"a&#10;b&#13;c\td\"><h1>a\nb\rc\td</h1><ul><li title=\"a&#10;b&#13;c\td0\">a\nb\rc\td0</li></ul></section>",
+        "<section title=\"{{ name }} @if {}\"><h1>{{ name }} @if {}</h1><b>active</b><ul><li title=\"{{ name }} @if {}0\">{{ name }} @if {}0</li><li title=\"{{ name }} @if {}1\">{{ name }} @if {}1</li><li title=\"{{ name }} @if {}2\">{{ name }} @if {}2</li></ul></section>"
+      ],
+      "reference_cases": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "matches_reference": true,
+      "timings": {
+        "small-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.009360166965052485,
+              "stdout": "317500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.009603708051145077,
+              "stdout": "317500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.011801291955634952,
+              "stdout": "317500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.009603708051145077
+        },
+        "large-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.37354754214175045,
+              "stdout": "16217500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.3738220001105219,
+              "stdout": "16217500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.3738574169110507,
+              "stdout": "16217500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.3738220001105219
+        },
+        "large-escaped": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.6596813341602683,
+              "stdout": "30357500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.6501647918485105,
+              "stdout": "30357500\n",
+              "stderr": ""
+            },
+            {
+              "command": [
+                "/tmp/rocci-preparation-experiment-final/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& café>"
+              ],
+              "exit": 0,
+              "seconds": 0.6408217498101294,
+              "stdout": "30357500\n",
+              "stderr": ""
+            }
+          ],
+          "median_seconds": 0.6501647918485105
+        }
+      }
+    }
+  },
+  "byte_equal": false,
+  "html_equal": false,
+  "compatibility_findings_confirmed": true,
+  "benchmark_checksums_equal": true,
+  "allocations": {
+    "prepared": {
+      "small-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 198,
+              "reallocations": 1,
+              "frees": 29,
+              "requested_bytes": 11833
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 135198,
+              "reallocations": 5001,
+              "frees": 135029,
+              "requested_bytes": 34691836
+            },
+            "checksum": "317500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 270198,
+              "reallocations": 10001,
+              "frees": 270029,
+              "requested_bytes": 69371837
+            },
+            "checksum": "635000"
+          }
+        ],
+        "per_render": {
+          "allocations": 27.0,
+          "reallocations": 1.0,
+          "frees": 27.0,
+          "requested_bytes": 6936.0006
+        },
+        "linear_calls": true
+      },
+      "large-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15075
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 135200,
+              "reallocations": 75001,
+              "frees": 135031,
+              "requested_bytes": 192815078
+            },
+            "checksum": "16217500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 270200,
+              "reallocations": 150001,
+              "frees": 270031,
+              "requested_bytes": 385615079
+            },
+            "checksum": "32435000"
+          }
+        ],
+        "per_render": {
+          "allocations": 27.0,
+          "reallocations": 15.0,
+          "frees": 27.0,
+          "requested_bytes": 38560.0006
+        },
+        "linear_calls": true
+      },
+      "large-escaped": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15079
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 1145200,
+              "reallocations": 80001,
+              "frees": 1145031,
+              "requested_bytes": 293330082
+            },
+            "checksum": "30357500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 2290200,
+              "reallocations": 160001,
+              "frees": 2290031,
+              "requested_bytes": 586645083
+            },
+            "checksum": "60715000"
+          }
+        ],
+        "per_render": {
+          "allocations": 229.0,
+          "reallocations": 16.0,
+          "frees": 229.0,
+          "requested_bytes": 58663.0006
+        },
+        "linear_calls": true
+      }
+    },
+    "rocci-string": {
+      "small-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 198,
+              "reallocations": 1,
+              "frees": 29,
+              "requested_bytes": 11857
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 250198,
+              "reallocations": 17501,
+              "frees": 250029,
+              "requested_bytes": 20824360
+            },
+            "checksum": "317500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 500198,
+              "reallocations": 35001,
+              "frees": 500029,
+              "requested_bytes": 41636861
+            },
+            "checksum": "635000"
+          }
+        ],
+        "per_render": {
+          "allocations": 50.0,
+          "reallocations": 3.5,
+          "frees": 50.0,
+          "requested_bytes": 4162.5006
+        },
+        "linear_calls": true
+      },
+      "large-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15099
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 12765200,
+              "reallocations": 1532501,
+              "frees": 12765031,
+              "requested_bytes": 1242317602
+            },
+            "checksum": "16217500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 25530200,
+              "reallocations": 3065001,
+              "frees": 25530031,
+              "requested_bytes": 2484620103
+            },
+            "checksum": "32435000"
+          }
+        ],
+        "per_render": {
+          "allocations": 2553.0,
+          "reallocations": 306.5,
+          "frees": 2553.0,
+          "requested_bytes": 248460.5006
+        },
+        "linear_calls": true
+      },
+      "large-escaped": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15103
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 13780200,
+              "reallocations": 1057501,
+              "frees": 13780031,
+              "requested_bytes": 1424875106
+            },
+            "checksum": "30357500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 27560200,
+              "reallocations": 2115001,
+              "frees": 27560031,
+              "requested_bytes": 2849735107
+            },
+            "checksum": "60715000"
+          }
+        ],
+        "per_render": {
+          "allocations": 2756.0,
+          "reallocations": 211.5,
+          "frees": 2756.0,
+          "requested_bytes": 284972.0006
+        },
+        "linear_calls": true
+      }
+    },
+    "rocci-node": {
+      "small-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 198,
+              "reallocations": 1,
+              "frees": 29,
+              "requested_bytes": 11845
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 70198,
+              "reallocations": 17501,
+              "frees": 70029,
+              "requested_bytes": 7254348
+            },
+            "checksum": "317500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 140198,
+              "reallocations": 35001,
+              "frees": 140029,
+              "requested_bytes": 14496849
+            },
+            "checksum": "635000"
+          }
+        ],
+        "per_render": {
+          "allocations": 14.0,
+          "reallocations": 3.5,
+          "frees": 14.0,
+          "requested_bytes": 1448.5006
+        },
+        "linear_calls": true
+      },
+      "large-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15087
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 4590200,
+              "reallocations": 1532501,
+              "frees": 4590031,
+              "requested_bytes": 619767590
+            },
+            "checksum": "16217500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 9180200,
+              "reallocations": 3065001,
+              "frees": 9180031,
+              "requested_bytes": 1239520091
+            },
+            "checksum": "32435000"
+          }
+        ],
+        "per_render": {
+          "allocations": 918.0,
+          "reallocations": 306.5,
+          "frees": 918.0,
+          "requested_bytes": 123950.5006
+        },
+        "linear_calls": true
+      },
+      "large-escaped": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15091
+            },
+            "checksum": "0"
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 8130200,
+              "reallocations": 4087501,
+              "frees": 8130031,
+              "requested_bytes": 920437594
+            },
+            "checksum": "30357500"
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 16260200,
+              "reallocations": 8175001,
+              "frees": 16260031,
+              "requested_bytes": 1840860095
+            },
+            "checksum": "60715000"
+          }
+        ],
+        "per_render": {
+          "allocations": 1626.0,
+          "reallocations": 817.5,
+          "frees": 1626.0,
+          "requested_bytes": 184084.5006
+        },
+        "linear_calls": true
+      }
+    }
+  },
+  "recorded_at": "2026-09-12T10:02:05.296346+00:00",
+  "experiment_sha256": {
+    "run.py": "5e6f3bdb86f9bf38a71824b54304bebb2d81303fccdc58f9a6fe38f9efe6fdfc",
+    "allocations.c": "3c38eb25e617675d44c4984883f0519e0ef6dea044e1d2ea656f8d0b05338931",
+    "card.mustache.html": "bc96664fd252cab9a06c47a4933a8e6398c19d068a2813fc94353c1e75b21135",
+    "TypedTemplate.roc": "1745ececef9dc95628da1f800dd24a3f66e0a9717aafcd7c6c93f147633634f0",
+    "Card.rocci": "ca5b2d310a86f9001eaff7fca3a560db1622b7103c5a6c2c2c64709270fcbbad"
+  }
+}

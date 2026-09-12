@@ -6,6 +6,16 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-12
+
+- Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 0 on `compile-time-template-preparation`: hashed baseline receipt, named HTML cases, cache-hit versus `--no-cache` upstream tests, and harness fault probes. Claimed speed ordering reproduced; September 12 receipt preserved. Exploratory; not hosted-CI complete.
+
+- Filed draft [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md): prioritize reproducible receipts, independent HTML/type contracts, and controlled escaping/growth/encoding comparisons before conditional library and real-host probes. Paired the research and linked the older HTML plan without reopening its skipped phases. Exploratory; no new phase started.
+
+- Recorded the authorized [template-preparation experiments](research/rocci/compile-time-template-preparation.md#follow-up-experiments): typed closure passes 16 focused probes plus 62 upstream tests; isolated optimized comparisons measure build/runtime and allocation calls, retaining a carriage-return attribute mismatch. Added reproducible harness and raw receipt. Exploratory; no product cutover or hosted-CI completion claimed.
+
+- Filed draft [compile-time template preparation for Rocci](research/rocci/compile-time-template-preparation.md): distinguished Templegen's Zig source generator from pure Roc preparation plus runtime interpretation; local September 3 probes pass 62 tests and reproduce unchecked context-shape drift. Linked the existing native-compiler research. Exploratory; no product change or implementation phase started.
+
 ## 2026-09-11
 
 - Pointed Rocdown/site/theme chrome at the h35 remaining-content box: fill `body` with `100%` instead of `100vh`, alias `--rocci-chrome-*` from `--h35-chrome-*`. Exploratory; do not log complete until hosted CI succeeds.

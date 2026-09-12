@@ -1,0 +1,2 @@
+@component Card = |{ title, active, items }|
+    <section title={title}><h1>{title}</h1>@if active { <b>active</b> }<ul>@for item in items { <li title={item.name}>{item.name}</li> }</ul></section>

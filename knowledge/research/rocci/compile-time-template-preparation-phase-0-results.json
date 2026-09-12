@@ -1,0 +1,3368 @@
+{
+  "timestamp": "2026-09-12T10:29:56.650910+00:00",
+  "timestamp_end": "2026-09-12T10:30:34.136134+00:00",
+  "engine_revision": "e13a34b63ee466a03588e1e3cba85fcb4d045f71",
+  "engine_sha256": {
+    "Template.roc": "c4c65a2a15553e2c805d9c5258e315b044535fd18d4bc299d67161c1868bc78f",
+    "Value.roc": "ce0029d866f81f0f7979ce87908c91106be3628892de42074fe42dcf8b315790",
+    "Formatters.roc": "f52550ec833b5f62807ae9d1a3175f1e20e9891ce3042b125cd6a278f0d71060",
+    "RuntimeFormatters.roc": "743063f3dd49195bc06968a7c339f6ec5333c1e1a99085ac1754ddd4a2142439"
+  },
+  "os": "Darwin",
+  "architecture": "arm64",
+  "cpu": "Apple M1 Max",
+  "machine": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "roc": "Roc compiler version nightly-2026-09-03-62fcb65",
+  "roc_flags": {
+    "check_no_cache": [
+      "roc",
+      "check",
+      "--no-cache"
+    ],
+    "check_warm": [
+      "roc",
+      "check"
+    ],
+    "build_no_cache": [
+      "roc",
+      "build",
+      "--no-cache",
+      "--opt=speed"
+    ],
+    "build_warm": [
+      "roc",
+      "build",
+      "--opt=speed"
+    ],
+    "test_default": [
+      "roc",
+      "test"
+    ],
+    "test_no_cache": [
+      "roc",
+      "test",
+      "--no-cache"
+    ]
+  },
+  "rocci_revision": "1f669b7821581854fd8030cd25a6067652d1db8b",
+  "input_hashes": {
+    "run.py": "1a51c6014b011d0ac37237cc816b57f280684256b363b5da533ec27515e058c4",
+    "TypedTemplate.roc": "1745ececef9dc95628da1f800dd24a3f66e0a9717aafcd7c6c93f147633634f0",
+    "Card.rocci": "ca5b2d310a86f9001eaff7fca3a560db1622b7103c5a6c2c2c64709270fcbbad",
+    "card.mustache.html": "bc96664fd252cab9a06c47a4933a8e6398c19d068a2813fc94353c1e75b21135",
+    "allocations.c": "3c38eb25e617675d44c4984883f0519e0ef6dea044e1d2ea656f8d0b05338931",
+    "README.md": "963357e5caeb22ea3a0e6883fc1cf05d9ca642db906414a2b279ea085729ade8"
+  },
+  "product_html_hashes": {
+    "crates/rocci-ui/runtime/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "crates/rocci-platform/platform/Html.roc": "0aa6b1cb6f444ad547fade27191c55d0d90920dc20e4c227bb94816c214ed881",
+    "crates/rocci-platform/platform/Attribute.roc": "e3bd122a88188b1586aef6e6158981af82dba8fb8be5f42b65bbde16654bb916",
+    "crates/rocci-cli/runtime/Html.roc": "7e0439aa96a2bddc665798907880324599e2fb556afc4f6c498b7f1886d69439"
+  },
+  "generated_hashes": {
+    "prepared/Formatters.roc": "f52550ec833b5f62807ae9d1a3175f1e20e9891ce3042b125cd6a278f0d71060",
+    "prepared/RuntimeFormatters.roc": "743063f3dd49195bc06968a7c339f6ec5333c1e1a99085ac1754ddd4a2142439",
+    "prepared/Template.roc": "c4c65a2a15553e2c805d9c5258e315b044535fd18d4bc299d67161c1868bc78f",
+    "prepared/TypedTemplate.roc": "1745ececef9dc95628da1f800dd24a3f66e0a9717aafcd7c6c93f147633634f0",
+    "prepared/Value.roc": "ce0029d866f81f0f7979ce87908c91106be3628892de42074fe42dcf8b315790",
+    "prepared/card.mustache.html": "c3fa382b8de7c92df4a6a69371acaa2abd98c83daa6792e402e66299ae3a54ca",
+    "prepared/main.roc": "3304ff25404ddff54afc6643cc1a6030b68e791491bedceeb9889f04aa2a9141",
+    "rocci-string/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "rocci-string/main.roc": "8747333f465eb6ba25577c4c74a12177b8761e7017bca6dd527317e70fe27c93",
+    "rocci-node/Html.roc": "f77d59c2aa7bf487605316bacbd989f7f2db3d96dcd7aea3fac8edde1eab75ad",
+    "rocci-node/Runtime/Attribute.roc": "e3bd122a88188b1586aef6e6158981af82dba8fb8be5f42b65bbde16654bb916",
+    "rocci-node/Runtime/Html.roc": "0aa6b1cb6f444ad547fade27191c55d0d90920dc20e4c227bb94816c214ed881",
+    "rocci-node/main.roc": "8747333f465eb6ba25577c4c74a12177b8761e7017bca6dd527317e70fe27c93"
+  },
+  "platform_artifact": {
+    "url": "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
+    "path": "/Users/nils/.cache/roc/packages/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
+    "sha256": "d38c5449760953820721ff7f9236df4e085d828918045bd90dfb932d6520ee47",
+    "present": true,
+    "bytes": 20377365
+  },
+  "dirty_tracked": [
+    "docs/appendix/glossary.rocdown",
+    "docs/reference/language/components.rocdown",
+    "docs/templates/components.rocdown",
+    "docs/templates/directives.rocdown",
+    "docs/templates/markup.rocdown",
+    "examples/rocci/standalone/styling/Styling.rocci",
+    "knowledge/log.md",
+    "knowledge/plans/rocci/html-node-lowering.md",
+    "knowledge/plans/rocci/index.md",
+    "knowledge/research/rocci/index.md",
+    "knowledge/research/rocci/roc-native-template-compiler.md"
+  ],
+  "untracked_experimental": [
+    "knowledge/plans/rocci/compile-time-template-preparation.md",
+    "knowledge/research/rocci/compile-time-template-preparation-phase-0-results.json",
+    "knowledge/research/rocci/compile-time-template-preparation-results.json",
+    "knowledge/research/rocci/compile-time-template-preparation.md",
+    "roc/template-preparation-experiment/"
+  ],
+  "work_dir": "/tmp/rocci-template-preparation-phase-0b",
+  "repetitions": 5000,
+  "workloads": [
+    {
+      "name": "small-clean",
+      "rows": 0,
+      "text": "plain"
+    },
+    {
+      "name": "large-clean",
+      "rows": 100,
+      "text": "plain"
+    },
+    {
+      "name": "large-escaped",
+      "rows": 100,
+      "text": "<& caf\u00e9>"
+    }
+  ],
+  "render_cases": [
+    {
+      "name": "ordinary_text",
+      "active": 1,
+      "rows": 2,
+      "text": "plain"
+    },
+    {
+      "name": "empty_data",
+      "active": 0,
+      "rows": 0,
+      "text": ""
+    },
+    {
+      "name": "quotes_ampersands_angles",
+      "active": 1,
+      "rows": 2,
+      "text": "&<>\"' caf\u00e9 \ud83d\ude00"
+    },
+    {
+      "name": "html_looking_amp",
+      "active": 0,
+      "rows": 3,
+      "text": "<&amp;>"
+    },
+    {
+      "name": "script_looking",
+      "active": 1,
+      "rows": 1,
+      "text": "\"><script>alert(1)</script>"
+    },
+    {
+      "name": "cr_in_attribute",
+      "active": 0,
+      "rows": 1,
+      "text": "a\nb\rc\td",
+      "expected_compatible": {
+        "prepared": false,
+        "rocci-string": false,
+        "rocci-node": true
+      }
+    },
+    {
+      "name": "template_looking",
+      "active": 1,
+      "rows": 3,
+      "text": "{{ name }} @if {}"
+    }
+  ],
+  "probes": [
+    {
+      "command": [
+        "roc",
+        "check",
+        "same.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.04424529196694493,
+      "timed_out": false,
+      "stdout": "No errors found in 34ms for same.roc\n",
+      "stderr": "",
+      "stdout_sha256": "e9768d686119f43def2d61476e52fda6b0183a73ffc828ab0ce60eeee1968cdc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 37,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "execution": {
+        "command": [
+          "roc",
+          "same.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.030543250031769276,
+        "timed_out": false,
+        "stdout": "Ada",
+        "stderr": "",
+        "stdout_sha256": "99a563ab2f6e21e96998f9fddd2a2bab82b70ac019579502b8d7fc0032ff62bb",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 3,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "same",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "reordered.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.029518165858462453,
+      "timed_out": false,
+      "stdout": "No errors found in 19ms for reordered.roc\n",
+      "stderr": "",
+      "stdout_sha256": "d6dedefc7133840a58cfe0737a43cbfacdbd289ad6dae5aaabae40d562cab0c1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 42,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "execution": {
+        "command": [
+          "roc",
+          "reordered.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03173308400437236,
+        "timed_out": false,
+        "stdout": "Ada:Dr",
+        "stderr": "",
+        "stdout_sha256": "0ff80c9264d77269f564aab5644aaafd158cb23506ac0afd4e38999286a66630",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 6,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "reordered",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21041816705837846,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ aaa: \"WRONG\", name: \"Ada\" }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { aaa: b, name: Str }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 extra.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "99a93bc261738adc911685e85cae98837b98803c2d48c6c43b928c7df80c32ca",
+      "stdout_len": 0,
+      "stderr_len": 698,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "missing.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21420945902355015,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 missing.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ name: \"Ada\" }))\n             ^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: Str }\n\nBut render needs the first argument to be:\n\n    { name: Str, title: Str }\n\nHint: This record is missing the field: title\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 missing.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "330062114f39d5edcf58124529fb2b188643b232ba7ae7ef3c2397a82d8840c9",
+      "stdout_len": 0,
+      "stderr_len": 647,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "missing",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "scalar_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21229095896705985,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 scalar_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ name: 1.I64 }))\n             ^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: I64 }\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 scalar_type.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "b2e86728508a27c6ca5c635f361897e84a19f42cccf7a68057c6902e0ab73e1b",
+      "stdout_len": 0,
+      "stderr_len": 572,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "scalar_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "nested_extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2222169591113925,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ user: { aaa: \"WRONG\", name: \"Ada\" } }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { user: { aaa: b, name: Str } }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { user: { name: Str } }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_extra.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "55018f98a3c2f2d388e2979dbeb39f86467045d400ed4a7fe699708c864f6f16",
+      "stdout_len": 0,
+      "stderr_len": 710,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "nested_extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "nested_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21738170902244747,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ user: { name: 1.I64 } }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { user: { name: I64 } }\n\nBut render needs the first argument to be:\n\n    { user: { name: Str } }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_type.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "ba2aec24dabe9c47e5a0d70e93368bdfa749e337b0cd772fe74c3ad38e6a553c",
+      "stdout_len": 0,
+      "stderr_len": 612,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "nested_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "list_extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21159591688774526,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ items: [{ aaa: \"WRONG\", name: \"Ada\" }] }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { aaa: b, name: Str }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_extra.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "91b0c16d59474092bfa3248540e03230868b3a0dc67f29b7f7c6770eef15003f",
+      "stdout_len": 0,
+      "stderr_len": 704,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "list_extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "list_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21738470788113773,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ items: [{ name: 1.I64 }] }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: I64 }\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_type.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "104d766d19a296b1ccd18acb6f2fb88b952ffc961a81b9ef63803509da49164e",
+      "stdout_len": 0,
+      "stderr_len": 606,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "list_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "empty_runtime.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.02942883293144405,
+      "timed_out": false,
+      "stdout": "No errors found in 19ms for empty_runtime.roc\n",
+      "stderr": "",
+      "stdout_sha256": "36d2fd65f53ec1bb33722df26f981e46a5b1d85320a0a70fef6458d9c38de537",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 46,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "execution": {
+        "command": [
+          "roc",
+          "empty_runtime.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.030164709081873298,
+        "timed_out": false,
+        "stdout": "empty",
+        "stderr": "",
+        "stdout_sha256": "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 5,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "empty_runtime",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "empty_sample.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.21507829101756215,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 empty_sample.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"empty_sample.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module TypedTemplate (line 10, column 13), with this\nmessage:\n\n    empty_sample.mustache: line 1: sample list `items` is empty, so the section\n    body cannot be checked; give the sample at least one item\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 empty_sample.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ items: [] }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    empty_sample.mustache: line 1: sample list `items` is empty, so the section\n    body cannot be checked; give the sample at least one item\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 empty_sample.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "81556e79a0a4c02cba1639b571ef6b159fd122b95eefc7c0aa2ba018425f0c26",
+      "stdout_len": 0,
+      "stderr_len": 1125,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "empty_sample",
+      "passed": true,
+      "expected_diagnostic": "sample list `items` is empty"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "empty_static_body.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.030791291035711765,
+      "timed_out": false,
+      "stdout": "No errors found in 19ms for empty_static_body.roc\n",
+      "stderr": "",
+      "stdout_sha256": "0fee499aaa451d284a9a68814e42773877993c4b1077921c41e4974ac2c1fd66",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 50,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "execution": {
+        "command": [
+          "roc",
+          "empty_static_body.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03424270893447101,
+        "timed_out": false,
+        "stdout": "xx",
+        "stderr": "",
+        "stdout_sha256": "5dde896887f6754c9b15bfe3a441ae4806df2fde94001311e08bf110622e0bbe",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 2,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "empty_static_body",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "bad_field.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.20862495806068182,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_field.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"bad_field.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module TypedTemplate (line 10, column 13), with this\nmessage:\n\n    bad_field.mustache: line 2: `missing` is not in the context (`missing`\n    missing)\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_field.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ name: \"Ada\" }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    bad_field.mustache: line 2: `missing` is not in the context (`missing`\n    missing)\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_field.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "0c7bbfa935a440f07ef4117101ee9b8f06fa14a80c5bd25d12bf81e32cce0a7f",
+      "stdout_len": 0,
+      "stderr_len": 1034,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "bad_field",
+      "passed": true,
+      "expected_diagnostic": "bad_field.mustache: line 2"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "bad_syntax.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2116294999141246,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_syntax.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"bad_syntax.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module Template (line 76, column 5), with this\nmessage:\n\n    template bad_syntax.mustache: line 2: section `name` is never closed\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_syntax.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ name: \"Ada\" }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    template bad_syntax.mustache: line 2: section `name` is never closed\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_syntax.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "5db57e91c828e208f49db8c02651e3aedb813f96952d7229d705452d353ab5e6",
+      "stdout_len": 0,
+      "stderr_len": 993,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "bad_syntax",
+      "passed": true,
+      "expected_diagnostic": "bad_syntax.mustache"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "unsupported_u8.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.03467808314599097,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 missing method \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_u8.roc:5:10\n\nThis encode_u8 method is being called on a value whose type doesn't have that\nmethod.\n\nrender = TypedTemplate.prepare(\"unsupported_u8.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^\n\nThe value's type, which does not have a method named encode_u8, is:\n\n    Value.Encoding\n\nHint: For this to work, the type would need to have a method named encode_u8\nassociated with it in the type's declaration.\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_u8.roc:5:10\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"unsupported_u8.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThe crash happened with this message:\n\n    runtime error\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_u8.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "4f69f17857f36c2737528746db94a5b42e69dabcc5a1c7b8eb725c9327e4fdb1",
+      "stdout_len": 0,
+      "stderr_len": 1136,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "unsupported_u8",
+      "passed": true,
+      "expected_diagnostic": "encode_u8"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "unsupported_union.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.0339560410939157,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 missing method \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_union.roc:5:10\n\nThis encode_tag method is being called on a value whose type doesn't have that\nmethod.\n\nrender = TypedTemplate.prepare(\"unsupported_union.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^\n\nThe value's type, which does not have a method named encode_tag, is:\n\n    Value.Encoding\n\nHint: For this to work, the type would need to have a method named encode_tag\nassociated with it in the type's declaration.\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_union.roc:5:10\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"unsupported_union.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThe crash happened with this message:\n\n    runtime error\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_union.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "a7ec6a95380bd055dc8de9d84d51e97df5921022745f1ce20c233e9a4709a5e9",
+      "stdout_len": 0,
+      "stderr_len": 1130,
+      "invalid_utf8": false,
+      "cache_mode": "default",
+      "name": "unsupported_union",
+      "passed": true,
+      "expected_diagnostic": "encode_tag"
+    }
+  ],
+  "probes_no_cache": [
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "same.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.3375542499125004,
+      "timed_out": false,
+      "stdout": "No errors found in 327ms for same.roc\n",
+      "stderr": "",
+      "stdout_sha256": "4ba082bc704a0c4a5416b7d4b72f43abb9345528e7c7ba6d670f1867ab901638",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 38,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "execution": {
+        "command": [
+          "roc",
+          "same.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03004395915195346,
+        "timed_out": false,
+        "stdout": "Ada",
+        "stderr": "",
+        "stdout_sha256": "99a563ab2f6e21e96998f9fddd2a2bab82b70ac019579502b8d7fc0032ff62bb",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 3,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "same",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "reordered.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.3389754998497665,
+      "timed_out": false,
+      "stdout": "No errors found in 328ms for reordered.roc\n",
+      "stderr": "",
+      "stdout_sha256": "5aa176b6fc6ed3275d071df9e563ba7ff9c2144cbb47a7a1ceb9326a647878f8",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 43,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "execution": {
+        "command": [
+          "roc",
+          "reordered.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.0326069169677794,
+        "timed_out": false,
+        "stdout": "Ada:Dr",
+        "stderr": "",
+        "stdout_sha256": "0ff80c9264d77269f564aab5644aaafd158cb23506ac0afd4e38999286a66630",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 6,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "reordered",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2496605000924319,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ aaa: \"WRONG\", name: \"Ada\" }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { aaa: b, name: Str }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 extra.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "99a93bc261738adc911685e85cae98837b98803c2d48c6c43b928c7df80c32ca",
+      "stdout_len": 0,
+      "stderr_len": 698,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "missing.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.253008333966136,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 missing.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ name: \"Ada\" }))\n             ^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: Str }\n\nBut render needs the first argument to be:\n\n    { name: Str, title: Str }\n\nHint: This record is missing the field: title\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 missing.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "330062114f39d5edcf58124529fb2b188643b232ba7ae7ef3c2397a82d8840c9",
+      "stdout_len": 0,
+      "stderr_len": 647,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "missing",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "scalar_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2584223330486566,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 scalar_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ name: 1.I64 }))\n             ^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: I64 }\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 scalar_type.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "b2e86728508a27c6ca5c635f361897e84a19f42cccf7a68057c6902e0ab73e1b",
+      "stdout_len": 0,
+      "stderr_len": 572,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "scalar_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "nested_extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.26150883291848004,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ user: { aaa: \"WRONG\", name: \"Ada\" } }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { user: { aaa: b, name: Str } }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { user: { name: Str } }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_extra.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "55018f98a3c2f2d388e2979dbeb39f86467045d400ed4a7fe699708c864f6f16",
+      "stdout_len": 0,
+      "stderr_len": 710,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "nested_extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "nested_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.25792800006456673,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ user: { name: 1.I64 } }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { user: { name: I64 } }\n\nBut render needs the first argument to be:\n\n    { user: { name: Str } }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 nested_type.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "ba2aec24dabe9c47e5a0d70e93368bdfa749e337b0cd772fe74c3ad38e6a553c",
+      "stdout_len": 0,
+      "stderr_len": 612,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "nested_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "list_extra.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2505862498655915,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_extra.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ items: [{ aaa: \"WRONG\", name: \"Ada\" }] }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { aaa: b, name: Str }\n      where [b.from_quote : Str -> Try(b, [BadQuotedBytes(Str)])]\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_extra.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "91b0c16d59474092bfa3248540e03230868b3a0dc67f29b7f7c6770eef15003f",
+      "stdout_len": 0,
+      "stderr_len": 704,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "list_extra",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "list_type.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2550629999022931,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_type.roc:7:15\n\nThe first argument being passed to this function has the wrong type.\n\necho!(render({ items: [{ name: 1.I64 }] }))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThis argument has the type:\n\n    { name: I64 }\n\nBut render needs the first argument to be:\n\n    { name: Str }\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 list_type.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "104d766d19a296b1ccd18acb6f2fb88b952ffc961a81b9ef63803509da49164e",
+      "stdout_len": 0,
+      "stderr_len": 606,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "list_type",
+      "passed": true,
+      "expected_diagnostic": "type mismatch"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "empty_runtime.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.3376202501822263,
+      "timed_out": false,
+      "stdout": "No errors found in 327ms for empty_runtime.roc\n",
+      "stderr": "",
+      "stdout_sha256": "84cdafd0f2654cb3796671cc6d4aae634b9b21d8e396c7ad13d8ec172a093860",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 47,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "execution": {
+        "command": [
+          "roc",
+          "empty_runtime.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03028916590847075,
+        "timed_out": false,
+        "stdout": "empty",
+        "stderr": "",
+        "stdout_sha256": "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 5,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "empty_runtime",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "empty_sample.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.2578723749611527,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 empty_sample.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"empty_sample.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module TypedTemplate (line 10, column 13), with this\nmessage:\n\n    empty_sample.mustache: line 1: sample list `items` is empty, so the section\n    body cannot be checked; give the sample at least one item\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 empty_sample.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ items: [] }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    empty_sample.mustache: line 1: sample list `items` is empty, so the section\n    body cannot be checked; give the sample at least one item\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 empty_sample.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "81556e79a0a4c02cba1639b571ef6b159fd122b95eefc7c0aa2ba018425f0c26",
+      "stdout_len": 0,
+      "stderr_len": 1125,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "empty_sample",
+      "passed": true,
+      "expected_diagnostic": "sample list `items` is empty"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "empty_static_body.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.33687954116612673,
+      "timed_out": false,
+      "stdout": "No errors found in 326ms for empty_static_body.roc\n",
+      "stderr": "",
+      "stdout_sha256": "5c645f36315b612398e5dc3457d3a00d4660f7a4f78d71920adf123768e15b83",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 51,
+      "stderr_len": 0,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "execution": {
+        "command": [
+          "roc",
+          "empty_static_body.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.03252416709437966,
+        "timed_out": false,
+        "stdout": "xx",
+        "stderr": "",
+        "stdout_sha256": "5dde896887f6754c9b15bfe3a441ae4806df2fde94001311e08bf110622e0bbe",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 2,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "name": "empty_static_body",
+      "passed": true,
+      "expected_diagnostic": null
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "bad_field.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.24938604212366045,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_field.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"bad_field.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module TypedTemplate (line 10, column 13), with this\nmessage:\n\n    bad_field.mustache: line 2: `missing` is not in the context (`missing`\n    missing)\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_field.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ name: \"Ada\" }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    bad_field.mustache: line 2: `missing` is not in the context (`missing`\n    missing)\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_field.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "0c7bbfa935a440f07ef4117101ee9b8f06fa14a80c5bd25d12bf81e32cce0a7f",
+      "stdout_len": 0,
+      "stderr_len": 1034,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "bad_field",
+      "passed": true,
+      "expected_diagnostic": "bad_field.mustache: line 2"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "bad_syntax.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.25503425020724535,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_syntax.roc:5:1\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"bad_syntax.mustache\", source, sample)\n^^^^^^\n\nThe crash happened in the module Template (line 76, column 5), with this\nmessage:\n\n    template bad_syntax.mustache: line 2: section `name` is never closed\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_syntax.roc:7:8\n\nThis definition crashed during compile-time evaluation.\n\necho!(render({ name: \"Ada\" }))\n      ^^^^^^\n\nThe crash happened with this message:\n\n    template bad_syntax.mustache: line 2: section `name` is never closed\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 bad_syntax.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "5db57e91c828e208f49db8c02651e3aedb813f96952d7229d705452d353ab5e6",
+      "stdout_len": 0,
+      "stderr_len": 993,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "bad_syntax",
+      "passed": true,
+      "expected_diagnostic": "bad_syntax.mustache"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "unsupported_u8.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.07778758299537003,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 missing method \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_u8.roc:5:10\n\nThis encode_u8 method is being called on a value whose type doesn't have that\nmethod.\n\nrender = TypedTemplate.prepare(\"unsupported_u8.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^\n\nThe value's type, which does not have a method named encode_u8, is:\n\n    Value.Encoding\n\nHint: For this to work, the type would need to have a method named encode_u8\nassociated with it in the type's declaration.\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_u8.roc:5:10\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"unsupported_u8.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThe crash happened with this message:\n\n    runtime error\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_u8.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "4f69f17857f36c2737528746db94a5b42e69dabcc5a1c7b8eb725c9327e4fdb1",
+      "stdout_len": 0,
+      "stderr_len": 1136,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "unsupported_u8",
+      "passed": true,
+      "expected_diagnostic": "encode_u8"
+    },
+    {
+      "command": [
+        "roc",
+        "check",
+        "--no-cache",
+        "unsupported_union.roc"
+      ],
+      "exit": 1,
+      "seconds": 0.07685716706328094,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "\u2500\u2500 \u2717 missing method \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_union.roc:5:10\n\nThis encode_tag method is being called on a value whose type doesn't have that\nmethod.\n\nrender = TypedTemplate.prepare(\"unsupported_union.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^\n\nThe value's type, which does not have a method named encode_tag, is:\n\n    Value.Encoding\n\nHint: For this to work, the type would need to have a method named encode_tag\nassociated with it in the type's declaration.\n\n\u2500\u2500 \u2717 compile time crash \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_union.roc:5:10\n\nThis definition crashed during compile-time evaluation.\n\nrender = TypedTemplate.prepare(\"unsupported_union.mustache\", source, sample)\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nThe crash happened with this message:\n\n    runtime error\n\n\u2500\u2500 2 errors and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 unsupported_union.roc\n\n",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "a7ec6a95380bd055dc8de9d84d51e97df5921022745f1ce20c233e9a4709a5e9",
+      "stdout_len": 0,
+      "stderr_len": 1130,
+      "invalid_utf8": false,
+      "cache_mode": "no-cache",
+      "name": "unsupported_union",
+      "passed": true,
+      "expected_diagnostic": "encode_tag"
+    }
+  ],
+  "upstream_tests": {
+    "default": {
+      "command": [
+        "roc",
+        "test",
+        "Template.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.033668542047962546,
+      "timed_out": false,
+      "stdout": "All (62) tests passed in 22.5 ms. (cached)\n",
+      "stderr": "",
+      "stdout_sha256": "b6f39367c9a5b9663d20717c6438ed6afe6f029c820f203726c5ddaa6af26314",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 43,
+      "stderr_len": 0,
+      "invalid_utf8": false
+    },
+    "no_cache": {
+      "command": [
+        "roc",
+        "test",
+        "--no-cache",
+        "Template.roc"
+      ],
+      "exit": 0,
+      "seconds": 0.7050820828881115,
+      "timed_out": false,
+      "stdout": "All (62) tests passed in 688.9 ms.\n",
+      "stderr": "",
+      "stdout_sha256": "92bb01228434bef649fa30b62ad43d6f93a36e555672446bb77acd4d67a8d335",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_len": 35,
+      "stderr_len": 0,
+      "invalid_utf8": false
+    }
+  },
+  "comparisons": {
+    "prepared": {
+      "checks_no_cache": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.28160425019450486,
+          "timed_out": false,
+          "stdout": "No errors found in 271ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "b5d15ada5c8b38bdac5fca189df81ac8d24ecf362258d0d17213eb4ebf1e6e06",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 38,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.28414191701449454,
+          "timed_out": false,
+          "stdout": "No errors found in 273ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "05b3e1fa6ebaab36af7720d2914f717b8c76947981f7ec073d5d8627aa0f627d",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 38,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.2843839169945568,
+          "timed_out": false,
+          "stdout": "No errors found in 273ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "05b3e1fa6ebaab36af7720d2914f717b8c76947981f7ec073d5d8627aa0f627d",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 38,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        }
+      ],
+      "checks_warm": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.06461312505416572,
+          "timed_out": false,
+          "stdout": "No errors found in 54ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "06cf27337f6e77aece0b3bbb87e243e8eabea096808540bf40ef0e436915ba74",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.035055666929110885,
+          "timed_out": false,
+          "stdout": "No errors found in 24ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "8a92522808d4e63f3d7ab0811f840b7e5f6aac776ebc99d58a1c1ad734d6b9e9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.034808750031515956,
+          "timed_out": false,
+          "stdout": "No errors found in 24ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "8a92522808d4e63f3d7ab0811f840b7e5f6aac776ebc99d58a1c1ad734d6b9e9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        }
+      ],
+      "build": {
+        "command": [
+          "roc",
+          "build",
+          "--no-cache",
+          "--opt=speed",
+          "--output=app",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 2.182257833890617,
+        "timed_out": false,
+        "stdout": "0 errors and 0 warnings found in 2.2s while successfully building:\n\n    app\n",
+        "stderr": "",
+        "stdout_sha256": "4356e6ca6107d899078bea15874a0e7f0174d873205d1a75a77f22fed045fdf2",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 76,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "warm_build": {
+        "command": [
+          "roc",
+          "build",
+          "--opt=speed",
+          "--output=app-warm",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 1.9752482089679688,
+        "timed_out": false,
+        "stdout": "0 errors and 0 warnings found in 2.0s while successfully building:\n\n    app-warm\n",
+        "stderr": "",
+        "stdout_sha256": "05c42d1715c033d8d34b24503c19c7fc2b51991c6a9384fc6d8303684a336d5e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 81,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "binary_bytes": 476480,
+      "named_outputs": {
+        "ordinary_text": {
+          "stdout": "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li></ul></section>",
+          "stdout_sha256": "f6d6ed960beb656361f53777019c4a14c708abcc127a6bb9a0de6c92587086b5",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "empty_data": {
+          "stdout": "<section title=\"\"><h1></h1><ul></ul></section>",
+          "stdout_sha256": "7110b45b80781656b306aea956138a486429eb991103881f69aaa2dd06d963ce",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "quotes_ampersands_angles": {
+          "stdout": "<section title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude00\"><h1>&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude00</h1><b>active</b><ul><li title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude000\">&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude000</li><li title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude001\">&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude001</li></ul></section>",
+          "stdout_sha256": "875267d1e057958741dba73809c5941190960fe36b47f3ecd35c3575c63fd5ae",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "html_looking_amp": {
+          "stdout": "<section title=\"&lt;&amp;amp;&gt;\"><h1>&lt;&amp;amp;&gt;</h1><ul><li title=\"&lt;&amp;amp;&gt;0\">&lt;&amp;amp;&gt;0</li><li title=\"&lt;&amp;amp;&gt;1\">&lt;&amp;amp;&gt;1</li><li title=\"&lt;&amp;amp;&gt;2\">&lt;&amp;amp;&gt;2</li></ul></section>",
+          "stdout_sha256": "50c0c35544055764133aca423bdc1d7fc92c3b2a8d78ddb7f61cd110c0885e6b",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "script_looking": {
+          "stdout": "<section title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"><h1>&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</h1><b>active</b><ul><li title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0\">&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0</li></ul></section>",
+          "stdout_sha256": "4f5da21aa5b80558ff96fafa6931339cd180589ac265ea0f28bcf64f9163a826",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "cr_in_attribute": {
+          "stdout": "<section title=\"a\nb\rc\td\"><h1>a\nb\rc\td</h1><ul><li title=\"a\nb\rc\td0\">a\nb\rc\td0</li></ul></section>",
+          "stdout_sha256": "7e256412e49c800f3125cd71d9712539013cb646cf5faf388f8279692be23934",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": false,
+          "expected_compatible": false
+        },
+        "template_looking": {
+          "stdout": "<section title=\"{{ name }} @if {}\"><h1>{{ name }} @if {}</h1><b>active</b><ul><li title=\"{{ name }} @if {}0\">{{ name }} @if {}0</li><li title=\"{{ name }} @if {}1\">{{ name }} @if {}1</li><li title=\"{{ name }} @if {}2\">{{ name }} @if {}2</li></ul></section>",
+          "stdout_sha256": "48ae6044949ad2e28c7884a112d74b131679143ee719e5b32ba8e398e132cd29",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        }
+      },
+      "matches_reference": false,
+      "timings": {
+        "small-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.013566124951466918,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.013579874997958541,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.01398662501014769,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.013579874997958541,
+          "checksums": [
+            "317500\n",
+            "317500\n",
+            "317500\n"
+          ]
+        },
+        "large-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.10284524993039668,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.10403945902362466,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.1035438331309706,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.1035438331309706,
+          "checksums": [
+            "16217500\n",
+            "16217500\n",
+            "16217500\n"
+          ]
+        },
+        "large-escaped": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.21917304187081754,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.21663895808160305,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.21623666700907052,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.21663895808160305,
+          "checksums": [
+            "30357500\n",
+            "30357500\n",
+            "30357500\n"
+          ]
+        }
+      },
+      "digest": {
+        "command": [
+          "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+          "digest",
+          "1",
+          "100",
+          "plain"
+        ],
+        "exit": 0,
+        "seconds": 0.0035717079881578684,
+        "timed_out": false,
+        "stdout": "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li><li title=\"plain2\">plain2</li><li title=\"plain3\">plain3</li><li title=\"plain4\">plain4</li><li title=\"plain5\">plain5</li><li title=\"plain6\">plain6</li><li title=\"plain7\">plain7</li><li title=\"plain8\">plain8</li><li title=\"plain9\">plain9</li><li title=\"plain10\">plain10</li><li title=\"plain11\">plain11</li><li title=\"plain12\">plain12</li><li title=\"plain13\">plain13</li><li title=\"plain14\">plain14</li><li title=\"plain15\">plain15</li><li title=\"plain16\">plain16</li><li title=\"plain17\">plain17</li><li title=\"plain18\">plain18</li><li title=\"plain19\">plain19</li><li title=\"plain20\">plain20</li><li title=\"plain21\">plain21</li><li title=\"plain22\">plain22</li><li title=\"plain23\">plain23</li><li title=\"plain24\">plain24</li><li title=\"plain25\">plain25</li><li title=\"plain26\">plain26</li><li title=\"plain27\">plain27</li><li title=\"plain28\">plain28</li><li title=\"plain29\">plain29</li><li title=\"plain30\">plain30</li><li title=\"plain31\">plain31</li><li title=\"plain32\">plain32</li><li title=\"plain33\">plain33</li><li title=\"plain34\">plain34</li><li title=\"plain35\">plain35</li><li title=\"plain36\">plain36</li><li title=\"plain37\">plain37</li><li title=\"plain38\">plain38</li><li title=\"plain39\">plain39</li><li title=\"plain40\">plain40</li><li title=\"plain41\">plain41</li><li title=\"plain42\">plain42</li><li title=\"plain43\">plain43</li><li title=\"plain44\">plain44</li><li title=\"plain45\">plain45</li><li title=\"plain46\">plain46</li><li title=\"plain47\">plain47</li><li title=\"plain48\">plain48</li><li title=\"plain49\">plain49</li><li title=\"plain50\">plain50</li><li title=\"plain51\">plain51</li><li title=\"plain52\">plain52</li><li title=\"plain53\">plain53</li><li title=\"plain54\">plain54</li><li title=\"plain55\">plain55</li><li title=\"plain56\">plain56</li><li title=\"plain57\">plain57</li><li title=\"plain58\">plain58</li><li title=\"plain59\">plain59</li><li title=\"plain60\">plain60</li><li title=\"plain61\">plain61</li><li title=\"plain62\">plain62</li><li title=\"plain63\">plain63</li><li title=\"plain64\">plain64</li><li title=\"plain65\">plain65</li><li title=\"plain66\">plain66</li><li title=\"plain67\">plain67</li><li title=\"plain68\">plain68</li><li title=\"plain69\">plain69</li><li title=\"plain70\">plain70</li><li title=\"plain71\">plain71</li><li title=\"plain72\">plain72</li><li title=\"plain73\">plain73</li><li title=\"plain74\">plain74</li><li title=\"plain75\">plain75</li><li title=\"plain76\">plain76</li><li title=\"plain77\">plain77</li><li title=\"plain78\">plain78</li><li title=\"plain79\">plain79</li><li title=\"plain80\">plain80</li><li title=\"plain81\">plain81</li><li title=\"plain82\">plain82</li><li title=\"plain83\">plain83</li><li title=\"plain84\">plain84</li><li title=\"plain85\">plain85</li><li title=\"plain86\">plain86</li><li title=\"plain87\">plain87</li><li title=\"plain88\">plain88</li><li title=\"plain89\">plain89</li><li title=\"plain90\">plain90</li><li title=\"plain91\">plain91</li><li title=\"plain92\">plain92</li><li title=\"plain93\">plain93</li><li title=\"plain94\">plain94</li><li title=\"plain95\">plain95</li><li title=\"plain96\">plain96</li><li title=\"plain97\">plain97</li><li title=\"plain98\">plain98</li><li title=\"plain99\">plain99</li></ul></section>\n<section title=\"plainX\"><h1>plainX</h1><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li><li title=\"plain2\">plain2</li><li title=\"plain3\">plain3</li><li title=\"plain4\">plain4</li><li title=\"plain5\">plain5</li><li title=\"plain6\">plain6</li><li title=\"plain7\">plain7</li><li title=\"plain8\">plain8</li><li title=\"plain9\">plain9</li><li title=\"plain10\">plain10</li><li title=\"plain11\">plain11</li><li title=\"plain12\">plain12</li><li title=\"plain13\">plain13</li><li title=\"plain14\">plain14</li><li title=\"plain15\">plain15</li><li title=\"plain16\">plain16</li><li title=\"plain17\">plain17</li><li title=\"plain18\">plain18</li><li title=\"plain19\">plain19</li><li title=\"plain20\">plain20</li><li title=\"plain21\">plain21</li><li title=\"plain22\">plain22</li><li title=\"plain23\">plain23</li><li title=\"plain24\">plain24</li><li title=\"plain25\">plain25</li><li title=\"plain26\">plain26</li><li title=\"plain27\">plain27</li><li title=\"plain28\">plain28</li><li title=\"plain29\">plain29</li><li title=\"plain30\">plain30</li><li title=\"plain31\">plain31</li><li title=\"plain32\">plain32</li><li title=\"plain33\">plain33</li><li title=\"plain34\">plain34</li><li title=\"plain35\">plain35</li><li title=\"plain36\">plain36</li><li title=\"plain37\">plain37</li><li title=\"plain38\">plain38</li><li title=\"plain39\">plain39</li><li title=\"plain40\">plain40</li><li title=\"plain41\">plain41</li><li title=\"plain42\">plain42</li><li title=\"plain43\">plain43</li><li title=\"plain44\">plain44</li><li title=\"plain45\">plain45</li><li title=\"plain46\">plain46</li><li title=\"plain47\">plain47</li><li title=\"plain48\">plain48</li><li title=\"plain49\">plain49</li><li title=\"plain50\">plain50</li><li title=\"plain51\">plain51</li><li title=\"plain52\">plain52</li><li title=\"plain53\">plain53</li><li title=\"plain54\">plain54</li><li title=\"plain55\">plain55</li><li title=\"plain56\">plain56</li><li title=\"plain57\">plain57</li><li title=\"plain58\">plain58</li><li title=\"plain59\">plain59</li><li title=\"plain60\">plain60</li><li title=\"plain61\">plain61</li><li title=\"plain62\">plain62</li><li title=\"plain63\">plain63</li><li title=\"plain64\">plain64</li><li title=\"plain65\">plain65</li><li title=\"plain66\">plain66</li><li title=\"plain67\">plain67</li><li title=\"plain68\">plain68</li><li title=\"plain69\">plain69</li><li title=\"plain70\">plain70</li><li title=\"plain71\">plain71</li><li title=\"plain72\">plain72</li><li title=\"plain73\">plain73</li><li title=\"plain74\">plain74</li><li title=\"plain75\">plain75</li><li title=\"plain76\">plain76</li><li title=\"plain77\">plain77</li><li title=\"plain78\">plain78</li><li title=\"plain79\">plain79</li><li title=\"plain80\">plain80</li><li title=\"plain81\">plain81</li><li title=\"plain82\">plain82</li><li title=\"plain83\">plain83</li><li title=\"plain84\">plain84</li><li title=\"plain85\">plain85</li><li title=\"plain86\">plain86</li><li title=\"plain87\">plain87</li><li title=\"plain88\">plain88</li><li title=\"plain89\">plain89</li><li title=\"plain90\">plain90</li><li title=\"plain91\">plain91</li><li title=\"plain92\">plain92</li><li title=\"plain93\">plain93</li><li title=\"plain94\">plain94</li><li title=\"plain95\">plain95</li><li title=\"plain96\">plain96</li><li title=\"plain97\">plain97</li><li title=\"plain98\">plain98</li><li title=\"plain99\">plain99</li></ul></section>",
+        "stderr": "",
+        "stdout_sha256": "a36d18a4ef0ccf23ff688bfe7fa1c61955f7669c45cb1771d41b0f3077973c0c",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 6488,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      }
+    },
+    "rocci-string": {
+      "checks_no_cache": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.1053634590934962,
+          "timed_out": false,
+          "stdout": "No errors found in 94ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "9c9a63d1d362adfe8e7d149995ef2700fcb663a7c8f627f2d7e1513142b8eef4",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10458841593936086,
+          "timed_out": false,
+          "stdout": "No errors found in 93ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "6da3eb790ed02c56628f2b9ca02040e85b873adc30e178245fadcd12e622c605",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10463691595941782,
+          "timed_out": false,
+          "stdout": "No errors found in 93ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "6da3eb790ed02c56628f2b9ca02040e85b873adc30e178245fadcd12e622c605",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        }
+      ],
+      "checks_warm": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.04194341599941254,
+          "timed_out": false,
+          "stdout": "No errors found in 31ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "2dda4483263c281ea51df3d361716c5c4a6453a91285f3167adb2cbbaccc34dd",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.03496737498790026,
+          "timed_out": false,
+          "stdout": "No errors found in 24ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "8a92522808d4e63f3d7ab0811f840b7e5f6aac776ebc99d58a1c1ad734d6b9e9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.037696833023801446,
+          "timed_out": false,
+          "stdout": "No errors found in 27ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "c27d69bb4cb6fbc5970f8d847ae026bc9f0122769b249c4b70bd5d81863309a2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        }
+      ],
+      "build": {
+        "command": [
+          "roc",
+          "build",
+          "--no-cache",
+          "--opt=speed",
+          "--output=app",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.7951562500093132,
+        "timed_out": false,
+        "stdout": "0 errors and 0 warnings found in 781ms while successfully building:\n\n    app\n",
+        "stderr": "",
+        "stdout_sha256": "c7d33bfc0c363be1011e8de0cbe76fa591bceeb621b06b93aa6a7a63508a3788",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 77,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "warm_build": {
+        "command": [
+          "roc",
+          "build",
+          "--opt=speed",
+          "--output=app-warm",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.729373165871948,
+        "timed_out": false,
+        "stdout": "0 errors and 0 warnings found in 716ms while successfully building:\n\n    app-warm\n",
+        "stderr": "",
+        "stdout_sha256": "ad2a98dd9daac829718610ead902df548655ce1531dc8aee1e76c311e6eae253",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 82,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "binary_bytes": 441584,
+      "named_outputs": {
+        "ordinary_text": {
+          "stdout": "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li></ul></section>",
+          "stdout_sha256": "f6d6ed960beb656361f53777019c4a14c708abcc127a6bb9a0de6c92587086b5",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "empty_data": {
+          "stdout": "<section title=\"\"><h1></h1><ul></ul></section>",
+          "stdout_sha256": "7110b45b80781656b306aea956138a486429eb991103881f69aaa2dd06d963ce",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "quotes_ampersands_angles": {
+          "stdout": "<section title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude00\"><h1>&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude00</h1><b>active</b><ul><li title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude000\">&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude000</li><li title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude001\">&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude001</li></ul></section>",
+          "stdout_sha256": "875267d1e057958741dba73809c5941190960fe36b47f3ecd35c3575c63fd5ae",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "html_looking_amp": {
+          "stdout": "<section title=\"&lt;&amp;amp;&gt;\"><h1>&lt;&amp;amp;&gt;</h1><ul><li title=\"&lt;&amp;amp;&gt;0\">&lt;&amp;amp;&gt;0</li><li title=\"&lt;&amp;amp;&gt;1\">&lt;&amp;amp;&gt;1</li><li title=\"&lt;&amp;amp;&gt;2\">&lt;&amp;amp;&gt;2</li></ul></section>",
+          "stdout_sha256": "50c0c35544055764133aca423bdc1d7fc92c3b2a8d78ddb7f61cd110c0885e6b",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "script_looking": {
+          "stdout": "<section title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"><h1>&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</h1><b>active</b><ul><li title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0\">&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0</li></ul></section>",
+          "stdout_sha256": "4f5da21aa5b80558ff96fafa6931339cd180589ac265ea0f28bcf64f9163a826",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "cr_in_attribute": {
+          "stdout": "<section title=\"a\nb\rc\td\"><h1>a\nb\rc\td</h1><ul><li title=\"a\nb\rc\td0\">a\nb\rc\td0</li></ul></section>",
+          "stdout_sha256": "7e256412e49c800f3125cd71d9712539013cb646cf5faf388f8279692be23934",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": false,
+          "expected_compatible": false
+        },
+        "template_looking": {
+          "stdout": "<section title=\"{{ name }} @if {}\"><h1>{{ name }} @if {}</h1><b>active</b><ul><li title=\"{{ name }} @if {}0\">{{ name }} @if {}0</li><li title=\"{{ name }} @if {}1\">{{ name }} @if {}1</li><li title=\"{{ name }} @if {}2\">{{ name }} @if {}2</li></ul></section>",
+          "stdout_sha256": "48ae6044949ad2e28c7884a112d74b131679143ee719e5b32ba8e398e132cd29",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        }
+      },
+      "matches_reference": false,
+      "timings": {
+        "small-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.016837500035762787,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.017764541087672114,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.017722082789987326,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.017722082789987326,
+          "checksums": [
+            "317500\n",
+            "317500\n",
+            "317500\n"
+          ]
+        },
+        "large-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.7111412088852376,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.7122666661161929,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.7521605838555843,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.7122666661161929,
+          "checksums": [
+            "16217500\n",
+            "16217500\n",
+            "16217500\n"
+          ]
+        },
+        "large-escaped": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.8631411250680685,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.8603358750697225,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.8594366249162704,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.8603358750697225,
+          "checksums": [
+            "30357500\n",
+            "30357500\n",
+            "30357500\n"
+          ]
+        }
+      },
+      "digest": {
+        "command": [
+          "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+          "digest",
+          "1",
+          "100",
+          "plain"
+        ],
+        "exit": 0,
+        "seconds": 0.0035427080001682043,
+        "timed_out": false,
+        "stdout": "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li><li title=\"plain2\">plain2</li><li title=\"plain3\">plain3</li><li title=\"plain4\">plain4</li><li title=\"plain5\">plain5</li><li title=\"plain6\">plain6</li><li title=\"plain7\">plain7</li><li title=\"plain8\">plain8</li><li title=\"plain9\">plain9</li><li title=\"plain10\">plain10</li><li title=\"plain11\">plain11</li><li title=\"plain12\">plain12</li><li title=\"plain13\">plain13</li><li title=\"plain14\">plain14</li><li title=\"plain15\">plain15</li><li title=\"plain16\">plain16</li><li title=\"plain17\">plain17</li><li title=\"plain18\">plain18</li><li title=\"plain19\">plain19</li><li title=\"plain20\">plain20</li><li title=\"plain21\">plain21</li><li title=\"plain22\">plain22</li><li title=\"plain23\">plain23</li><li title=\"plain24\">plain24</li><li title=\"plain25\">plain25</li><li title=\"plain26\">plain26</li><li title=\"plain27\">plain27</li><li title=\"plain28\">plain28</li><li title=\"plain29\">plain29</li><li title=\"plain30\">plain30</li><li title=\"plain31\">plain31</li><li title=\"plain32\">plain32</li><li title=\"plain33\">plain33</li><li title=\"plain34\">plain34</li><li title=\"plain35\">plain35</li><li title=\"plain36\">plain36</li><li title=\"plain37\">plain37</li><li title=\"plain38\">plain38</li><li title=\"plain39\">plain39</li><li title=\"plain40\">plain40</li><li title=\"plain41\">plain41</li><li title=\"plain42\">plain42</li><li title=\"plain43\">plain43</li><li title=\"plain44\">plain44</li><li title=\"plain45\">plain45</li><li title=\"plain46\">plain46</li><li title=\"plain47\">plain47</li><li title=\"plain48\">plain48</li><li title=\"plain49\">plain49</li><li title=\"plain50\">plain50</li><li title=\"plain51\">plain51</li><li title=\"plain52\">plain52</li><li title=\"plain53\">plain53</li><li title=\"plain54\">plain54</li><li title=\"plain55\">plain55</li><li title=\"plain56\">plain56</li><li title=\"plain57\">plain57</li><li title=\"plain58\">plain58</li><li title=\"plain59\">plain59</li><li title=\"plain60\">plain60</li><li title=\"plain61\">plain61</li><li title=\"plain62\">plain62</li><li title=\"plain63\">plain63</li><li title=\"plain64\">plain64</li><li title=\"plain65\">plain65</li><li title=\"plain66\">plain66</li><li title=\"plain67\">plain67</li><li title=\"plain68\">plain68</li><li title=\"plain69\">plain69</li><li title=\"plain70\">plain70</li><li title=\"plain71\">plain71</li><li title=\"plain72\">plain72</li><li title=\"plain73\">plain73</li><li title=\"plain74\">plain74</li><li title=\"plain75\">plain75</li><li title=\"plain76\">plain76</li><li title=\"plain77\">plain77</li><li title=\"plain78\">plain78</li><li title=\"plain79\">plain79</li><li title=\"plain80\">plain80</li><li title=\"plain81\">plain81</li><li title=\"plain82\">plain82</li><li title=\"plain83\">plain83</li><li title=\"plain84\">plain84</li><li title=\"plain85\">plain85</li><li title=\"plain86\">plain86</li><li title=\"plain87\">plain87</li><li title=\"plain88\">plain88</li><li title=\"plain89\">plain89</li><li title=\"plain90\">plain90</li><li title=\"plain91\">plain91</li><li title=\"plain92\">plain92</li><li title=\"plain93\">plain93</li><li title=\"plain94\">plain94</li><li title=\"plain95\">plain95</li><li title=\"plain96\">plain96</li><li title=\"plain97\">plain97</li><li title=\"plain98\">plain98</li><li title=\"plain99\">plain99</li></ul></section>\n<section title=\"plainX\"><h1>plainX</h1><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li><li title=\"plain2\">plain2</li><li title=\"plain3\">plain3</li><li title=\"plain4\">plain4</li><li title=\"plain5\">plain5</li><li title=\"plain6\">plain6</li><li title=\"plain7\">plain7</li><li title=\"plain8\">plain8</li><li title=\"plain9\">plain9</li><li title=\"plain10\">plain10</li><li title=\"plain11\">plain11</li><li title=\"plain12\">plain12</li><li title=\"plain13\">plain13</li><li title=\"plain14\">plain14</li><li title=\"plain15\">plain15</li><li title=\"plain16\">plain16</li><li title=\"plain17\">plain17</li><li title=\"plain18\">plain18</li><li title=\"plain19\">plain19</li><li title=\"plain20\">plain20</li><li title=\"plain21\">plain21</li><li title=\"plain22\">plain22</li><li title=\"plain23\">plain23</li><li title=\"plain24\">plain24</li><li title=\"plain25\">plain25</li><li title=\"plain26\">plain26</li><li title=\"plain27\">plain27</li><li title=\"plain28\">plain28</li><li title=\"plain29\">plain29</li><li title=\"plain30\">plain30</li><li title=\"plain31\">plain31</li><li title=\"plain32\">plain32</li><li title=\"plain33\">plain33</li><li title=\"plain34\">plain34</li><li title=\"plain35\">plain35</li><li title=\"plain36\">plain36</li><li title=\"plain37\">plain37</li><li title=\"plain38\">plain38</li><li title=\"plain39\">plain39</li><li title=\"plain40\">plain40</li><li title=\"plain41\">plain41</li><li title=\"plain42\">plain42</li><li title=\"plain43\">plain43</li><li title=\"plain44\">plain44</li><li title=\"plain45\">plain45</li><li title=\"plain46\">plain46</li><li title=\"plain47\">plain47</li><li title=\"plain48\">plain48</li><li title=\"plain49\">plain49</li><li title=\"plain50\">plain50</li><li title=\"plain51\">plain51</li><li title=\"plain52\">plain52</li><li title=\"plain53\">plain53</li><li title=\"plain54\">plain54</li><li title=\"plain55\">plain55</li><li title=\"plain56\">plain56</li><li title=\"plain57\">plain57</li><li title=\"plain58\">plain58</li><li title=\"plain59\">plain59</li><li title=\"plain60\">plain60</li><li title=\"plain61\">plain61</li><li title=\"plain62\">plain62</li><li title=\"plain63\">plain63</li><li title=\"plain64\">plain64</li><li title=\"plain65\">plain65</li><li title=\"plain66\">plain66</li><li title=\"plain67\">plain67</li><li title=\"plain68\">plain68</li><li title=\"plain69\">plain69</li><li title=\"plain70\">plain70</li><li title=\"plain71\">plain71</li><li title=\"plain72\">plain72</li><li title=\"plain73\">plain73</li><li title=\"plain74\">plain74</li><li title=\"plain75\">plain75</li><li title=\"plain76\">plain76</li><li title=\"plain77\">plain77</li><li title=\"plain78\">plain78</li><li title=\"plain79\">plain79</li><li title=\"plain80\">plain80</li><li title=\"plain81\">plain81</li><li title=\"plain82\">plain82</li><li title=\"plain83\">plain83</li><li title=\"plain84\">plain84</li><li title=\"plain85\">plain85</li><li title=\"plain86\">plain86</li><li title=\"plain87\">plain87</li><li title=\"plain88\">plain88</li><li title=\"plain89\">plain89</li><li title=\"plain90\">plain90</li><li title=\"plain91\">plain91</li><li title=\"plain92\">plain92</li><li title=\"plain93\">plain93</li><li title=\"plain94\">plain94</li><li title=\"plain95\">plain95</li><li title=\"plain96\">plain96</li><li title=\"plain97\">plain97</li><li title=\"plain98\">plain98</li><li title=\"plain99\">plain99</li></ul></section>",
+        "stderr": "",
+        "stdout_sha256": "a36d18a4ef0ccf23ff688bfe7fa1c61955f7669c45cb1771d41b0f3077973c0c",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 6488,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      }
+    },
+    "rocci-node": {
+      "checks_no_cache": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10381641588173807,
+          "timed_out": false,
+          "stdout": "No errors found in 92ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "b4e7ebd4b8c53d8bce502ef33f199588b2c5e339b7064a01773a42ab520e0f36",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10346787492744625,
+          "timed_out": false,
+          "stdout": "No errors found in 92ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "b4e7ebd4b8c53d8bce502ef33f199588b2c5e339b7064a01773a42ab520e0f36",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "--no-cache",
+            "main.roc"
+          ],
+          "exit": 0,
+          "seconds": 0.10168333305045962,
+          "timed_out": false,
+          "stdout": "No errors found in 91ms for main.roc\n",
+          "stderr": "",
+          "stdout_sha256": "c9e137d304976baa191e95d087426d1c82440a8909c4b29a0e3e32db2ad59d73",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stdout_len": 37,
+          "stderr_len": 0,
+          "invalid_utf8": false
+        }
+      ],
+      "checks_warm": [
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 1,
+          "seconds": 0.04078158317133784,
+          "timed_out": false,
+          "stdout": "",
+          "stderr": "\u2500\u2500 \u2717 type not exposed \u2500 /private/tmp/rocci-template-preparation-phase-0b/rocci-node/Html.roc:5:24\n\nThe type Node is not exposed by the module Runtime/Html.\n\nNode : PlatformHtml.Node\n                   ^^^^^\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 main.roc\n\n",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "bf52b5adacf7b42c555a74d027eb779c2ceb3de90dce1e932adf66e1293bccd9",
+          "stdout_len": 0,
+          "stderr_len": 392,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 1,
+          "seconds": 0.03703341702930629,
+          "timed_out": false,
+          "stdout": "",
+          "stderr": "\u2500\u2500 \u2717 type not exposed \u2500 /private/tmp/rocci-template-preparation-phase-0b/rocci-node/Html.roc:5:24\n\nThe type Node is not exposed by the module Runtime/Html.\n\nNode : PlatformHtml.Node\n                   ^^^^^\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 main.roc\n\n",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "bf52b5adacf7b42c555a74d027eb779c2ceb3de90dce1e932adf66e1293bccd9",
+          "stdout_len": 0,
+          "stderr_len": 392,
+          "invalid_utf8": false
+        },
+        {
+          "command": [
+            "roc",
+            "check",
+            "main.roc"
+          ],
+          "exit": 1,
+          "seconds": 0.037290167063474655,
+          "timed_out": false,
+          "stdout": "",
+          "stderr": "\u2500\u2500 \u2717 type not exposed \u2500 /private/tmp/rocci-template-preparation-phase-0b/rocci-node/Html.roc:5:24\n\nThe type Node is not exposed by the module Runtime/Html.\n\nNode : PlatformHtml.Node\n                   ^^^^^\n\n\u2500\u2500 1 error and 0 warnings \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 main.roc\n\n",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "bf52b5adacf7b42c555a74d027eb779c2ceb3de90dce1e932adf66e1293bccd9",
+          "stdout_len": 0,
+          "stderr_len": 392,
+          "invalid_utf8": false
+        }
+      ],
+      "build": {
+        "command": [
+          "roc",
+          "build",
+          "--no-cache",
+          "--opt=speed",
+          "--output=app",
+          "main.roc"
+        ],
+        "exit": 0,
+        "seconds": 0.7735125829931349,
+        "timed_out": false,
+        "stdout": "0 errors and 0 warnings found in 760ms while successfully building:\n\n    app\n",
+        "stderr": "",
+        "stdout_sha256": "bfdc0e8884c2b55fd172407adf35c5f2a1b19c0f82d64c0fb2fd7a49c69d3747",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 77,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      },
+      "warm_build": {
+        "command": [
+          "roc",
+          "build",
+          "--opt=speed",
+          "--output=app-warm",
+          "main.roc"
+        ],
+        "exit": 1,
+        "seconds": 0.7046462909784168,
+        "timed_out": false,
+        "stdout": "1 error and 0 warnings found in 692ms while successfully building:\n\n    app-warm\n",
+        "stderr": "\u2500\u2500 \u2717 type not exposed \u2500 /private/tmp/rocci-template-preparation-phase-0b/rocci-node/Html.roc:5:24\n\nThe type Node is not exposed by the module Runtime/Html.\n\nNode : PlatformHtml.Node\n                   ^^^^^\n\n",
+        "stdout_sha256": "5df601d96c413a3d13201f97d4b4e75f87f323448cff66a009ca55c415a2f2f6",
+        "stderr_sha256": "2d72bb5d79651a7cd91de8426f35a2b1c0155604d43c545078cecf40eaadfac3",
+        "stdout_len": 81,
+        "stderr_len": 216,
+        "invalid_utf8": false
+      },
+      "binary_bytes": 425104,
+      "named_outputs": {
+        "ordinary_text": {
+          "stdout": "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li></ul></section>",
+          "stdout_sha256": "f6d6ed960beb656361f53777019c4a14c708abcc127a6bb9a0de6c92587086b5",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "empty_data": {
+          "stdout": "<section title=\"\"><h1></h1><ul></ul></section>",
+          "stdout_sha256": "7110b45b80781656b306aea956138a486429eb991103881f69aaa2dd06d963ce",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "quotes_ampersands_angles": {
+          "stdout": "<section title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude00\"><h1>&amp;&lt;&gt;\"' caf\u00e9 \ud83d\ude00</h1><b>active</b><ul><li title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude000\">&amp;&lt;&gt;\"' caf\u00e9 \ud83d\ude000</li><li title=\"&amp;&lt;&gt;&quot;&#39; caf\u00e9 \ud83d\ude001\">&amp;&lt;&gt;\"' caf\u00e9 \ud83d\ude001</li></ul></section>",
+          "stdout_sha256": "275ed62b3f4d7ca59484aed75ba1e46421728f8aaa6dfb444003ddcce0744266",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "html_looking_amp": {
+          "stdout": "<section title=\"&lt;&amp;amp;&gt;\"><h1>&lt;&amp;amp;&gt;</h1><ul><li title=\"&lt;&amp;amp;&gt;0\">&lt;&amp;amp;&gt;0</li><li title=\"&lt;&amp;amp;&gt;1\">&lt;&amp;amp;&gt;1</li><li title=\"&lt;&amp;amp;&gt;2\">&lt;&amp;amp;&gt;2</li></ul></section>",
+          "stdout_sha256": "50c0c35544055764133aca423bdc1d7fc92c3b2a8d78ddb7f61cd110c0885e6b",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "script_looking": {
+          "stdout": "<section title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;\"><h1>\"&gt;&lt;script&gt;alert(1)&lt;/script&gt;</h1><b>active</b><ul><li title=\"&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;0\">\"&gt;&lt;script&gt;alert(1)&lt;/script&gt;0</li></ul></section>",
+          "stdout_sha256": "3d99b7b4c00f8f7ff51e84132fd61f29cd99b5149e0877bb42e878e1888fc7f1",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "cr_in_attribute": {
+          "stdout": "<section title=\"a&#10;b&#13;c\td\"><h1>a\nb\rc\td</h1><ul><li title=\"a&#10;b&#13;c\td0\">a\nb\rc\td0</li></ul></section>",
+          "stdout_sha256": "5878834a3198e19ea567a2886abc8a3d5e24fd129dc2ee6766eda85feaae6e14",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        },
+        "template_looking": {
+          "stdout": "<section title=\"{{ name }} @if {}\"><h1>{{ name }} @if {}</h1><b>active</b><ul><li title=\"{{ name }} @if {}0\">{{ name }} @if {}0</li><li title=\"{{ name }} @if {}1\">{{ name }} @if {}1</li><li title=\"{{ name }} @if {}2\">{{ name }} @if {}2</li></ul></section>",
+          "stdout_sha256": "48ae6044949ad2e28c7884a112d74b131679143ee719e5b32ba8e398e132cd29",
+          "exit": 0,
+          "timed_out": false,
+          "invalid_utf8": false,
+          "matches_reference": true,
+          "expected_compatible": true
+        }
+      },
+      "matches_reference": true,
+      "timings": {
+        "small-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.012745708925649524,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.01120175002142787,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.010738624958321452,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 7,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.01120175002142787,
+          "checksums": [
+            "317500\n",
+            "317500\n",
+            "317500\n"
+          ]
+        },
+        "large-clean": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.3733551250770688,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.37670075008645654,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.3732655420899391,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.3733551250770688,
+          "checksums": [
+            "16217500\n",
+            "16217500\n",
+            "16217500\n"
+          ]
+        },
+        "large-escaped": {
+          "runs": [
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.6412712919991463,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.6428640000522137,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            },
+            {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.6755577079020441,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "stdout_len": 9,
+              "stderr_len": 0,
+              "invalid_utf8": false
+            }
+          ],
+          "median_seconds": 0.6428640000522137,
+          "checksums": [
+            "30357500\n",
+            "30357500\n",
+            "30357500\n"
+          ]
+        }
+      },
+      "digest": {
+        "command": [
+          "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+          "digest",
+          "1",
+          "100",
+          "plain"
+        ],
+        "exit": 0,
+        "seconds": 0.0035301251336932182,
+        "timed_out": false,
+        "stdout": "<section title=\"plain\"><h1>plain</h1><b>active</b><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li><li title=\"plain2\">plain2</li><li title=\"plain3\">plain3</li><li title=\"plain4\">plain4</li><li title=\"plain5\">plain5</li><li title=\"plain6\">plain6</li><li title=\"plain7\">plain7</li><li title=\"plain8\">plain8</li><li title=\"plain9\">plain9</li><li title=\"plain10\">plain10</li><li title=\"plain11\">plain11</li><li title=\"plain12\">plain12</li><li title=\"plain13\">plain13</li><li title=\"plain14\">plain14</li><li title=\"plain15\">plain15</li><li title=\"plain16\">plain16</li><li title=\"plain17\">plain17</li><li title=\"plain18\">plain18</li><li title=\"plain19\">plain19</li><li title=\"plain20\">plain20</li><li title=\"plain21\">plain21</li><li title=\"plain22\">plain22</li><li title=\"plain23\">plain23</li><li title=\"plain24\">plain24</li><li title=\"plain25\">plain25</li><li title=\"plain26\">plain26</li><li title=\"plain27\">plain27</li><li title=\"plain28\">plain28</li><li title=\"plain29\">plain29</li><li title=\"plain30\">plain30</li><li title=\"plain31\">plain31</li><li title=\"plain32\">plain32</li><li title=\"plain33\">plain33</li><li title=\"plain34\">plain34</li><li title=\"plain35\">plain35</li><li title=\"plain36\">plain36</li><li title=\"plain37\">plain37</li><li title=\"plain38\">plain38</li><li title=\"plain39\">plain39</li><li title=\"plain40\">plain40</li><li title=\"plain41\">plain41</li><li title=\"plain42\">plain42</li><li title=\"plain43\">plain43</li><li title=\"plain44\">plain44</li><li title=\"plain45\">plain45</li><li title=\"plain46\">plain46</li><li title=\"plain47\">plain47</li><li title=\"plain48\">plain48</li><li title=\"plain49\">plain49</li><li title=\"plain50\">plain50</li><li title=\"plain51\">plain51</li><li title=\"plain52\">plain52</li><li title=\"plain53\">plain53</li><li title=\"plain54\">plain54</li><li title=\"plain55\">plain55</li><li title=\"plain56\">plain56</li><li title=\"plain57\">plain57</li><li title=\"plain58\">plain58</li><li title=\"plain59\">plain59</li><li title=\"plain60\">plain60</li><li title=\"plain61\">plain61</li><li title=\"plain62\">plain62</li><li title=\"plain63\">plain63</li><li title=\"plain64\">plain64</li><li title=\"plain65\">plain65</li><li title=\"plain66\">plain66</li><li title=\"plain67\">plain67</li><li title=\"plain68\">plain68</li><li title=\"plain69\">plain69</li><li title=\"plain70\">plain70</li><li title=\"plain71\">plain71</li><li title=\"plain72\">plain72</li><li title=\"plain73\">plain73</li><li title=\"plain74\">plain74</li><li title=\"plain75\">plain75</li><li title=\"plain76\">plain76</li><li title=\"plain77\">plain77</li><li title=\"plain78\">plain78</li><li title=\"plain79\">plain79</li><li title=\"plain80\">plain80</li><li title=\"plain81\">plain81</li><li title=\"plain82\">plain82</li><li title=\"plain83\">plain83</li><li title=\"plain84\">plain84</li><li title=\"plain85\">plain85</li><li title=\"plain86\">plain86</li><li title=\"plain87\">plain87</li><li title=\"plain88\">plain88</li><li title=\"plain89\">plain89</li><li title=\"plain90\">plain90</li><li title=\"plain91\">plain91</li><li title=\"plain92\">plain92</li><li title=\"plain93\">plain93</li><li title=\"plain94\">plain94</li><li title=\"plain95\">plain95</li><li title=\"plain96\">plain96</li><li title=\"plain97\">plain97</li><li title=\"plain98\">plain98</li><li title=\"plain99\">plain99</li></ul></section>\n<section title=\"plainX\"><h1>plainX</h1><ul><li title=\"plain0\">plain0</li><li title=\"plain1\">plain1</li><li title=\"plain2\">plain2</li><li title=\"plain3\">plain3</li><li title=\"plain4\">plain4</li><li title=\"plain5\">plain5</li><li title=\"plain6\">plain6</li><li title=\"plain7\">plain7</li><li title=\"plain8\">plain8</li><li title=\"plain9\">plain9</li><li title=\"plain10\">plain10</li><li title=\"plain11\">plain11</li><li title=\"plain12\">plain12</li><li title=\"plain13\">plain13</li><li title=\"plain14\">plain14</li><li title=\"plain15\">plain15</li><li title=\"plain16\">plain16</li><li title=\"plain17\">plain17</li><li title=\"plain18\">plain18</li><li title=\"plain19\">plain19</li><li title=\"plain20\">plain20</li><li title=\"plain21\">plain21</li><li title=\"plain22\">plain22</li><li title=\"plain23\">plain23</li><li title=\"plain24\">plain24</li><li title=\"plain25\">plain25</li><li title=\"plain26\">plain26</li><li title=\"plain27\">plain27</li><li title=\"plain28\">plain28</li><li title=\"plain29\">plain29</li><li title=\"plain30\">plain30</li><li title=\"plain31\">plain31</li><li title=\"plain32\">plain32</li><li title=\"plain33\">plain33</li><li title=\"plain34\">plain34</li><li title=\"plain35\">plain35</li><li title=\"plain36\">plain36</li><li title=\"plain37\">plain37</li><li title=\"plain38\">plain38</li><li title=\"plain39\">plain39</li><li title=\"plain40\">plain40</li><li title=\"plain41\">plain41</li><li title=\"plain42\">plain42</li><li title=\"plain43\">plain43</li><li title=\"plain44\">plain44</li><li title=\"plain45\">plain45</li><li title=\"plain46\">plain46</li><li title=\"plain47\">plain47</li><li title=\"plain48\">plain48</li><li title=\"plain49\">plain49</li><li title=\"plain50\">plain50</li><li title=\"plain51\">plain51</li><li title=\"plain52\">plain52</li><li title=\"plain53\">plain53</li><li title=\"plain54\">plain54</li><li title=\"plain55\">plain55</li><li title=\"plain56\">plain56</li><li title=\"plain57\">plain57</li><li title=\"plain58\">plain58</li><li title=\"plain59\">plain59</li><li title=\"plain60\">plain60</li><li title=\"plain61\">plain61</li><li title=\"plain62\">plain62</li><li title=\"plain63\">plain63</li><li title=\"plain64\">plain64</li><li title=\"plain65\">plain65</li><li title=\"plain66\">plain66</li><li title=\"plain67\">plain67</li><li title=\"plain68\">plain68</li><li title=\"plain69\">plain69</li><li title=\"plain70\">plain70</li><li title=\"plain71\">plain71</li><li title=\"plain72\">plain72</li><li title=\"plain73\">plain73</li><li title=\"plain74\">plain74</li><li title=\"plain75\">plain75</li><li title=\"plain76\">plain76</li><li title=\"plain77\">plain77</li><li title=\"plain78\">plain78</li><li title=\"plain79\">plain79</li><li title=\"plain80\">plain80</li><li title=\"plain81\">plain81</li><li title=\"plain82\">plain82</li><li title=\"plain83\">plain83</li><li title=\"plain84\">plain84</li><li title=\"plain85\">plain85</li><li title=\"plain86\">plain86</li><li title=\"plain87\">plain87</li><li title=\"plain88\">plain88</li><li title=\"plain89\">plain89</li><li title=\"plain90\">plain90</li><li title=\"plain91\">plain91</li><li title=\"plain92\">plain92</li><li title=\"plain93\">plain93</li><li title=\"plain94\">plain94</li><li title=\"plain95\">plain95</li><li title=\"plain96\">plain96</li><li title=\"plain97\">plain97</li><li title=\"plain98\">plain98</li><li title=\"plain99\">plain99</li></ul></section>",
+        "stderr": "",
+        "stdout_sha256": "a36d18a4ef0ccf23ff688bfe7fa1c61955f7669c45cb1771d41b0f3077973c0c",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_len": 6488,
+        "stderr_len": 0,
+        "invalid_utf8": false
+      }
+    }
+  },
+  "bench_requested": true,
+  "allocations_requested": true,
+  "allocations": {
+    "prepared": {
+      "small-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 198,
+              "reallocations": 1,
+              "frees": 29,
+              "requested_bytes": 11779
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "0",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.20052537508308887,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":198,\"reallocations\":1,\"frees\":29,\"requested_bytes\":11779}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "5a1ef08e067e2cd8bebde08c9f346dcddb3c3c3427aedd2e984dc092d43eff28",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 135198,
+              "reallocations": 5001,
+              "frees": 135029,
+              "requested_bytes": 34691782
+            },
+            "checksum": "317500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.022247832966968417,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":135198,\"reallocations\":5001,\"frees\":135029,\"requested_bytes\":34691782}\n",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "c9eefee4bd959ce284c71db0228be6ff11e12cca5c6b7a851060fa12acb277b7",
+              "stdout_len": 7,
+              "stderr_len": 98,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 270198,
+              "reallocations": 10001,
+              "frees": 270029,
+              "requested_bytes": 69371783
+            },
+            "checksum": "635000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "10000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.03140470897778869,
+              "timed_out": false,
+              "stdout": "635000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":270198,\"reallocations\":10001,\"frees\":270029,\"requested_bytes\":69371783}\n",
+              "stdout_sha256": "6a08a1d546c2497865e2da2a0aab9ef12a0d4867b16337f39faa19f460d88520",
+              "stderr_sha256": "fda72d466df846d16839d61a2422a851cd00a41eba74cd6831f3b82778276692",
+              "stdout_len": 7,
+              "stderr_len": 99,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 27.0,
+          "reallocations": 1.0,
+          "frees": 27.0,
+          "requested_bytes": 6936.0006
+        },
+        "linear_calls": true
+      },
+      "large-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15021
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "0",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.013975667068734765,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":200,\"reallocations\":1,\"frees\":31,\"requested_bytes\":15021}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "b8f10d5afa7e4d5803510a8714e26cbce0f63b89d9f3c1a8f6c01cefce33a7c6",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 135200,
+              "reallocations": 75001,
+              "frees": 135031,
+              "requested_bytes": 192815024
+            },
+            "checksum": "16217500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.12332124984823167,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":135200,\"reallocations\":75001,\"frees\":135031,\"requested_bytes\":192815024}\n",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "9441fc9cfd0a952cf14a9a69514942e98d848b54374dac89bc705a1a2ff363e2",
+              "stdout_len": 9,
+              "stderr_len": 100,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 270200,
+              "reallocations": 150001,
+              "frees": 270031,
+              "requested_bytes": 385615025
+            },
+            "checksum": "32435000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "10000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.20859687495976686,
+              "timed_out": false,
+              "stdout": "32435000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":270200,\"reallocations\":150001,\"frees\":270031,\"requested_bytes\":385615025}\n",
+              "stdout_sha256": "b715e432b67b9080f59cde53573ec4e667f03c265ab0e8d7793a89bebd83c4e3",
+              "stderr_sha256": "8fde6c9d4c7f143768b9e50dc77a681198695f0b363a3540055365a25daebd83",
+              "stdout_len": 9,
+              "stderr_len": 101,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 27.0,
+          "reallocations": 15.0,
+          "frees": 27.0,
+          "requested_bytes": 38560.0006
+        },
+        "linear_calls": true
+      },
+      "large-escaped": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15025
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "0",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.006106875138357282,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":200,\"reallocations\":1,\"frees\":31,\"requested_bytes\":15025}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "56d39adcc624364122b6d4106a1392ac985f2d999af68a9f10f0465cc249532d",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 1145200,
+              "reallocations": 80001,
+              "frees": 1145031,
+              "requested_bytes": 293330028
+            },
+            "checksum": "30357500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.23008699994534254,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":1145200,\"reallocations\":80001,\"frees\":1145031,\"requested_bytes\":293330028}\n",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "84f7cf7020c293a4fa4ab46cc509243892d3a878b10b8e47445afaf5ab740fda",
+              "stdout_len": 9,
+              "stderr_len": 102,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 2290200,
+              "reallocations": 160001,
+              "frees": 2290031,
+              "requested_bytes": 586645029
+            },
+            "checksum": "60715000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/prepared/app",
+                "bench",
+                "10000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.45371525012888014,
+              "timed_out": false,
+              "stdout": "60715000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":2290200,\"reallocations\":160001,\"frees\":2290031,\"requested_bytes\":586645029}\n",
+              "stdout_sha256": "57483c510fc7b1c625b37a55cc2c9ff7acf4992d8edc670bd6625079821e09de",
+              "stderr_sha256": "be6c56499c2c8cbbebaa68a1ebc623891b3bfe5a1824ae619a025db483b118f3",
+              "stdout_len": 9,
+              "stderr_len": 103,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 229.0,
+          "reallocations": 16.0,
+          "frees": 229.0,
+          "requested_bytes": 58663.0006
+        },
+        "linear_calls": true
+      }
+    },
+    "rocci-string": {
+      "small-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 198,
+              "reallocations": 1,
+              "frees": 29,
+              "requested_bytes": 11803
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "0",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.006260249996557832,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":198,\"reallocations\":1,\"frees\":29,\"requested_bytes\":11803}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "94cbd1ec30c0fbe3b93878b9c495b99004ce73c91d56488b662e9a6684325c27",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 250198,
+              "reallocations": 17501,
+              "frees": 250029,
+              "requested_bytes": 20824306
+            },
+            "checksum": "317500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.021877042017877102,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":250198,\"reallocations\":17501,\"frees\":250029,\"requested_bytes\":20824306}\n",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "0a3e670a5580a78d92815f3dbe3791562184cf2710864da57bf05c26613401f1",
+              "stdout_len": 7,
+              "stderr_len": 99,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 500198,
+              "reallocations": 35001,
+              "frees": 500029,
+              "requested_bytes": 41636807
+            },
+            "checksum": "635000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "10000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.03846362512558699,
+              "timed_out": false,
+              "stdout": "635000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":500198,\"reallocations\":35001,\"frees\":500029,\"requested_bytes\":41636807}\n",
+              "stdout_sha256": "6a08a1d546c2497865e2da2a0aab9ef12a0d4867b16337f39faa19f460d88520",
+              "stderr_sha256": "51508aba3e2559fdc805919cc9b885a58d5fa22cf8248f2419ad6dd9c62b9497",
+              "stdout_len": 7,
+              "stderr_len": 99,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 50.0,
+          "reallocations": 3.5,
+          "frees": 50.0,
+          "requested_bytes": 4162.5006
+        },
+        "linear_calls": true
+      },
+      "large-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15045
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "0",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.005187083035707474,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":200,\"reallocations\":1,\"frees\":31,\"requested_bytes\":15045}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "5643618d1a97318215bc78cef1a09b509f6f6d08aba202007014283f1579fa6f",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 12765200,
+              "reallocations": 1532501,
+              "frees": 12765031,
+              "requested_bytes": 1242317548
+            },
+            "checksum": "16217500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.8432401670143008,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":12765200,\"reallocations\":1532501,\"frees\":12765031,\"requested_bytes\":1242317548}\n",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "fe38d4defd1b5adcdd52f1054db36a2b2926ea83cb17fc4d7dcbf2c956480de5",
+              "stdout_len": 9,
+              "stderr_len": 107,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 25530200,
+              "reallocations": 3065001,
+              "frees": 25530031,
+              "requested_bytes": 2484620049
+            },
+            "checksum": "32435000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "10000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 1.686857583001256,
+              "timed_out": false,
+              "stdout": "32435000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":25530200,\"reallocations\":3065001,\"frees\":25530031,\"requested_bytes\":2484620049}\n",
+              "stdout_sha256": "b715e432b67b9080f59cde53573ec4e667f03c265ab0e8d7793a89bebd83c4e3",
+              "stderr_sha256": "a4ea5170a1bd373ef7802bae011ac553e46edc50afb58062005213369e262346",
+              "stdout_len": 9,
+              "stderr_len": 107,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 2553.0,
+          "reallocations": 306.5,
+          "frees": 2553.0,
+          "requested_bytes": 248460.5006
+        },
+        "linear_calls": true
+      },
+      "large-escaped": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15049
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "0",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.006210707826539874,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":200,\"reallocations\":1,\"frees\":31,\"requested_bytes\":15049}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "e19b58e79b55dda271265013169b4d05f725a937b6b259531929fbe09acf42fc",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 13780200,
+              "reallocations": 1057501,
+              "frees": 13780031,
+              "requested_bytes": 1424875052
+            },
+            "checksum": "30357500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 1.0125758331269026,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":13780200,\"reallocations\":1057501,\"frees\":13780031,\"requested_bytes\":1424875052}\n",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "6c34d2c2159c7b527ebf9c6a6df1282f745bebdc9c440017b03acb6b4262d6af",
+              "stdout_len": 9,
+              "stderr_len": 107,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 27560200,
+              "reallocations": 2115001,
+              "frees": 27560031,
+              "requested_bytes": 2849735053
+            },
+            "checksum": "60715000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-string/app",
+                "bench",
+                "10000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 2.160945124924183,
+              "timed_out": false,
+              "stdout": "60715000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":27560200,\"reallocations\":2115001,\"frees\":27560031,\"requested_bytes\":2849735053}\n",
+              "stdout_sha256": "57483c510fc7b1c625b37a55cc2c9ff7acf4992d8edc670bd6625079821e09de",
+              "stderr_sha256": "3812a4432877f60cfdc7defd7f48ddc99558a98af708bc71d828fba28776679f",
+              "stdout_len": 9,
+              "stderr_len": 107,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 2756.0,
+          "reallocations": 211.5,
+          "frees": 2756.0,
+          "requested_bytes": 284972.0006
+        },
+        "linear_calls": true
+      }
+    },
+    "rocci-node": {
+      "small-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 198,
+              "reallocations": 1,
+              "frees": 29,
+              "requested_bytes": 11791
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "0",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.0061012080404907465,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":198,\"reallocations\":1,\"frees\":29,\"requested_bytes\":11791}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "7b0cbfd139c7ec6a01dc07f1eadaa285e5182d2bd37bc97db2b1bd1be2331d7d",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 70198,
+              "reallocations": 17501,
+              "frees": 70029,
+              "requested_bytes": 7254294
+            },
+            "checksum": "317500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.01284700003452599,
+              "timed_out": false,
+              "stdout": "317500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":70198,\"reallocations\":17501,\"frees\":70029,\"requested_bytes\":7254294}\n",
+              "stdout_sha256": "02e46b82c4a818096af7243b70918b26d0d5209530d9c0d4cf43ef2cc67e0688",
+              "stderr_sha256": "813e8805a4ce57afbb9cfdbeff56fa64f32c26eed87c16974641fb3cdd749a31",
+              "stdout_len": 7,
+              "stderr_len": 96,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 140198,
+              "reallocations": 35001,
+              "frees": 140029,
+              "requested_bytes": 14496795
+            },
+            "checksum": "635000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "10000",
+                "0",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.02054550009779632,
+              "timed_out": false,
+              "stdout": "635000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":140198,\"reallocations\":35001,\"frees\":140029,\"requested_bytes\":14496795}\n",
+              "stdout_sha256": "6a08a1d546c2497865e2da2a0aab9ef12a0d4867b16337f39faa19f460d88520",
+              "stderr_sha256": "6a0b3c77e7bc236cd656e5e3782add966ea866ec321a5b2966f769f523d592d5",
+              "stdout_len": 7,
+              "stderr_len": 99,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 14.0,
+          "reallocations": 3.5,
+          "frees": 14.0,
+          "requested_bytes": 1448.5006
+        },
+        "linear_calls": true
+      },
+      "large-clean": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15033
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "0",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.0052254588808864355,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":200,\"reallocations\":1,\"frees\":31,\"requested_bytes\":15033}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "334720300ea9605498c03ddd34d66d605f044c0037c8a12049d02e368136f4d3",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 4590200,
+              "reallocations": 1532501,
+              "frees": 4590031,
+              "requested_bytes": 619767536
+            },
+            "checksum": "16217500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.42489720787853,
+              "timed_out": false,
+              "stdout": "16217500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":4590200,\"reallocations\":1532501,\"frees\":4590031,\"requested_bytes\":619767536}\n",
+              "stdout_sha256": "8823c700e7765486587da39e95e1caf786b5bb3b536613f7dd56b6d763bd67c7",
+              "stderr_sha256": "59e0ec1ccb0d705ae83f4f859f15142de8e1620de27e67a8aabf67a01d2b5d6c",
+              "stdout_len": 9,
+              "stderr_len": 104,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 9180200,
+              "reallocations": 3065001,
+              "frees": 9180031,
+              "requested_bytes": 1239520037
+            },
+            "checksum": "32435000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "10000",
+                "100",
+                "plain"
+              ],
+              "exit": 0,
+              "seconds": 0.847084583947435,
+              "timed_out": false,
+              "stdout": "32435000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":9180200,\"reallocations\":3065001,\"frees\":9180031,\"requested_bytes\":1239520037}\n",
+              "stdout_sha256": "b715e432b67b9080f59cde53573ec4e667f03c265ab0e8d7793a89bebd83c4e3",
+              "stderr_sha256": "a360737b521605278e6c49e179fa5449208b78e12053c2ce88d3ac28c5c1e87e",
+              "stdout_len": 9,
+              "stderr_len": 105,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 918.0,
+          "reallocations": 306.5,
+          "frees": 918.0,
+          "requested_bytes": 123950.5006
+        },
+        "linear_calls": true
+      },
+      "large-escaped": {
+        "runs": [
+          {
+            "repetitions": 0,
+            "counts": {
+              "allocations": 200,
+              "reallocations": 1,
+              "frees": 31,
+              "requested_bytes": 15037
+            },
+            "checksum": "0",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "0",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.006313416874036193,
+              "timed_out": false,
+              "stdout": "0\n",
+              "stderr": "ALLOCATIONS {\"allocations\":200,\"reallocations\":1,\"frees\":31,\"requested_bytes\":15037}\n",
+              "stdout_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+              "stderr_sha256": "1b9d6ed025abb24d3a530710533c4ea0cfb5e7169553271ace8ec25e999b70a1",
+              "stdout_len": 2,
+              "stderr_len": 85,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 5000,
+            "counts": {
+              "allocations": 8130200,
+              "reallocations": 4087501,
+              "frees": 8130031,
+              "requested_bytes": 920437540
+            },
+            "checksum": "30357500",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "5000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 0.7592319170944393,
+              "timed_out": false,
+              "stdout": "30357500\n",
+              "stderr": "ALLOCATIONS {\"allocations\":8130200,\"reallocations\":4087501,\"frees\":8130031,\"requested_bytes\":920437540}\n",
+              "stdout_sha256": "2a780215835f773ed59e799170371bd6e48764b3282afa38d146c96b59ab7c1f",
+              "stderr_sha256": "1c85f6986a766ed33789eabb392d278790f8d559df3cdb64d7de104f9bc01d52",
+              "stdout_len": 9,
+              "stderr_len": 104,
+              "invalid_utf8": false
+            }
+          },
+          {
+            "repetitions": 10000,
+            "counts": {
+              "allocations": 16260200,
+              "reallocations": 8175001,
+              "frees": 16260031,
+              "requested_bytes": 1840860041
+            },
+            "checksum": "60715000",
+            "run": {
+              "command": [
+                "/tmp/rocci-template-preparation-phase-0b/rocci-node/app",
+                "bench",
+                "10000",
+                "100",
+                "<& caf\u00e9>"
+              ],
+              "exit": 0,
+              "seconds": 1.545484291156754,
+              "timed_out": false,
+              "stdout": "60715000\n",
+              "stderr": "ALLOCATIONS {\"allocations\":16260200,\"reallocations\":8175001,\"frees\":16260031,\"requested_bytes\":1840860041}\n",
+              "stdout_sha256": "57483c510fc7b1c625b37a55cc2c9ff7acf4992d8edc670bd6625079821e09de",
+              "stderr_sha256": "f4b1087b378656fe10dd94e74177199e8159d06ebad438f046c0d34bbd9db5e4",
+              "stdout_len": 9,
+              "stderr_len": 107,
+              "invalid_utf8": false
+            }
+          }
+        ],
+        "per_render": {
+          "allocations": 1626.0,
+          "reallocations": 817.5,
+          "frees": 1626.0,
+          "requested_bytes": 184084.5006
+        },
+        "linear_calls": true
+      }
+    }
+  },
+  "harness_ok": true,
+  "type_contract_ok": true,
+  "html_compatible": false,
+  "html_expected_findings_confirmed": true,
+  "error": null,
+  "harness_fault_probes": [
+    {
+      "name": "absent_backend",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "problems": [
+        "missing_probes",
+        "missing_variant:prepared:ordinary_text",
+        "missing_variant:prepared:empty_data",
+        "missing_variant:prepared:quotes_ampersands_angles",
+        "missing_variant:prepared:html_looking_amp",
+        "missing_variant:prepared:script_looking",
+        "missing_variant:prepared:cr_in_attribute",
+        "missing_variant:prepared:template_looking",
+        "missing_timing:prepared:small-clean",
+        "missing_timing:prepared:large-clean",
+        "missing_timing:prepared:large-escaped",
+        "missing_variant:rocci-string:ordinary_text",
+        "missing_variant:rocci-string:empty_data",
+        "missing_variant:rocci-string:quotes_ampersands_angles",
+        "missing_variant:rocci-string:html_looking_amp",
+        "missing_variant:rocci-string:script_looking",
+        "missing_variant:rocci-string:cr_in_attribute",
+        "missing_variant:rocci-string:template_looking",
+        "missing_timing:rocci-string:small-clean",
+        "missing_timing:rocci-string:large-clean",
+        "missing_timing:rocci-string:large-escaped",
+        "absent_backend:rocci-node"
+      ]
+    },
+    {
+      "name": "same_length_wrong_output",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "length_equal": true,
+      "digest_equal": false
+    },
+    {
+      "name": "wrong_expected_error",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "probe_outcome_rejected": true
+    },
+    {
+      "name": "corrupted_source_hash",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false
+    },
+    {
+      "name": "timed_out_child",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "timed_out": true,
+      "exit": null,
+      "negative_test_rejected": true
+    },
+    {
+      "name": "porcelain_paths",
+      "passed": true,
+      "complete": true,
+      "dirty": [
+        "docs/appendix/glossary.rocdown",
+        "src/lib.rs"
+      ],
+      "untracked": [
+        "roc/template-preparation-experiment/"
+      ]
+    }
+  ],
+  "inspect": {
+    "command": [
+      "/Users/nils/Projects/rocci/target/debug/rocci-template",
+      "inspect",
+      "--ast",
+      "/Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci"
+    ],
+    "exit": 0,
+    "seconds": 0.0031536249443888664,
+    "timed_out": false,
+    "stdout": "# components (1)\n- card (title, active, items)\n# fixtures (0)\n# tests (0)\n# handlers (0)\n# styles (0)\n\n# ast\n(module\n  (component Card\n    (params \"|{ title, active, items }|\")\n    (element section\n      (attr title title)\n      (element h1\n        (interp title))\n      (if active\n        (element b\n          (text \"active\")))\n      (element ul\n        (for item items\n          (element li\n            (attr title item.name)\n            (interp item.name)))))))\n\n\n# generated roc\nimport Html\n\ncard = |{ title, active, items }| {\n    Html.element(\n        \"section\",\n        [\n            Html.attribute(\"title\", title),\n        ],\n        [\n            Html.element(\n                \"h1\",\n                [],\n                [\n                    Html.text(title),\n                ],\n            ),\n            if active {\n                Html.element(\n                    \"b\",\n                    [],\n                    [\n                        Html.text(\"active\"),\n                    ],\n                )\n            } else {\n                Html.empty\n            },\n            Html.element(\n                \"ul\",\n                [],\n                List.map(items, |item| {\n                    Html.element(\n                        \"li\",\n                        [\n                            Html.attribute(\"title\", item.name),\n                        ],\n                        [\n                            Html.text(item.name),\n                        ],\n                    )\n                }),\n            ),\n        ],\n    )\n}\n\n\n# segments (18)\n- generated 13..17 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:1:12 component_signature (Card)\n- generated 20..46 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:1:19 component_signature (|{ title, active, items }|)\n- generated 75..84 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:6 static_markup (section)\n- generated 123..130 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:14 static_markup (title)\n- generated 132..137 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:21 attribute_expression (title)\n- generated 203..207 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:29 static_markup (h1)\n- generated 277..282 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:33 text_expression (title)\n- generated 334..340 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:48 directive (active)\n- generated 393..396 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:58 static_markup (b)\n- generated 478..486 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:60 static_markup (active)\n- generated 635..639 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:73 static_markup (ul)\n- generated 686..691 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:89 directive (items)\n- generated 694..698 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:81 directive (item)\n- generated 760..764 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:98 static_markup (li)\n- generated 835..842 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:101 static_markup (title)\n- generated 844..853 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:108 attribute_expression (item.name)\n- generated 947..956 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:120 text_expression (item.name)\n- generated 1062..1063 <- /Users/nils/Projects/rocci/roc/template-preparation-experiment/Card.rocci:2:152 ordinary_roc (\\n)\n",
+    "stderr": "",
+    "stdout_sha256": "505b7071314abd32d44cd41fdea7469dcff8863ade173188881290b4b76ae660",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_len": 3844,
+    "stderr_len": 0,
+    "invalid_utf8": false
+  },
+  "speed_ordering": {
+    "fastest_to_slowest": {
+      "small-clean": [
+        "rocci-node",
+        "prepared",
+        "rocci-string"
+      ],
+      "large-clean": [
+        "prepared",
+        "rocci-node",
+        "rocci-string"
+      ],
+      "large-escaped": [
+        "prepared",
+        "rocci-node",
+        "rocci-string"
+      ]
+    },
+    "reproduced_claimed_large_prepared_win": true,
+    "reproduced_claimed_small_node_win": true
+  },
+  "missing_probes": [],
+  "benchmark_length_checksums_equal": true,
+  "output_digests_equal": true,
+  "harness_problems": []
+}
