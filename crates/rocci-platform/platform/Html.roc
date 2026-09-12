@@ -257,25 +257,46 @@ escape_attribute = |value| escape_html_bytes(value, Bool.True)
 
 escape_html_bytes : Str, Bool -> Str
 escape_html_bytes = |value, escape_quotes| {
-	escaped_bytes =
-		Str.to_utf8(value).fold(
-			[],
-			|bytes, byte|
+	bytes = Str.to_utf8(value)
+	needs_escape = bytes.fold(
+		Bool.False,
+		|found, byte|
+			if found {
+				Bool.True
+			} else {
 				match byte {
-					38 => bytes.concat([38, 97, 109, 112, 59])
-					60 => bytes.concat([38, 108, 116, 59])
-					62 => bytes.concat([38, 103, 116, 59])
-					34 if escape_quotes => bytes.concat([38, 113, 117, 111, 116, 59])
-					39 if escape_quotes => bytes.concat([38, 35, 51, 57, 59])
-					10 if escape_quotes => bytes.concat([38, 35, 49, 48, 59])
-					13 if escape_quotes => bytes.concat([38, 35, 49, 51, 59])
-					_ => bytes.append(byte)
+					38 => Bool.True
+					60 => Bool.True
+					62 => Bool.True
+					34 if escape_quotes => Bool.True
+					39 if escape_quotes => Bool.True
+					10 if escape_quotes => Bool.True
+					13 if escape_quotes => Bool.True
+					_ => Bool.False
+				}
+			},
+	)
+	if !needs_escape {
+		value
+	} else {
+		escaped_bytes = bytes.fold(
+			List.with_capacity(bytes.len() * 2),
+			|out, byte|
+				match byte {
+					38 => out.append(38).append(97).append(109).append(112).append(59)
+					60 => out.append(38).append(108).append(116).append(59)
+					62 => out.append(38).append(103).append(116).append(59)
+					34 if escape_quotes => out.append(38).append(113).append(117).append(111).append(116).append(59)
+					39 if escape_quotes => out.append(38).append(35).append(51).append(57).append(59)
+					10 if escape_quotes => out.append(38).append(35).append(49).append(48).append(59)
+					13 if escape_quotes => out.append(38).append(35).append(49).append(51).append(59)
+					_ => out.append(byte)
 				},
 		)
-
-	match Str.from_utf8(escaped_bytes) {
-		Ok(str) => str
-		Err(_) => ""
+		match Str.from_utf8(escaped_bytes) {
+			Ok(str) => str
+			Err(_) => ""
+		}
 	}
 }
 
@@ -315,4 +336,21 @@ expect {
 	Html.render_without_doc_type(
 		Html.fragment([Html.p([], [Html.text("one")]), Html.p([], [Html.text("two")])]),
 	) == "<p>one</p><p>two</p>"
+}
+
+## Clean text is returned unchanged (no-escape fast path).
+expect {
+	original = "Hello Roc"
+	escape_html_bytes(original, Bool.False) == original
+		and escape_html_bytes(original, Bool.True) == original
+}
+
+## Text escaping covers `&`, `<`, and `>`. Quotes and CR/LF stay literal.
+expect {
+	escape_html_bytes("&<>\"'\n\r", Bool.False) == "&amp;&lt;&gt;\"'\n\r"
+}
+
+## Attribute escaping uses `&quot;`, `&#39;`, `&#10;`, and `&#13;`.
+expect {
+	escape_html_bytes("&<>\"'\n\r", Bool.True) == "&amp;&lt;&gt;&quot;&#39;&#10;&#13;"
 }
