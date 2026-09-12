@@ -4,7 +4,7 @@ title: Measure scan/copy Node escape on the preview HTTP origin and Linux
 description: "Fill the Phase 4 coverage gap now that product Node Html uses scan/copy: compare fold/concat versus product Html through a kept Rocci workspace on 127.0.0.1, then on Linux if a host exists. Do not claim throughput from this plan."
 tags: [domain/rocci, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:48:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -21,9 +21,12 @@ sources:
   - id: phase-4-receipt
     resource: ../../research/rocci/compile-time-template-preparation-phase-4-results.json
     title: rocci build --output dropped the staged workspace; listen smoke failed
+  - id: phase-0-receipt
+    resource: ../../research/rocci/html-scan-copy-host-coverage-phase-0-results.json
+    title: Kept workspace, relative pin, fold versus scan roc binaries
   - id: host
     resource: ../../../roc/template-preparation-experiment/host.py
-    title: Phase 4 host runner and product-origin limitation
+    title: Kept-workspace capture and copied-platform roc builds
   - id: host-page
     resource: ../../../roc/template-preparation-experiment/HostPage.rocci
     title: View plus fragment fixture used for the origin smoke
@@ -45,8 +48,13 @@ sources:
 
 Exploratory coverage for [scan/copy Node escape](/plans/rocci/html-scan-copy-escape.md).
 Product Node Html now uses that kernel. This plan still does not claim HTTP
-or Linux benefit, and it is not an approved Decision. Do not start a phase
-until the user asks.[^investigation][^scan-copy]
+or Linux benefit, and it is not an approved Decision.
+
+**State:** draft; Phase 0 completed locally on `main`. `--host` keeps a
+HostPage workspace, copies the in-tree platform, rewrites a relative pin, and
+`roc build`s fold/concat versus scan/copy from identical generated Roc. HTTP
+origin and Linux are still unmeasured. Not hosted-CI complete.
+[^investigation][^scan-copy][^phase-0-receipt]
 
 ## Goal
 
@@ -97,6 +105,16 @@ reaches `roc`.[^driver][^phase-4-receipt][^dispatch]
 **Exit:** two binaries or two `roc` invocations, original versus candidate,
 from identical generated Roc, or an explicit staging blocker.
 
+**Outcome:** `--host` copies HostPage into an isolated input dir, captures the
+`rocci-islands-build` workspace before the TempDir drops, copies
+`crates/rocci-platform/platform` including native `libhost.a`, patches only
+`escape_html_bytes` (fold versus product scan/copy), and rewrites
+`pf: platform "../platform/main.roc"`. Orig and scan `main.roc` /
+`HostPage.roc` / assets are byte-identical. Both `roc build --opt=speed`
+binaries exist. Roc exits 2 on unused `state` in generated handlers and still
+writes the executable. Product CLI was not changed.
+[^host][^host-page][^phase-0-receipt][^dispatch]
+
 ## Phase 1 — Low-load HTTP origin on macOS
 
 **Bound**
@@ -134,9 +152,10 @@ keep repeating.
 [^scan-copy]: Product port remains macOS-Node until this plan reports otherwise.
 [^research]: Phase 4 classified HTTP/Linux as uncovered, not as a failed renderer.
 [^phase-4-receipt]: Binary existed; candidate Html was not in that process.
-[^host]: Phase 4 runner copied Html for basic-cli fixtures only.
+[^host]: Kept-workspace capture; copied platform Html; relative pin; no product CLI change.
 [^host-page]: Nested list, scoped CSS, view and fragment routes.
 [^dispatch]: `resolve_platform_pin` accepts only `rocci`.
 [^driver]: `compile_app_plan_with_opt` stages then `build_roc_server`.
 [^platform-readme]: Native `libhost.a` is rebuilt, not committed.
 [^theme]: Painters select `Str`; a different exploration owns that path.
+[^phase-0-receipt]: Local Phase 0; Apple M1 Max; kept workspace; fold versus scan binaries.

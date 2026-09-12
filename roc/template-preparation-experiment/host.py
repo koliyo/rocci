@@ -1,18 +1,29 @@
-"""Phase 4 representative host checks. Imported by run.py; copies platform Html only in the work dir."""
+"""HTTP-origin host coverage. Imported by run.py; copies platform Html only in the work dir."""
 
+import hashlib
 import os
+import platform as py_platform
+import re
 import shutil
 import signal
 import socket
 import subprocess
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
+PLATFORM_SRC = REPO / "crates/rocci-platform/platform"
+PIN = "../platform/main.roc"
+
+
+def cargo_target_dir():
+    return Path(os.environ.get("CARGO_TARGET_DIR") or (REPO / "target"))
+
+
+def rocci_bin():
+    return cargo_target_dir() / "debug" / "rocci"
 
 
 def load_costs():
@@ -23,82 +34,217 @@ def load_costs():
     return costs
 
 
-def stage_node_app(work, name, harness, lowered, render_page, scan):
-    costs = load_costs()
-    target = work / "host" / "cli" / name / ("scan" if scan else "orig")
-    target.mkdir(parents=True)
-    (target / "Runtime").mkdir()
-    shutil.copyfile(REPO / "crates/rocci-platform/platform/Attribute.roc", target / "Runtime" / "Attribute.roc")
-    html = (REPO / "crates/rocci-platform/platform/Html.roc").read_text()
-    if scan:
-        html = costs.patch_node_html(html, "scan_escape")
-    (target / "Runtime" / "Html.roc").write_text(html)
-    wrapper = (REPO / "crates/rocci-cli/runtime/Html.roc").read_text()
-    wrapper = wrapper.replace("import pf.Attribute", "import Runtime/Attribute").replace("import pf.Html", "import Runtime/Html")
-    (target / "Html.roc").write_text(wrapper)
-    header = f'app [main!] {{ pf: platform "{harness.PLATFORM}" }}\nimport pf.Stdout\n'
-    body = lowered + f"\nrender_page = {render_page}\n"
-    main = """
-main! = |_| {
-    Stdout.write!(render_page({}))?
-    Ok({})
-}
-"""
-    (target / "main.roc").write_text(header + body + main)
-    build = harness.command(["roc", "build", "--no-cache", "--opt=speed", "--output=app", "main.roc"], target, timeout=90)
-    return target, build
+def sha256_file(path):
+    digest = hashlib.sha256()
+    digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 
-def render_once(harness, target):
-    return harness.command([target / "app"], target, timeout=20)
+def native_libhost_target():
+    system = py_platform.system()
+    machine = py_platform.machine()
+    if system == "Darwin":
+        return "arm64mac" if machine == "arm64" else "x64mac"
+    if system == "Linux":
+        return "arm64musl" if machine in ("aarch64", "arm64") else "x64musl"
+    return None
 
 
-def compare_pair(harness, work, name, rocci, source, render_page):
-    lowered = harness.command([rocci, "build", source], REPO, timeout=60)
+def libhost_path():
+    target = native_libhost_target()
+    if not target:
+        return None
+    return PLATFORM_SRC / "targets" / target / "libhost.a"
+
+
+def ensure_libhost(harness):
+    path = libhost_path()
     record = {
-        "source": str(source),
-        "lower_exit": lowered["exit"],
-        "lower_stderr": (lowered.get("stderr") or "")[-500:],
+        "target": native_libhost_target(),
+        "path": str(path) if path else None,
+        "existed": bool(path and path.is_file()),
     }
-    if lowered["exit"] != 0:
+    if path is None:
         record["ok"] = False
+        record["error"] = f"unsupported host {py_platform.system()} {py_platform.machine()}"
         return record
-    orig, orig_build = stage_node_app(work, name, harness, lowered["stdout"] or "", render_page, False)
-    scan, scan_build = stage_node_app(work, name, harness, lowered["stdout"] or "", render_page, True)
-    record["orig_build"] = {"exit": orig_build["exit"], "seconds": orig_build["seconds"]}
-    record["scan_build"] = {"exit": scan_build["exit"], "seconds": scan_build["seconds"]}
-    if orig_build["exit"] != 0 or scan_build["exit"] != 0:
-        record["ok"] = False
-        record["orig_stderr"] = (orig_build.get("stderr") or "")[-500:]
-        record["scan_stderr"] = (scan_build.get("stderr") or "")[-500:]
+    if path.is_file():
+        record["ok"] = True
+        record["bytes"] = path.stat().st_size
         return record
-    orig_run = render_once(harness, orig)
-    scan_run = render_once(harness, scan)
-    record["orig_run"] = {"exit": orig_run["exit"], "sha256": orig_run.get("stdout_sha256"), "len": orig_run.get("stdout_len")}
-    record["scan_run"] = {"exit": scan_run["exit"], "sha256": scan_run.get("stdout_sha256"), "len": scan_run.get("stdout_len")}
-    record["bytes_equal"] = (
-        orig_run["exit"] == 0
-        and scan_run["exit"] == 0
-        and orig_run.get("stdout") == scan_run.get("stdout")
+    build = harness.command(
+        ["bash", str(REPO / "crates/rocci-platform/build.sh")],
+        REPO,
+        timeout=600,
     )
-    record["ok"] = bool(record["bytes_equal"])
+    record["build"] = {
+        "exit": build["exit"],
+        "seconds": build["seconds"],
+        "timed_out": build.get("timed_out"),
+        "stderr": (build.get("stderr") or "")[-800:],
+    }
+    record["ok"] = path.is_file()
+    if path.is_file():
+        record["bytes"] = path.stat().st_size
+    else:
+        record["error"] = "build.sh did not write native libhost.a"
     return record
 
 
-def inspect_theme(harness, report):
-    theme_rs = REPO / "crates/rocci-rocdown/src/plan/theme.rs"
-    text = theme_rs.read_text()
-    uses_str = 'html_type: "Str".to_string()' in text
-    painter = REPO / "crates/rocci-rocdown/templates/DocsComponents.rocci"
-    rocci = REPO / "target/debug/rocci-template"
-    inspect = harness.command([rocci, "inspect", "--ast", painter], REPO, timeout=30)
-    report["theme"] = {
-        "source": str(theme_rs.relative_to(REPO)),
-        "html_type_str": uses_str,
-        "painter": str(painter.relative_to(REPO)),
-        "inspect_exit": inspect["exit"],
-        "candidate_applies": False,
-        "note": "Theme painters select Str signatures; node_scan_escape lives on platform Node Html and does not apply.",
+def wait_for_staged(tmp, timeout=120):
+    start = time.time()
+    last = None
+    stable = 0
+    while time.time() - start < timeout:
+        found = None
+        for path in tmp.glob("rocci-islands-build-*"):
+            main = path / "main.roc"
+            page = path / "HostPage.roc"
+            if main.is_file() and page.is_file() and main.stat().st_size > 0:
+                found = path
+                break
+        if found:
+            size = (found / "main.roc").stat().st_size + (found / "HostPage.roc").stat().st_size
+            marker = (found, size)
+            if marker == last:
+                stable += 1
+                if stable >= 4:
+                    return found
+            else:
+                stable = 0
+                last = marker
+        time.sleep(0.05)
+    return None
+
+
+def isolate_hostpage(work):
+    source = work / "host" / "input"
+    if source.exists():
+        shutil.rmtree(source)
+    source.mkdir(parents=True)
+    shutil.copyfile(HERE / "HostPage.rocci", source / "HostPage.rocci")
+    return source / "HostPage.rocci"
+
+
+def capture_staged_workspace(work):
+    tmp = work / "host" / "stage-tmp"
+    if tmp.exists():
+        shutil.rmtree(tmp)
+    tmp.mkdir(parents=True)
+    dest = work / "host" / "staged"
+    if dest.exists():
+        shutil.rmtree(dest)
+    dummy = work / "host" / "product-dummy"
+    env = os.environ.copy()
+    env["TMPDIR"] = str(tmp)
+    process = subprocess.Popen(
+        [
+            str(rocci_bin()),
+            "build",
+            "--platform",
+            "rocci",
+            "--output",
+            str(dummy),
+            str(isolate_hostpage(work)),
+        ],
+        cwd=REPO,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    record = {"cli": str(rocci_bin()), "tmp": str(tmp)}
+    try:
+        found = wait_for_staged(tmp)
+        if found is None:
+            stop_process(process)
+            stdout, stderr = process.communicate()
+            record["ok"] = False
+            record["error"] = "staged islands-build workspace did not appear"
+            record["cli_exit"] = process.returncode
+            record["cli_stderr"] = (stderr or b"").decode("utf-8", "replace")[-800:]
+            return dest, record
+        shutil.copytree(found, dest)
+        record["ok"] = True
+        record["source"] = str(found)
+        record["files"] = sorted(
+            str(path.relative_to(dest)) for path in dest.rglob("*") if path.is_file()
+        )
+        record["main_sha256"] = sha256_file(dest / "main.roc")
+        record["hostpage_sha256"] = sha256_file(dest / "HostPage.roc")
+        record["in_tree_pin"] = "pf: platform" in (dest / "main.roc").read_text()
+        return dest, record
+    finally:
+        stop_process(process)
+
+
+def copy_platform(dest, html_kind):
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(PLATFORM_SRC, dest, ignore=shutil.ignore_patterns(".DS_Store"))
+    html_path = dest / "Html.roc"
+    html = html_path.read_text()
+    costs = load_costs()
+    html_path.write_text(costs.patch_node_html(html, html_kind))
+    return {
+        "html_kind": html_kind,
+        "html_sha256": sha256_file(html_path),
+        "libhost": bool(libhost_path() and (dest / "targets" / native_libhost_target() / "libhost.a").is_file()),
+    }
+
+
+def rewrite_main_pin(app_dir, pin):
+    main = app_dir / "main.roc"
+    text = main.read_text()
+    rewritten, count = re.subn(r'pf: platform "[^"]+"', f'pf: platform "{pin}"', text, count=1)
+    if count != 1:
+        raise RuntimeError(f"expected one platform pin in {main}, found {count}")
+    if pin.startswith("/") or pin.startswith("file:"):
+        raise RuntimeError(f"refusing absolute platform pin {pin}")
+    main.write_text(rewritten)
+    return rewritten
+
+
+def stage_variant(work, staged, name, html_kind):
+    root = work / "host" / name
+    if root.exists():
+        shutil.rmtree(root)
+    platform = root / "platform"
+    app = root / "app"
+    copied = copy_platform(platform, html_kind)
+    shutil.copytree(staged, app)
+    rewrite_main_pin(app, PIN)
+    return root, copied
+
+
+def generated_files(app):
+    return {
+        path.relative_to(app).as_posix(): sha256_file(path)
+        for path in sorted(app.rglob("*"))
+        if path.is_file()
+    }
+
+
+def build_variant(harness, root):
+    output = root / "server"
+    build = harness.command(
+        ["roc", "build", "--no-cache", "--opt=speed", f"--output={output}", "main.roc"],
+        root / "app",
+        timeout=240,
+    )
+    stderr = build.get("stderr") or ""
+    executable = output.is_file() and os.access(output, os.X_OK) and output.stat().st_size > 0
+    return {
+        "exit": build["exit"],
+        "seconds": build["seconds"],
+        "timed_out": build.get("timed_out"),
+        "stderr_head": stderr[:800],
+        "stderr_tail": stderr[-800:],
+        "binary": str(output),
+        "binary_exists": output.is_file(),
+        "binary_executable": executable,
+        "binary_bytes": output.stat().st_size if output.is_file() else 0,
+        "unused_variable_exit": build["exit"] == 2 and "unused variable" in stderr,
     }
 
 
@@ -111,6 +257,8 @@ def free_port():
 
 
 def http_get(url, timeout=5):
+    import urllib.error
+    import urllib.request
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
             body = response.read()
@@ -118,7 +266,7 @@ def http_get(url, timeout=5):
                 "ok": True,
                 "status": getattr(response, "status", None),
                 "len": len(body),
-                "sha256": __import__("hashlib").sha256(body).hexdigest(),
+                "sha256": hashlib.sha256(body).hexdigest(),
                 "head": body[:200].decode("utf-8", "replace"),
             }
     except (urllib.error.URLError, TimeoutError, OSError) as error:
@@ -148,57 +296,10 @@ def stop_process(process):
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
             pass
-        process.wait(timeout=5)
-
-
-def product_origin_smoke(work, harness):
-    dest = work / "host" / "http-product"
-    dest.mkdir(parents=True)
-    binary = dest / "server"
-    build = harness.command(
-        [
-            "cargo",
-            "run",
-            "-q",
-            "-p",
-            "rocci-cli",
-            "--",
-            "build",
-            "--platform",
-            "rocci",
-            "--output",
-            str(binary),
-            str(HERE / "HostPage.rocci"),
-        ],
-        REPO,
-        timeout=180,
-    )
-    record = {
-        "cli_build": {
-            "exit": build["exit"],
-            "seconds": build["seconds"],
-            "stderr": (build.get("stderr") or "")[-800:],
-        },
-        "binary_exists": binary.is_file(),
-        "candidate_http": False,
-        "note": (
-            "rocci build --output writes a process binary against the in-tree platform "
-            "pin and drops the staged workspace. --platform only accepts `rocci`. "
-            "A copied Html.roc therefore cannot be substituted for the candidate. "
-            "This smoke is the product origin only, not candidate HTTP performance."
-        ),
-    }
-    if not binary.is_file():
-        record["ok"] = False
-        record["error"] = "rocci-cli did not write a server binary"
-        return record
-    try:
-        record["served"] = serve_and_fetch(binary, dest)
-        record["ok"] = bool(record["served"].get("ok"))
-    except Exception as error:
-        record["ok"] = False
-        record["error"] = f"{type(error).__name__}: {error}"
-    return record
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def serve_and_fetch(binary, cwd):
@@ -230,75 +331,74 @@ def serve_and_fetch(binary, cwd):
 
 def run_host(harness, work, report):
     report["host_requested"] = True
-    cargo_template = harness.command(["cargo", "build", "-q", "-p", "rocci-template"], REPO, timeout=120)
     cargo_cli = harness.command(["cargo", "build", "-q", "-p", "rocci-cli"], REPO, timeout=180)
-    rocci = REPO / "target/debug/rocci-template"
     report["host"] = {
-        "os": harness.platform.system() if hasattr(harness, "platform") else __import__("platform").system(),
-        "architecture": __import__("platform").machine(),
-        "linux_coverage": False,
-        "cargo_template": {"exit": cargo_template["exit"], "seconds": cargo_template["seconds"]},
-        "cargo_cli": {"exit": cargo_cli["exit"], "seconds": cargo_cli["seconds"]},
+        "os": py_platform.system(),
+        "architecture": py_platform.machine(),
         "candidate": "node_scan_escape",
-        "fixtures": {},
-        "http": {},
+        "original": "node_fold_escape",
+        "linux_coverage": py_platform.system() == "Linux",
+        "cargo_cli": {"exit": cargo_cli["exit"], "seconds": cargo_cli["seconds"]},
     }
-    if cargo_template["exit"] != 0:
-        report["error"] = "cargo build -p rocci-template failed"
-        report["phase4_coverage"] = {"http": False, "linux": False, "theme_painter_node": False}
-        return
-    fixtures = [
-        (
-            "hello",
-            REPO / "examples/rocci/template/Hello.rocci",
-            '|_| Html.render_without_doc_type(hello({ name: "Ada & <Co>" }))',
-        ),
-        (
-            "card",
-            HERE / "Card.rocci",
-            '|_| Html.render_without_doc_type(card({ title: "Ada & <Co>", active: Bool.True, items: [{ name: "one" }, { name: "two" }] }))',
-        ),
-        (
-            "compat",
-            HERE / "Compat.rocci",
-            '|_| Html.render_without_doc_type(compat({ title: "Ada & <Co>", active: Bool.True, items: [{ name: "one", kids: [{ name: "k" }] }] }))',
-        ),
-        (
-            "callout",
-            REPO / "test/Callout.rocci",
-            '|_| Html.render_without_doc_type(callout({ tone: "info" }, Html.text("Ada & <Co>")))',
-        ),
-    ]
-    for name, source, render_page in fixtures:
-        print(f"host fixture {name}", flush=True)
-        report["host"]["fixtures"][name] = compare_pair(harness, work, name, rocci, source, render_page)
-    inspect_theme(harness, report["host"])
-    http = {"attempted": True, "candidate_http": False}
     if cargo_cli["exit"] != 0:
-        http["ok"] = False
-        http["error"] = "cargo build -p rocci-cli failed"
-        http["cli_stderr"] = (cargo_cli.get("stderr") or "")[-500:]
-    else:
-        print("host product origin smoke", flush=True)
-        try:
-            http["product_origin_smoke"] = product_origin_smoke(work, harness)
-        except Exception as error:
-            http["product_origin_smoke"] = {"ok": False, "error": f"{type(error).__name__}: {error}"}
-        http["ok"] = False
-        http["error"] = (
-            "candidate HTML cannot be served through rocci-cli: the CLI pin is in-tree "
-            "rocci-platform only, and --output is a process binary rather than a kept workspace"
-        )
-    report["host"]["http"] = http
-    equal = all(item.get("ok") for item in report["host"]["fixtures"].values())
-    report["phase4_coverage"] = {
-        "cli_fixtures_equal": equal,
-        "http": False,
-        "linux": False,
-        "theme_painter_node": False,
-        "product_origin_smoke": bool((http.get("product_origin_smoke") or {}).get("ok")),
-        "note": "Linux target absent on this Darwin host. Theme painters use Str, so the node candidate is not applied there. Candidate HTTP coverage is absent: rocci-cli cannot keep a staged workspace whose platform pin points at a copied Html.roc.",
+        report["error"] = "cargo build -p rocci-cli failed"
+        report["host_staging"] = {"ok": False, "error": "cargo build -p rocci-cli failed"}
+        return
+    binary = rocci_bin()
+    if not binary.is_file():
+        report["error"] = f"missing {binary}"
+        report["host_staging"] = {"ok": False, "error": report["error"]}
+        return
+
+    print("host capture staged workspace", flush=True)
+    staged, capture = capture_staged_workspace(work)
+    report["host"]["capture"] = capture
+    if not capture.get("ok"):
+        report["error"] = capture.get("error") or "staged workspace capture failed"
+        report["host_staging"] = {"ok": False, "error": report["error"], "capture": capture}
+        return
+
+    print("host ensure libhost", flush=True)
+    libhost = ensure_libhost(harness)
+    report["host"]["libhost"] = libhost
+    if not libhost.get("ok"):
+        report["error"] = libhost.get("error") or "native libhost.a missing"
+        report["host_staging"] = {"ok": False, "error": report["error"], "libhost": libhost}
+        return
+
+    print("host stage orig fold platform", flush=True)
+    orig_root, orig_platform = stage_variant(work, staged, "orig", "fold_escape")
+    print("host stage scan platform", flush=True)
+    scan_root, scan_platform = stage_variant(work, staged, "scan", "scan_escape")
+    orig_generated = generated_files(orig_root / "app")
+    scan_generated = generated_files(scan_root / "app")
+    generated_identical = orig_generated == scan_generated
+    html_differs = orig_platform["html_sha256"] != scan_platform["html_sha256"]
+
+    print("host roc build orig", flush=True)
+    orig_build = build_variant(harness, orig_root)
+    print("host roc build scan", flush=True)
+    scan_build = build_variant(harness, scan_root)
+    builds_ok = bool(orig_build.get("binary_executable") and scan_build.get("binary_executable"))
+    staging = {
+        "ok": bool(builds_ok and generated_identical and html_differs),
+        "pin": PIN,
+        "generated_identical": generated_identical,
+        "html_differs": html_differs,
+        "orig_platform": orig_platform,
+        "scan_platform": scan_platform,
+        "orig_build": orig_build,
+        "scan_build": scan_build,
+        "orig_generated_files": orig_generated,
+        "scan_generated_files": scan_generated,
     }
-    report["phase4_selection"] = "node_scan_escape" if equal else None
-    if not equal:
-        report["error"] = report.get("error") or "Phase 4 representative fixtures were not byte-identical"
+    if not generated_identical:
+        staging["error"] = "generated Roc differed between orig and scan after pin rewrite"
+    elif not html_differs:
+        staging["error"] = "orig and scan Html.roc hashes matched; fold versus scan was not applied"
+    elif not builds_ok:
+        staging["error"] = "roc build failed for orig or scan"
+    report["host_staging"] = staging
+    report["host"]["staging"] = staging
+    if not staging["ok"]:
+        report["error"] = staging.get("error")

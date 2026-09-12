@@ -154,9 +154,17 @@ def write_kernel(work, name, header_escape, harness):
 
 def patch_node_html(text, kind):
     if kind == "scan_escape":
+        if NODE_SCAN_ESCAPE in text:
+            return text
         if NODE_ESCAPE not in text:
             raise RuntimeError("node escape kernel not found in Html.roc")
         return text.replace(NODE_ESCAPE, NODE_SCAN_ESCAPE)
+    if kind == "fold_escape":
+        if NODE_ESCAPE in text:
+            return text
+        if NODE_SCAN_ESCAPE not in text:
+            raise RuntimeError("scan/copy node escape kernel not found in Html.roc")
+        return text.replace(NODE_SCAN_ESCAPE, NODE_ESCAPE)
     if kind == "join_growth":
         old = '''			Element(tag, attrs, children) =>
 				"<${tag}${render_attributes(attrs)}>${render_children(children)}</${tag}>"

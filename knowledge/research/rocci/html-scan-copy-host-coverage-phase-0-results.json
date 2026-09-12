@@ -1,0 +1,400 @@
+{
+  "timestamp": "2026-09-12T13:47:28.554874+00:00",
+  "timestamp_end": "2026-09-12T13:47:34.328643+00:00",
+  "engine_revision": "e13a34b63ee466a03588e1e3cba85fcb4d045f71",
+  "engine_sha256": {
+    "Template.roc": "c4c65a2a15553e2c805d9c5258e315b044535fd18d4bc299d67161c1868bc78f",
+    "Value.roc": "ce0029d866f81f0f7979ce87908c91106be3628892de42074fe42dcf8b315790",
+    "Formatters.roc": "f52550ec833b5f62807ae9d1a3175f1e20e9891ce3042b125cd6a278f0d71060",
+    "RuntimeFormatters.roc": "743063f3dd49195bc06968a7c339f6ec5333c1e1a99085ac1754ddd4a2142439"
+  },
+  "os": "Darwin",
+  "architecture": "arm64",
+  "cpu": "Apple M1 Max",
+  "machine": "macOS-15.7.7-arm64-arm-64bit-Mach-O",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "roc": "Roc compiler version nightly-2026-09-03-62fcb65",
+  "roc_flags": {
+    "check_no_cache": [
+      "roc",
+      "check",
+      "--no-cache"
+    ],
+    "check_warm": [
+      "roc",
+      "check"
+    ],
+    "build_no_cache": [
+      "roc",
+      "build",
+      "--no-cache",
+      "--opt=speed"
+    ],
+    "build_warm": [
+      "roc",
+      "build",
+      "--opt=speed"
+    ],
+    "test_default": [
+      "roc",
+      "test"
+    ],
+    "test_no_cache": [
+      "roc",
+      "test",
+      "--no-cache"
+    ]
+  },
+  "rocci_revision": "2791fb010340da0df96f25a2d7312251657fd2cd",
+  "input_hashes": {
+    "run.py": "6e5877af396e8dcaadfc8379224edb2a03745860efd37b6cd6bc6b2d73a74fa5",
+    "TypedTemplate.roc": "1745ececef9dc95628da1f800dd24a3f66e0a9717aafcd7c6c93f147633634f0",
+    "Card.rocci": "ca5b2d310a86f9001eaff7fca3a560db1622b7103c5a6c2c2c64709270fcbbad",
+    "card.mustache.html": "bc96664fd252cab9a06c47a4933a8e6398c19d068a2813fc94353c1e75b21135",
+    "allocations.c": "3c38eb25e617675d44c4984883f0519e0ef6dea044e1d2ea656f8d0b05338931",
+    "README.md": "2246061132b2266a3aac400f83953b4cce628fcaea6b33ec31f5c3d73dfb4c51",
+    "Compat.rocci": "8d171c61a0756f90e8591e85a8d0fc614f9823ff65b147b3b5be1cef8ee9268c",
+    "compat.mustache.html": "1b221af964fed17481422c7aaa3ca01d35665e3292d3a2ba140b14853e588e46",
+    "compat.py": "a61241d4f749929a6754f3b4d45ef4b99236b8fb687b0948826ed26846fdc025",
+    "costs.py": "9b007955a4426c94134eb12f80012f9150dcd51b55194b7a80e96b57fe9dedba",
+    "host.py": "8609bb6a920eb677877e790459f47bc811ec558148665252a273936c569b060f",
+    "HostPage.rocci": "93c1fb2d0c01a1a87d7e04800ce95a212cae93d0b1ac395d815a4e20f2d78490"
+  },
+  "product_html_hashes": {
+    "crates/rocci-ui/runtime/Html.roc": "7b083eaa55ea5fab9d6864f49fcd35790c55d9726d11c6c19015f4f000b0901f",
+    "crates/rocci-platform/platform/Html.roc": "f8df1032b918e30fd3a8672f6e6a5a19f9295a1dcb3f56ab98c5759624bd574f",
+    "crates/rocci-platform/platform/Attribute.roc": "e3bd122a88188b1586aef6e6158981af82dba8fb8be5f42b65bbde16654bb916",
+    "crates/rocci-cli/runtime/Html.roc": "7e0439aa96a2bddc665798907880324599e2fb556afc4f6c498b7f1886d69439"
+  },
+  "generated_hashes": {},
+  "platform_artifact": {
+    "url": "https://github.com/roc-lang/basic-cli/releases/download/0.22.0/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
+    "path": "/Users/nils/.cache/roc/packages/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL/F1JVZPYfWP71s8vk6tHcV1Qx1Ef6CZkwswGoCn8VHZmL.tar.zst",
+    "sha256": "d38c5449760953820721ff7f9236df4e085d828918045bd90dfb932d6520ee47",
+    "present": true,
+    "bytes": 20377365
+  },
+  "dirty_tracked": [
+    "roc/template-preparation-experiment/README.md",
+    "roc/template-preparation-experiment/costs.py",
+    "roc/template-preparation-experiment/host.py",
+    "roc/template-preparation-experiment/run.py"
+  ],
+  "untracked_experimental": [],
+  "work_dir": "/tmp/rocci-host-coverage-phase-0",
+  "repetitions": 5000,
+  "workloads": [
+    {
+      "name": "small-clean",
+      "rows": 0,
+      "text": "plain"
+    },
+    {
+      "name": "large-clean",
+      "rows": 100,
+      "text": "plain"
+    },
+    {
+      "name": "large-escaped",
+      "rows": 100,
+      "text": "<& caf\u00e9>"
+    }
+  ],
+  "render_cases": [
+    {
+      "name": "ordinary_text",
+      "active": 1,
+      "rows": 2,
+      "text": "plain"
+    },
+    {
+      "name": "empty_data",
+      "active": 0,
+      "rows": 0,
+      "text": ""
+    },
+    {
+      "name": "quotes_ampersands_angles",
+      "active": 1,
+      "rows": 2,
+      "text": "&<>\"' caf\u00e9 \ud83d\ude00"
+    },
+    {
+      "name": "html_looking_amp",
+      "active": 0,
+      "rows": 3,
+      "text": "<&amp;>"
+    },
+    {
+      "name": "script_looking",
+      "active": 1,
+      "rows": 1,
+      "text": "\"><script>alert(1)</script>"
+    },
+    {
+      "name": "cr_in_attribute",
+      "active": 0,
+      "rows": 1,
+      "text": "a\nb\rc\td",
+      "expected_compatible": {
+        "prepared": false,
+        "rocci-string": false,
+        "rocci-node": true
+      }
+    },
+    {
+      "name": "template_looking",
+      "active": 1,
+      "rows": 3,
+      "text": "{{ name }} @if {}"
+    }
+  ],
+  "probes": [],
+  "probes_no_cache": [],
+  "upstream_tests": {},
+  "comparisons": {},
+  "bench_requested": false,
+  "allocations_requested": false,
+  "allocations": {},
+  "harness_ok": true,
+  "type_contract_ok": false,
+  "html_compatible": false,
+  "html_expected_findings_confirmed": false,
+  "error": null,
+  "harness_fault_probes": [
+    {
+      "name": "absent_backend",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "problems": [
+        "missing_probes",
+        "missing_variant:prepared:ordinary_text",
+        "missing_variant:prepared:empty_data",
+        "missing_variant:prepared:quotes_ampersands_angles",
+        "missing_variant:prepared:html_looking_amp",
+        "missing_variant:prepared:script_looking",
+        "missing_variant:prepared:cr_in_attribute",
+        "missing_variant:prepared:template_looking",
+        "missing_timing:prepared:small-clean",
+        "missing_timing:prepared:large-clean",
+        "missing_timing:prepared:large-escaped",
+        "missing_variant:rocci-string:ordinary_text",
+        "missing_variant:rocci-string:empty_data",
+        "missing_variant:rocci-string:quotes_ampersands_angles",
+        "missing_variant:rocci-string:html_looking_amp",
+        "missing_variant:rocci-string:script_looking",
+        "missing_variant:rocci-string:cr_in_attribute",
+        "missing_variant:rocci-string:template_looking",
+        "missing_timing:rocci-string:small-clean",
+        "missing_timing:rocci-string:large-clean",
+        "missing_timing:rocci-string:large-escaped",
+        "absent_backend:rocci-node"
+      ]
+    },
+    {
+      "name": "same_length_wrong_output",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "length_equal": true,
+      "digest_equal": false
+    },
+    {
+      "name": "wrong_expected_error",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "probe_outcome_rejected": true
+    },
+    {
+      "name": "corrupted_source_hash",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false
+    },
+    {
+      "name": "timed_out_child",
+      "passed": true,
+      "complete": true,
+      "harness_ok": false,
+      "type_contract_ok": false,
+      "timed_out": true,
+      "exit": null,
+      "negative_test_rejected": true
+    },
+    {
+      "name": "porcelain_paths",
+      "passed": true,
+      "complete": true,
+      "dirty": [
+        "docs/appendix/glossary.rocdown",
+        "src/lib.rs"
+      ],
+      "untracked": [
+        "roc/template-preparation-experiment/"
+      ]
+    }
+  ],
+  "host_requested": true,
+  "host": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "candidate": "node_scan_escape",
+    "original": "node_fold_escape",
+    "linux_coverage": false,
+    "cargo_cli": {
+      "exit": 0,
+      "seconds": 0.5725249999668449
+    },
+    "capture": {
+      "cli": "/var/folders/7w/r3zd6mzj6jngg60zxf7q383h0000gn/T/cursor-sandbox-cache/e13629d2fb9192b5733115cd6b2ca942/cargo-target/debug/rocci",
+      "tmp": "/tmp/rocci-host-coverage-phase-0/host/stage-tmp",
+      "ok": true,
+      "source": "/tmp/rocci-host-coverage-phase-0/host/stage-tmp/rocci-islands-build-91738-0",
+      "files": [
+        "HostPage.roc",
+        "assets/datastar.js",
+        "assets/rocci.css",
+        "main.roc"
+      ],
+      "main_sha256": "a365449151866f8008cbaf110d189ac0ccdf52f6f74573c8e9514dbb5afa109b",
+      "hostpage_sha256": "0ce9fd93e7759980336f75f21dfcca6ea94e55e563b3bfca72a7ad7e80679a4a",
+      "in_tree_pin": true
+    },
+    "libhost": {
+      "target": "arm64mac",
+      "path": "/Users/nils/Projects/rocci/crates/rocci-platform/platform/targets/arm64mac/libhost.a",
+      "existed": true,
+      "ok": true,
+      "bytes": 71402248
+    },
+    "staging": {
+      "ok": true,
+      "pin": "../platform/main.roc",
+      "generated_identical": true,
+      "html_differs": true,
+      "orig_platform": {
+        "html_kind": "fold_escape",
+        "html_sha256": "dfe25ad2b309b50658b7e1b5b9196e27ad4606d15ed83da389e0d7b691b63e9e",
+        "libhost": true
+      },
+      "scan_platform": {
+        "html_kind": "scan_escape",
+        "html_sha256": "f8df1032b918e30fd3a8672f6e6a5a19f9295a1dcb3f56ab98c5759624bd574f",
+        "libhost": true
+      },
+      "orig_build": {
+        "exit": 2,
+        "seconds": 1.5400198751594871,
+        "timed_out": false,
+        "stderr_head": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+        "stderr_tail": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+        "binary": "/tmp/rocci-host-coverage-phase-0/host/orig/server",
+        "binary_exists": true,
+        "binary_executable": true,
+        "binary_bytes": 7111616,
+        "unused_variable_exit": true
+      },
+      "scan_build": {
+        "exit": 2,
+        "seconds": 1.665205875178799,
+        "timed_out": false,
+        "stderr_head": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+        "stderr_tail": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+        "binary": "/tmp/rocci-host-coverage-phase-0/host/scan/server",
+        "binary_exists": true,
+        "binary_executable": true,
+        "binary_bytes": 7128336,
+        "unused_variable_exit": true
+      },
+      "orig_generated_files": {
+        "HostPage.roc": "0ce9fd93e7759980336f75f21dfcca6ea94e55e563b3bfca72a7ad7e80679a4a",
+        "assets/datastar.js": "2837d87acf6ee0ba8e4e63765926c25a98d63883b02f88be194a86b81d3fd24a",
+        "assets/rocci.css": "47ef27fa24b16426af742f9bfddfbf9730262ac7d57094ab298d7967dca317c5",
+        "main.roc": "402a6b2c110662d20dbfff14434f1470e7cad89822237149b4622fc6b9ab25f8"
+      },
+      "scan_generated_files": {
+        "HostPage.roc": "0ce9fd93e7759980336f75f21dfcca6ea94e55e563b3bfca72a7ad7e80679a4a",
+        "assets/datastar.js": "2837d87acf6ee0ba8e4e63765926c25a98d63883b02f88be194a86b81d3fd24a",
+        "assets/rocci.css": "47ef27fa24b16426af742f9bfddfbf9730262ac7d57094ab298d7967dca317c5",
+        "main.roc": "402a6b2c110662d20dbfff14434f1470e7cad89822237149b4622fc6b9ab25f8"
+      }
+    }
+  },
+  "host_staging": {
+    "ok": true,
+    "pin": "../platform/main.roc",
+    "generated_identical": true,
+    "html_differs": true,
+    "orig_platform": {
+      "html_kind": "fold_escape",
+      "html_sha256": "dfe25ad2b309b50658b7e1b5b9196e27ad4606d15ed83da389e0d7b691b63e9e",
+      "libhost": true
+    },
+    "scan_platform": {
+      "html_kind": "scan_escape",
+      "html_sha256": "f8df1032b918e30fd3a8672f6e6a5a19f9295a1dcb3f56ab98c5759624bd574f",
+      "libhost": true
+    },
+    "orig_build": {
+      "exit": 2,
+      "seconds": 1.5400198751594871,
+      "timed_out": false,
+      "stderr_head": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+      "stderr_tail": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/orig/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+      "binary": "/tmp/rocci-host-coverage-phase-0/host/orig/server",
+      "binary_exists": true,
+      "binary_executable": true,
+      "binary_bytes": 7111616,
+      "unused_variable_exit": true
+    },
+    "scan_build": {
+      "exit": 2,
+      "seconds": 1.665205875178799,
+      "timed_out": false,
+      "stderr_head": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+      "stderr_tail": "\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:4:21\n\nVariable state is defined here and then never used:\n\non_get_root! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n\u2500\u2500 \u25cf unused variable \u2500 /private/tmp/rocci-host-coverage-phase-0/host/scan/app/HostPage.roc:16:21\n\nVariable state is defined here and then never used:\n\non_get_card! = |state, _request| {\n                ^^^^^\n\nIf you don't need this variable, prefix it with an underscore like _state to\nsuppress this warning.\n\n",
+      "binary": "/tmp/rocci-host-coverage-phase-0/host/scan/server",
+      "binary_exists": true,
+      "binary_executable": true,
+      "binary_bytes": 7128336,
+      "unused_variable_exit": true
+    },
+    "orig_generated_files": {
+      "HostPage.roc": "0ce9fd93e7759980336f75f21dfcca6ea94e55e563b3bfca72a7ad7e80679a4a",
+      "assets/datastar.js": "2837d87acf6ee0ba8e4e63765926c25a98d63883b02f88be194a86b81d3fd24a",
+      "assets/rocci.css": "47ef27fa24b16426af742f9bfddfbf9730262ac7d57094ab298d7967dca317c5",
+      "main.roc": "402a6b2c110662d20dbfff14434f1470e7cad89822237149b4622fc6b9ab25f8"
+    },
+    "scan_generated_files": {
+      "HostPage.roc": "0ce9fd93e7759980336f75f21dfcca6ea94e55e563b3bfca72a7ad7e80679a4a",
+      "assets/datastar.js": "2837d87acf6ee0ba8e4e63765926c25a98d63883b02f88be194a86b81d3fd24a",
+      "assets/rocci.css": "47ef27fa24b16426af742f9bfddfbf9730262ac7d57094ab298d7967dca317c5",
+      "main.roc": "402a6b2c110662d20dbfff14434f1470e7cad89822237149b4622fc6b9ab25f8"
+    }
+  },
+  "missing_probes": [
+    "same",
+    "reordered",
+    "extra",
+    "missing",
+    "scalar_type",
+    "nested_extra",
+    "nested_type",
+    "list_extra",
+    "list_type",
+    "empty_runtime",
+    "empty_sample",
+    "empty_static_body",
+    "bad_field",
+    "bad_syntax",
+    "unsupported_u8",
+    "unsupported_union"
+  ],
+  "harness_problems": []
+}

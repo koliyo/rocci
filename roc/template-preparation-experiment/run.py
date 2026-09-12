@@ -92,6 +92,8 @@ EXPERIMENTAL_PREFIXES = (
     "roc/template-preparation-experiment/",
     "knowledge/plans/rocci/compile-time-template-preparation",
     "knowledge/research/rocci/compile-time-template-preparation",
+    "knowledge/plans/rocci/html-scan-copy-host-coverage",
+    "knowledge/research/rocci/html-scan-copy-host-coverage",
 )
 
 
@@ -528,10 +530,9 @@ def summarize(report):
         if not report.get("cost_table") or "selected" not in (report.get("phase2_selection") or {}):
             harness_problems.append("missing_cost_table")
     if report.get("host_requested"):
-        if not report.get("phase4_coverage"):
+        staging = report.get("host_staging") or {}
+        if not staging.get("ok"):
             harness_problems.append("missing_host_coverage")
-        if not ((report.get("host") or {}).get("fixtures") or {}):
-            harness_problems.append("missing_host_fixtures")
     report["html_compatible"] = bool(html_compatible and report.get("bench_requested") and not report.get("error"))
     report["html_expected_findings_confirmed"] = bool(
         findings_ok and report.get("bench_requested") and "error" not in harness_problems
@@ -1080,7 +1081,7 @@ def run_experiment(options):
     elif options.costs:
         ok = report["harness_ok"] and report.get("phase2_selection") is not None
     elif options.host:
-        ok = report["harness_ok"] and report.get("phase4_coverage") is not None and not report.get("error")
+        ok = report["harness_ok"] and bool((report.get("host_staging") or {}).get("ok")) and not report.get("error")
     else:
         ok = (
             report["harness_ok"]
@@ -1101,7 +1102,7 @@ def main():
     parser.add_argument("--self-test", action="store_true", help="Run harness fault probes only")
     parser.add_argument("--compat", action="store_true", help="Build the Phase 1 HTML compatibility matrix")
     parser.add_argument("--costs", action="store_true", help="Run Phase 2 isolated escape/growth cost experiments")
-    parser.add_argument("--host", action="store_true", help="Run Phase 4 representative host checks for node_scan_escape")
+    parser.add_argument("--host", action="store_true", help="Keep a staged Rocci workspace, retarget copied platform Html, and roc-build fold versus scan/copy")
     options = parser.parse_args()
     if options.repetitions <= 0:
         parser.error("--repetitions must be positive")

@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [HTTP/Linux host coverage](plans/rocci/html-scan-copy-host-coverage.md) Phase 0 on `main`: `--host` keeps a HostPage workspace, retargets a copied platform `Html.roc`, and `roc build`s fold versus scan from identical generated Roc. HTTP origin and Linux still unmeasured. Exploratory; not hosted-CI complete.
+
 - Recorded [scan/copy Node escape](plans/rocci/html-scan-copy-escape.md) Phases 0–1 on `main`: platform `escape_html_bytes` is scan/copy with a no-escape fast path; constructor lowering unchanged; Linux, HTTP origin, and theme `Str` remain unmeasured. Exploratory; not hosted-CI complete.
 
 - Led the [root](/index.md), [architecture](/architecture/), [status](/status/), and [plans](/plans/) indexes with current contracts and dated status; historical plans stay in area folders. No concept IDs moved. Local Exit evidence only.
