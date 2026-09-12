@@ -30,6 +30,7 @@ jobs:
         id: inspect
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
           ISSUE_IS_PR: ${{ github.event.issue.pull_request != null }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -129,9 +130,9 @@ jobs:
           echo "pr_sha=${head_sha}" >> "$GITHUB_OUTPUT"
 
           if [[ -n "$local_disabled" ]]; then
-            gh pr comment "$pr" --body "Self-hosted CI is disabled. Queued **hosted** CI and Knowledge at \`${head_sha}\`."
+            gh pr comment "$pr" --repo "$GH_REPO" --body "Self-hosted CI is disabled. Queued **hosted** CI and Knowledge at \`${head_sha}\`."
           else
-            gh pr comment "$pr" --body "Queued **hosted** CI and Knowledge at \`${head_sha}\`."
+            gh pr comment "$pr" --repo "$GH_REPO" --body "Queued **hosted** CI and Knowledge at \`${head_sha}\`."
           fi
 
   ci:
