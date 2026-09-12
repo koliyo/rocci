@@ -19,8 +19,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.11"
 thiserror = { workspace = true }
-wasmtime = { version = "47", optional = true }
-wasmtime-wasi = { version = "47", optional = true }
+wasmtime = { version = "48", optional = true }
+wasmtime-wasi = { version = "48", optional = true }
 
 [dev-dependencies]
 wat = "1"
