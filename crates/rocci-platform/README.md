@@ -13,6 +13,12 @@ the same module: `element` / `void_element` / `attribute` /
 `Html.render_fragment` remains the nominal rendered-string type.
 `0.16.0` pins still get staged wrapper copies.
 
+Node text and attribute escaping scans for whether a replacement is needed,
+then either returns the original string or copies into a pre-sized byte
+buffer. Attribute CR/LF stay `&#13;` / `&#10;`. This is not a second Html
+type or a language change. Linux, HTTP origin, and theme `Str` painters are
+unmeasured for this kernel.
+
 `pf.Rocci` is hosted glue onto `crates/rocci-template`: `compile!` returns
 generated Roc source plus diagnostics; `parse!` returns a `format_ast`
 S-expression plus diagnostics. File wrappers (`compile_file!` /

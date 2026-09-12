@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -354,13 +354,15 @@ rendering. Keep Rust-owned `.rocci` parsing and source lowering.
 | Evidence | Next deliverable |
 | --- | --- |
 | `boolean_attribute(False)` emits `disabled=""`; string omits it; `.rocci` only lowers True | [Omit the attribute when false](/plans/rocci/html-boolean-attribute.md); independent of speed. |
-| `node_scan_escape` matches representative Node fixtures and is ~34% faster on the 100-row escaped Card | [Scan/copy escape in platform Html](/plans/rocci/html-scan-copy-escape.md); keep constructor lowering and `&#13;`. Narrow to macOS Node Html until HTTP/Linux exist. |
+| `node_scan_escape` matches representative Node fixtures and is ~34% faster on the 100-row escaped Card | [Scan/copy escape in platform Html](/plans/rocci/html-scan-copy-escape.md) completed locally on `main`. Constructor lowering and `&#13;` kept. Linux, HTTP origin, and theme `Str` remain unmeasured. |
 | Restricted library subset plus typed closure | Defer. No generator-free packaging from this investigation. |
 | Builder-control beat prepared rendering | No fusion, unification, or second emit mode. The September 9 NavList status quo stands. |
 | Theme painters use `Str`; candidate HTTP and Linux coverage absent | Explore separately: [HTTP/Linux Node coverage](/plans/rocci/html-scan-copy-host-coverage.md); [string/theme escape](/plans/rocci/html-string-theme-escape.md). Do not claim those hosts until those plans report. |
 
-These follow-ups are exploratory plans, not approved Decisions, and are not
-started. This investigation did not ship the algorithms.
+These follow-ups are exploratory plans, not approved Decisions. Scan/copy
+Node escape shipped locally in platform Html; `boolean_attribute(False)`
+is not started. This investigation's own phases did not ship the algorithms.
+HTTP origin, Linux, and theme `Str` remain unmeasured.
 [^follow-up-plan][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^phase-2-receipt][^phase-4-receipt][^html-research][^native-research]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
@@ -746,7 +748,7 @@ replacement for `.rocci`.
 [^string-html]: Shared escaping and string-based Html construction used by the comparison app.
 [^html-preprocessing]: CRLF and literal CR are normalized before tokenization; character references are decoded later.
 [^follow-up-plan]: Separate plan for evidence quality, controlled comparisons, API boundaries, and representative host checks; not a product cutover.
-[^scan-copy-plan]: Follow-up to port `node_scan_escape`; not started; not an approved Decision.
+[^scan-copy-plan]: Scan/copy Node escape Phases 0–1 completed locally on `main`; HTTP/Linux/theme unmeasured; not an approved Decision.
 [^boolean-plan]: Follow-up to omit `boolean_attribute` when false; not started.
 [^host-coverage-plan]: Exploration of preview HTTP origin and Linux for the Node kernel.
 [^string-theme-plan]: Exploration of split/join string Html for painters; may close with no change.

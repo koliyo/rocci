@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Replace node Html escaping with scan/copy and a no-escape fast path
-description: "Port the measured node_scan_escape kernel into crates/rocci-platform/platform/Html.roc. Keep constructor lowering, CR numeric references in attributes, and the public Html API. Do not claim HTTP, Linux, or theme-Str benefit from the investigation."
+description: "Platform Node Html uses scan/copy escape_html_bytes with a no-escape fast path. Constructor lowering, CR numeric references, and the public Html API are unchanged. Linux, HTTP origin, and theme Str remain unmeasured."
 tags: [domain/rocci, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -23,7 +23,7 @@ sources:
     title: Hello/Card/Compat/Callout byte equality; HTTP/Linux absent
   - id: platform-html
     resource: ../../../crates/rocci-platform/platform/Html.roc
-    title: Current fold/concat escape_html_bytes
+    title: Product scan/copy escape_html_bytes
   - id: cli-html
     resource: ../../../crates/rocci-cli/runtime/Html.roc
     title: Wrapper that re-exports platform Html
@@ -36,13 +36,22 @@ sources:
   - id: host-coverage
     resource: ./html-scan-copy-host-coverage.md
     title: Exploration of HTTP origin and Linux coverage
+  - id: platform-readme
+    resource: ../../../crates/rocci-platform/README.md
+    title: Node scan/copy escaping; not a second Html type
 ---
 
 # Replace node Html escaping with scan/copy
 
 Exploratory follow-up from [template preparation and Html runtime costs](/plans/rocci/compile-time-template-preparation.md).
-Do not start a phase until the user asks. This is not an approved Decision.
-[^investigation][^research]
+This is not an approved Decision. The September 9 NavList status-quo
+outcome is unchanged.[^investigation][^research][^prior-html-plan]
+
+**State:** draft; Phases 0–1 completed locally on `main`. Platform
+`escape_html_bytes` is scan/copy with a no-escape fast path. Constructor
+lowering is unchanged. Remaining gaps: Linux, HTTP origin, and theme
+`Str`. Not hosted-CI complete.
+[^platform-html][^platform-readme][^host-coverage]
 
 ## Goal
 
@@ -93,6 +102,12 @@ every public constructor. Do not change generated Roc goldens.
 **Exit:** platform Html expects pass; `cargo test -p rocci-template` still
 passes without golden edits; `roc fmt --check` on the edited Roc.
 
+**Outcome:** `escape_html_bytes` in `crates/rocci-platform/platform/Html.roc`
+matches the investigation kernel. The CLI wrapper still re-exports platform
+Html. Expects lock clean-text identity, `&<>"'` in text, and attribute
+`&#13;` / `&#10;`. Template goldens were not regenerated.
+[^platform-html][^cli-html][^lower]
+
 ## Phase 1 — Record the product change and its limits
 
 **Bound**
@@ -105,6 +120,12 @@ passes without golden edits; `roc fmt --check` on the edited Roc.
 
 **Exit:** docs and knowledge name the algorithm and the unmeasured hosts.
 
+**Outcome:** platform README names scan/copy Node escaping and that it is
+not a new Html type. This plan, the parent investigation, and the research
+recommendation record the remaining Linux, HTTP-origin, and theme `Str`
+gaps. The September 9 NavList status quo is not rewritten.
+[^platform-readme][^prior-html-plan][^host-coverage]
+
 ## Validation
 
 - `roc` expects on `Html.roc` if the crate already runs them that way
@@ -116,8 +137,9 @@ passes without golden edits; `roc fmt --check` on the edited Roc.
 [^research]: Phase 2 cost table and Phase 4 fixture equality.
 [^phase-2-receipt]: ~34% faster on the 100-row escaped Card versus current node escape.
 [^phase-4-receipt]: Representative Node fixtures match; HTTP/Linux/theme coverage absent.
-[^platform-html]: Product `escape_html_bytes` fold/concat implementation.
+[^platform-html]: Product `escape_html_bytes` scan/copy implementation.
 [^cli-html]: Wrapper imports; keep behavior aligned.
 [^lower]: Generated Roc stays Html constructor calls.
 [^prior-html-plan]: September 9 NavList one-shot status quo remains a historical outcome.
 [^host-coverage]: Separate exploration; this plan stays macOS Node until that receipt exists.
+[^platform-readme]: Platform README names scan/copy and the unmeasured hosts.

@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Measure scan/copy Node escape on the preview HTTP origin and Linux
-description: "Fill the Phase 4 coverage gap for node_scan_escape: compare original versus candidate Html through a kept Rocci workspace on 127.0.0.1, then on Linux if a host exists. Do not ship the kernel or claim throughput from this plan."
+description: "Fill the Phase 4 coverage gap now that product Node Html uses scan/copy: compare fold/concat versus product Html through a kept Rocci workspace on 127.0.0.1, then on Linux if a host exists. Do not claim throughput from this plan."
 tags: [domain/rocci, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -14,7 +14,7 @@ sources:
     title: Parent investigation; HTTP and Linux remain unproven
   - id: scan-copy
     resource: ./html-scan-copy-escape.md
-    title: Product port of the kernel; forbids claiming unmeasured hosts
+    title: Product scan/copy kernel; HTTP/Linux still unmeasured
   - id: research
     resource: ../../research/rocci/compile-time-template-preparation.md
     title: Phase 4 fixture equality and documented host absence
@@ -44,8 +44,9 @@ sources:
 # Measure scan/copy Node escape on the preview HTTP origin and Linux
 
 Exploratory coverage for [scan/copy Node escape](/plans/rocci/html-scan-copy-escape.md).
-Do not start a phase until the user asks. This does not ship `escape_html_bytes`
-and is not an approved Decision.[^investigation][^scan-copy]
+Product Node Html now uses that kernel. This plan still does not claim HTTP
+or Linux benefit, and it is not an approved Decision. Do not start a phase
+until the user asks.[^investigation][^scan-copy]
 
 ## Goal
 

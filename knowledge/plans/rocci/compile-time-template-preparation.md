@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -113,12 +113,13 @@ activate the older plan's skipped fusion or runtime-unification phases.
 
 **State:** draft; Phases 0–5 completed locally on `compile-time-template-preparation`.
 The September 12 receipt is preserved. Compile-time template preparation is
-not the performance opportunity. Implementation follow-ups (not started, not
-approved Decisions): [scan/copy node escape](./html-scan-copy-escape.md) and
-[`boolean_attribute(False)` omission](./html-boolean-attribute.md). Exploration
-follow-ups (not started): [HTTP/Linux host coverage](./html-scan-copy-host-coverage.md)
+not the performance opportunity. Implementation follow-up
+[scan/copy node escape](./html-scan-copy-escape.md) completed locally on
+`main` (Phases 0–1); Linux, HTTP origin, and theme `Str` remain unmeasured.
+[`boolean_attribute(False)` omission](./html-boolean-attribute.md) is not
+started. Exploration follow-ups (not started): [HTTP/Linux host coverage](./html-scan-copy-host-coverage.md)
 and [theme/string Html escaping](./html-string-theme-escape.md). Library spike
-deferred. Not hosted-CI complete.
+deferred. Not an approved Decision. Not hosted-CI complete.
 [^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^adapter][^host][^host-page]
 
 ## Evidence and open questions

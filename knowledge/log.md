@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [scan/copy Node escape](plans/rocci/html-scan-copy-escape.md) Phases 0–1 on `main`: platform `escape_html_bytes` is scan/copy with a no-escape fast path; constructor lowering unchanged; Linux, HTTP origin, and theme `Str` remain unmeasured. Exploratory; not hosted-CI complete.
+
 - Led the [root](/index.md), [architecture](/architecture/), [status](/status/), and [plans](/plans/) indexes with current contracts and dated status; historical plans stay in area folders. No concept IDs moved. Local Exit evidence only.
 - Filed exploration plans [HTTP/Linux coverage for scan/copy Node escape](plans/rocci/html-scan-copy-host-coverage.md) and [theme/string Html split/join escaping](plans/rocci/html-string-theme-escape.md). Do not start until asked. Exploratory; not hosted-CI complete.
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 5 on `compile-time-template-preparation`: preparation is not the performance opportunity; filed [scan/copy Node escape](plans/rocci/html-scan-copy-escape.md) and [boolean_attribute(False)](plans/rocci/html-boolean-attribute.md) follow-ups. Exploratory; not started; not hosted-CI complete.
