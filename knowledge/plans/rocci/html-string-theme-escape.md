@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Decide whether theme and string Html split/join escaping deserves a kernel change
-description: "Phase 0 named Str owners. Phase 1: string scan/copy (no CR encoding) passed the painter screen (~21% on RocdownTheme siteShell; small case inside 5ms floor). Phase 2 will file or close. Do not switch painters to Html.Node."
+description: "Phases 0–2 on main: named Str owners; painter screen passed (~21% on RocdownTheme siteShell). Filed html-string-scan-copy-escape.md. Product Html unchanged in this plan. Do not switch painters to Html.Node."
 tags: [domain/rocci, domain/rocdown, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T14:25:00Z }
+generated: { by: process:cursor, at: 2026-09-12T14:35:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -60,6 +60,9 @@ sources:
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: NavList one-shot status quo; painters already annotate Str
+  - id: string-kernel-plan
+    resource: ./html-string-scan-copy-escape.md
+    title: Filed product follow-up; both string Html.roc copies; Node stays independent
 ---
 
 # Decide whether theme and string Html split/join escaping deserves a kernel change
@@ -67,13 +70,13 @@ sources:
 Exploratory follow-up from [template preparation and Html runtime costs](/plans/rocci/compile-time-template-preparation.md).
 Not an approved Decision. Closing with no change is a valid Exit.
 
-**State:** draft; Phases 0–1 completed locally on `main`. Owners are
+**State:** draft; Phases 0–2 completed locally on `main`. Owners are
 RocdownTheme and DocsComponents (`html_type: Str` over the Rocdown Html
 copy) plus playground/`rocci test` over the identical ui copy. Isolated
-string scan/copy (no CR encoding) passed the painter screen on
-RocdownTheme `siteShell`. Product Html is unchanged. Not hosted-CI
-complete.
-[^investigation][^research][^phase-0-receipt][^phase-1-receipt]
+string scan/copy (no CR encoding) passed the painter screen. Product
+follow-up: [string scan/copy](./html-string-scan-copy-escape.md). This
+plan did not edit product Html. Not hosted-CI complete.
+[^investigation][^research][^phase-0-receipt][^phase-1-receipt][^string-kernel-plan]
 
 ## Goal
 
@@ -189,6 +192,13 @@ product theme compile sets `embed_css: false`. Darwin arm64, Roc
 **Exit:** a recorded stop or a new implementation-plan path. This plan
 does not itself edit product Html.
 
+**Outcome:** Screen passed, so this plan files
+[replace string Html split/join with scan/copy](./html-string-scan-copy-escape.md)
+instead of closing. That follow-up names both string Html.roc files,
+expects, crate README, revert (restore split/join), and that Node Html
+stays independent. It is not started. Product Html is still split/join.
+[^string-kernel-plan][^phase-1-receipt]
+
 ## Validation
 
 - Experiment receipts under `knowledge/research/rocci/`
@@ -212,3 +222,4 @@ does not itself edit product Html.
 [^prior-html-plan]: Unification and fusion stay skipped.
 [^phase-1-receipt]: Local Phase 1; painter gain 20.6%; small inside 5ms floor; CR bytes equal.
 [^theme-escape]: `--theme-escape` runner; copies Rocdown string Html in the work dir only.
+[^string-kernel-plan]: Product follow-up; both copies; no `&#13;`; Node Html independent; not started.

@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T14:25:00Z }
+generated: { by: process:cursor, at: 2026-09-12T14:35:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -77,7 +77,10 @@ sources:
     title: Exploration of HTTP origin and Linux coverage for node_scan_escape
   - id: string-theme-plan
     resource: ./html-string-theme-escape.md
-    title: Phases 0–1 local; painter screen passed; product string Html unchanged
+    title: Phases 0–2 local; painter screen passed; filed string scan/copy follow-up
+  - id: string-kernel-plan
+    resource: ./html-string-scan-copy-escape.md
+    title: Follow-up to port string scan/copy into both Html.roc copies
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: Earlier NavList measurements and status-quo decision
@@ -121,9 +124,9 @@ gain.
 [`boolean_attribute(False)` omission](./html-boolean-attribute.md) is not
 started. Exploration follow-up [HTTP/Linux host coverage](./html-scan-copy-host-coverage.md)
 Phases 0–2 completed locally on `main`; [theme/string Html escaping](./html-string-theme-escape.md)
-Phases 0–1 completed locally on `main` (painter screen passed; product Html unchanged). Library spike
+Phases 0–2 completed locally on `main` (painter screen passed; [string scan/copy](./html-string-scan-copy-escape.md) filed, not started). Library spike
 deferred. Not an approved Decision. Not hosted-CI complete.
-[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^adapter][^host][^host-page]
+[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^string-kernel-plan][^adapter][^host][^host-page]
 
 ## Evidence and open questions
 
@@ -131,7 +134,7 @@ deferred. Not an approved Decision. Not hosted-CI complete.
 | --- | --- |
 | A closure sharing the sample/input type passes 16 focused probes; added, missing, and nested fields are rejected. Phase 3 defers exported, inferred, nominal, and higher-order library APIs rather than expanding the spike. | A later compiler, and a separately scoped library experiment if generator-free consumption is chosen later. |
 | The receipt reports 62 upstream tests passing. | The final receipt's upstream invocation used cached results; a fresh checkpoint should distinguish cached and uncached runs. |
-| Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. Phase 2 shows the gap is mostly escaping/growth, not preparation: a matched builder beat prepared rendering, and scan/copy escape is ~34% faster than current node escape on the 100-row escaped Card. Phase 4 keeps that candidate byte-identical on Hello, Card, Compat, and Callout. | HTTP origin on macOS is byte-identical with no visible renderer gain; Linux still absent; theme painters remain on `Str`; painter scan/copy passed the local screen and is not a product change yet. |
+| Prepared rendering was 3.1–3.8 times faster than the product node runtime on two 100-row fixtures, with fewer intercepted allocation calls. Phase 2 shows the gap is mostly escaping/growth, not preparation: a matched builder beat prepared rendering, and scan/copy escape is ~34% faster than current node escape on the 100-row escaped Card. Phase 4 keeps that candidate byte-identical on Hello, Card, Compat, and Callout. | HTTP origin on macOS is byte-identical with no visible renderer gain; Linux still absent; theme painters remain on `Str`; string scan/copy is filed and not started. |
 | Product nodes won the smallest runtime fixture, and prepared templates cost more to check/build. | Warm incremental behavior, many-template scaling, first-use latency, and practical authoring cost. |
 | A CR-in-attribute mismatch is explicit; quote entity spellings can differ without changing parsed meaning. | A broader HTML contract including fragments, void elements, boolean attributes, raw-text contexts, and browser parsing. |
 | Filename and line appear in preparation diagnostics. | Structured offsets, precise columns, partial origins, stable error codes, and LSP navigation. |
@@ -476,7 +479,8 @@ September 9 NavList status quo is unchanged.[^scan-copy-plan][^boolean-plan][^pr
 [^scan-copy-plan]: Follow-up implementation plan; not started; not an approved Decision.
 [^boolean-plan]: Follow-up correctness plan; not started; independent of speed.
 [^host-coverage-plan]: Phases 0–2 local: macOS origin bytes match, no visible renderer gain; Linux absent.
-[^string-theme-plan]: Phases 0–1 local; painter screen passed (~21% on siteShell); product Html unchanged.
+[^string-theme-plan]: Phases 0–2 local; painter screen passed; [string scan/copy](./html-string-scan-copy-escape.md) filed, not started.
+[^string-kernel-plan]: Port scan/copy into both string Html.roc copies; Node independent; not started.
 [^native-plan]: Source-emitting Roc compiler work is a separate project from prepared-template interpretation.
 [^pure-render]: Existing pure component contract.
 [^rust-catalog]: Static content ownership must not change as a renderer shortcut.

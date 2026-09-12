@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Replace node Html escaping with scan/copy and a no-escape fast path
-description: "Platform Node Html uses scan/copy escape_html_bytes with a no-escape fast path. Constructor lowering, CR numeric references, and the public Html API are unchanged. Keep repeating Linux absence; macOS HTTP origin matches with no visible renderer gain; theme Str remains unmeasured."
+description: "Platform Node Html uses scan/copy escape_html_bytes with a no-escape fast path. Constructor lowering, CR numeric references, and the public Html API are unchanged. Keep repeating Linux absence; macOS HTTP origin matches with no visible renderer gain. Theme Str is a separate string scan/copy plan."
 tags: [domain/rocci, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:52:00Z }
+generated: { by: process:cursor, at: 2026-09-12T14:35:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -39,6 +39,9 @@ sources:
   - id: platform-readme
     resource: ../../../crates/rocci-platform/README.md
     title: Node scan/copy escaping; not a second Html type
+  - id: string-kernel-plan
+    resource: ./html-string-scan-copy-escape.md
+    title: Separate product follow-up for string Html; not this bound
 ---
 
 # Replace node Html escaping with scan/copy
@@ -50,9 +53,11 @@ outcome is unchanged.[^investigation][^research][^prior-html-plan]
 **State:** draft; Phases 0–1 completed locally on `main`. Platform
 `escape_html_bytes` is scan/copy with a no-escape fast path. Constructor
 lowering is unchanged. Remaining gaps: Linux (must keep repeating; no
-experiment host) and theme `Str`. macOS HTTP origin is byte-identical with
-no visible renderer gain on the HostPage path. Not hosted-CI complete.
-[^platform-html][^platform-readme][^host-coverage]
+experiment host). Theme `Str` is a separate
+[string scan/copy](./html-string-scan-copy-escape.md) follow-up. macOS HTTP
+origin is byte-identical with no visible renderer gain on the HostPage path.
+Not hosted-CI complete.
+[^platform-html][^platform-readme][^host-coverage][^string-kernel-plan]
 
 ## Goal
 
@@ -72,8 +77,9 @@ every public constructor. Do not change generated Roc goldens.
 - Claiming HTTP, Linux, or webview-origin speedups. [HTTP/Linux
   coverage](/plans/rocci/html-scan-copy-host-coverage.md) Phase 1 measured
   macOS `127.0.0.1`: bytes match, renderer gain not visible. Phase 2 recorded
-  Linux absence. Keep repeating that Linux gap. Theme `Str` is separate.
-  [^phase-4-receipt][^host-coverage]
+  Linux absence. Keep repeating that Linux gap. Theme `Str` is
+  [a separate string plan](/plans/rocci/html-string-scan-copy-escape.md).
+  [^phase-4-receipt][^host-coverage][^string-kernel-plan]
 - Changing `boolean_attribute` true/false branches (separate correctness
   repair).
 
@@ -145,3 +151,4 @@ gaps. The September 9 NavList status quo is not rewritten.
 [^prior-html-plan]: September 9 NavList one-shot status quo remains a historical outcome.
 [^host-coverage]: macOS origin bytes match; renderer gain not visible; Linux absent and must stay listed.
 [^platform-readme]: Platform README names scan/copy and the unmeasured hosts.
+[^string-kernel-plan]: String Html is out of this bound; follow-up filed, not started.
