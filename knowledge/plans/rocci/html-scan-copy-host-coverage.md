@@ -4,7 +4,7 @@ title: Measure scan/copy Node escape on the preview HTTP origin and Linux
 description: "Fill the Phase 4 coverage gap now that product Node Html uses scan/copy: compare fold/concat versus product Html through a kept Rocci workspace on 127.0.0.1, then on Linux if a host exists. Do not claim throughput from this plan."
 tags: [domain/rocci, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:48:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:50:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -24,6 +24,9 @@ sources:
   - id: phase-0-receipt
     resource: ../../research/rocci/html-scan-copy-host-coverage-phase-0-results.json
     title: Kept workspace, relative pin, fold versus scan roc binaries
+  - id: phase-1-receipt
+    resource: ../../research/rocci/html-scan-copy-host-coverage-phase-1-results.json
+    title: macOS 127.0.0.1 GET / and /card byte-equal; renderer gain not visible
   - id: host
     resource: ../../../roc/template-preparation-experiment/host.py
     title: Kept-workspace capture and copied-platform roc builds
@@ -50,11 +53,12 @@ Exploratory coverage for [scan/copy Node escape](/plans/rocci/html-scan-copy-esc
 Product Node Html now uses that kernel. This plan still does not claim HTTP
 or Linux benefit, and it is not an approved Decision.
 
-**State:** draft; Phase 0 completed locally on `main`. `--host` keeps a
-HostPage workspace, copies the in-tree platform, rewrites a relative pin, and
-`roc build`s fold/concat versus scan/copy from identical generated Roc. HTTP
-origin and Linux are still unmeasured. Not hosted-CI complete.
-[^investigation][^scan-copy][^phase-0-receipt]
+**State:** draft; Phases 0–1 completed locally on `main`. `--host` keeps a
+HostPage workspace, copies the in-tree platform, and compares fold versus
+scan/copy on `http://127.0.0.1`. `GET /` and `GET /card` are byte-identical;
+renderer gain is not visible on this low-load path. Linux is still
+unmeasured. Not hosted-CI complete.
+[^investigation][^scan-copy][^phase-0-receipt][^phase-1-receipt]
 
 ## Goal
 
@@ -129,6 +133,13 @@ writes the executable. Product CLI was not changed.
 **Exit:** byte-equal origin responses plus a yes/no on whether renderer
 gain is visible on this path, or documented listen/build failure.
 
+**Outcome:** Both binaries listened on `127.0.0.1`. `GET /` (200, 470 bytes)
+and `GET /card` (Datastar patch-elements, 343 bytes) were byte-identical.
+Thirty post-startup requests: fold view median 0.30 ms, scan 0.29 ms.
+Renderer gain is not visible on this path (`renderer_gain_visible: false`).
+Not HTTP throughput.
+[^phase-1-receipt][^host]
+
 ## Phase 2 — Linux, or narrow the recommendation
 
 **Bound**
@@ -159,3 +170,4 @@ keep repeating.
 [^platform-readme]: Native `libhost.a` is rebuilt, not committed.
 [^theme]: Painters select `Str`; a different exploration owns that path.
 [^phase-0-receipt]: Local Phase 0; Apple M1 Max; kept workspace; fold versus scan binaries.
+[^phase-1-receipt]: Local Phase 1; `127.0.0.1` GET `/` and `/card` byte-equal; renderer gain not visible.

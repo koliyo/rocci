@@ -531,8 +531,11 @@ def summarize(report):
             harness_problems.append("missing_cost_table")
     if report.get("host_requested"):
         staging = report.get("host_staging") or {}
+        http = report.get("host_http") or {}
         if not staging.get("ok"):
             harness_problems.append("missing_host_coverage")
+        elif "ok" not in http:
+            harness_problems.append("missing_host_http")
     report["html_compatible"] = bool(html_compatible and report.get("bench_requested") and not report.get("error"))
     report["html_expected_findings_confirmed"] = bool(
         findings_ok and report.get("bench_requested") and "error" not in harness_problems
@@ -1081,7 +1084,12 @@ def run_experiment(options):
     elif options.costs:
         ok = report["harness_ok"] and report.get("phase2_selection") is not None
     elif options.host:
-        ok = report["harness_ok"] and bool((report.get("host_staging") or {}).get("ok")) and not report.get("error")
+        ok = (
+            report["harness_ok"]
+            and bool((report.get("host_staging") or {}).get("ok"))
+            and "ok" in (report.get("host_http") or {})
+            and not report.get("error")
+        )
     else:
         ok = (
             report["harness_ok"]

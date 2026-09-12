@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Replace node Html escaping with scan/copy and a no-escape fast path
-description: "Platform Node Html uses scan/copy escape_html_bytes with a no-escape fast path. Constructor lowering, CR numeric references, and the public Html API are unchanged. Linux, HTTP origin, and theme Str remain unmeasured."
+description: "Platform Node Html uses scan/copy escape_html_bytes with a no-escape fast path. Constructor lowering, CR numeric references, and the public Html API are unchanged. Linux and theme Str remain unmeasured; macOS HTTP origin matches and shows no visible renderer gain."
 tags: [domain/rocci, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T13:40:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:50:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -49,8 +49,9 @@ outcome is unchanged.[^investigation][^research][^prior-html-plan]
 
 **State:** draft; Phases 0–1 completed locally on `main`. Platform
 `escape_html_bytes` is scan/copy with a no-escape fast path. Constructor
-lowering is unchanged. Remaining gaps: Linux, HTTP origin, and theme
-`Str`. Not hosted-CI complete.
+lowering is unchanged. Remaining gaps: Linux and theme `Str`. macOS HTTP
+origin is byte-identical with no visible renderer gain on the HostPage
+path. Not hosted-CI complete.
 [^platform-html][^platform-readme][^host-coverage]
 
 ## Goal
@@ -69,9 +70,9 @@ every public constructor. Do not change generated Roc goldens.
   split/join escaping.
 - Prepared-template libraries, Templegen, or packaging.
 - Claiming HTTP, Linux, or webview-origin speedups. Phase 4 did not obtain
-  candidate HTTP or Linux coverage. Measure those hosts in
-  [HTTP/Linux coverage](/plans/rocci/html-scan-copy-host-coverage.md)
-  before widening this plan's recommendation.[^phase-4-receipt][^host-coverage]
+  candidate HTTP or Linux coverage. [HTTP/Linux coverage](/plans/rocci/html-scan-copy-host-coverage.md)
+  Phase 1 measured macOS `127.0.0.1`: bytes match, renderer gain not
+  visible. Linux remains unmeasured.[^phase-4-receipt][^host-coverage]
 - Changing `boolean_attribute` true/false branches (separate correctness
   repair).
 
@@ -141,5 +142,5 @@ gaps. The September 9 NavList status quo is not rewritten.
 [^cli-html]: Wrapper imports; keep behavior aligned.
 [^lower]: Generated Roc stays Html constructor calls.
 [^prior-html-plan]: September 9 NavList one-shot status quo remains a historical outcome.
-[^host-coverage]: Separate exploration; this plan stays macOS Node until that receipt exists.
+[^host-coverage]: macOS origin bytes match; renderer gain not visible; Linux still unmeasured.
 [^platform-readme]: Platform README names scan/copy and the unmeasured hosts.

@@ -7,8 +7,11 @@ import re
 import shutil
 import signal
 import socket
+import statistics
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -257,8 +260,6 @@ def free_port():
 
 
 def http_get(url, timeout=5):
-    import urllib.error
-    import urllib.request
     try:
         with urllib.request.urlopen(url, timeout=timeout) as response:
             body = response.read()
@@ -269,8 +270,12 @@ def http_get(url, timeout=5):
                 "sha256": hashlib.sha256(body).hexdigest(),
                 "head": body[:200].decode("utf-8", "replace"),
             }
-    except (urllib.error.URLError, TimeoutError, OSError) as error:
-        return {"ok": False, "error": str(error)}
+    except (urllib.error.URLError, TimeoutError, OSError, PermissionError) as error:
+        return {
+            "ok": False,
+            "error": f"{type(error).__name__}: {error}",
+            "listen_permission": isinstance(error, PermissionError) or "Permission" in str(error),
+        }
 
 
 def wait_http(url, timeout=40):
@@ -302,31 +307,131 @@ def stop_process(process):
             pass
 
 
-def serve_and_fetch(binary, cwd):
+def listen_permission(record):
+    if not record:
+        return False
+    if record.get("listen_permission"):
+        return True
+    error = record.get("error") or ""
+    return "PermissionError" in error or "Permission denied" in error
+
+
+def start_server(binary, cwd):
     port = free_port()
     env = os.environ.copy()
     env["ROC_BASIC_WEBSERVER_HOST"] = "127.0.0.1"
     env["ROC_BASIC_WEBSERVER_PORT"] = str(port)
+    log_path = Path(binary).with_name("server.stderr")
+    log = log_path.open("w")
     process = subprocess.Popen(
         [str(binary)],
         cwd=cwd,
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=log,
         start_new_session=True,
     )
-    origin = f"http://127.0.0.1:{port}"
+    log.close()
+    return process, f"http://127.0.0.1:{port}", port, log_path
+
+
+def time_paths(origin, reps=30):
+    samples = {"/": [], "/card": []}
+    for _ in range(reps):
+        for path in ("/", "/card"):
+            started = time.perf_counter()
+            got = http_get(f"{origin}{path}")
+            samples[path].append((time.perf_counter() - started) * 1000)
+            if not got.get("ok"):
+                return {"ok": False, "error": got.get("error"), "reps_done": len(samples["/"])}
+    return {
+        "ok": True,
+        "reps": reps,
+        "view_median_ms": statistics.median(samples["/"]),
+        "fragment_median_ms": statistics.median(samples["/card"]),
+        "view_min_ms": min(samples["/"]),
+        "fragment_min_ms": min(samples["/card"]),
+    }
+
+
+def fetch_origin(binary, cwd, time_reps=30):
+    process = None
+    record = {"binary": str(binary), "cwd": str(cwd)}
     try:
+        process, origin, port, log_path = start_server(binary, cwd)
+        record["port"] = port
         view = wait_http(f"{origin}/")
-        fragment = http_get(f"{origin}/card") if view.get("ok") else {"ok": False, "error": "view failed"}
-        return {
-            "port": port,
-            "view": view,
-            "fragment": fragment,
-            "ok": bool(view.get("ok") and fragment.get("ok")),
-        }
+        record["view"] = view
+        if not view.get("ok"):
+            record["ok"] = False
+            record["listen_failed"] = True
+            record["listen_permission"] = listen_permission(view)
+            record["stderr_tail"] = log_path.read_text()[-800:] if log_path.is_file() else ""
+            return record
+        fragment = http_get(f"{origin}/card")
+        record["fragment"] = fragment
+        if not fragment.get("ok"):
+            record["ok"] = False
+            record["listen_failed"] = listen_permission(fragment)
+            record["error"] = fragment.get("error") or "fragment fetch failed"
+            return record
+        record["timing"] = time_paths(origin, time_reps)
+        record["ok"] = True
+        record["listen_failed"] = False
+        return record
     finally:
-        stop_process(process)
+        if process is not None:
+            stop_process(process)
+
+
+def renderer_gain_visible(orig_timing, scan_timing):
+    if not (orig_timing or {}).get("ok") or not (scan_timing or {}).get("ok"):
+        return None
+    orig = orig_timing["view_median_ms"]
+    scan = scan_timing["view_median_ms"]
+    if orig <= 0:
+        return False
+    faster = scan <= orig * 0.85
+    return bool(faster and (orig - scan) >= 1.0)
+
+
+def compare_http(orig, scan):
+    listen_failed = (not orig.get("ok")) or (not scan.get("ok"))
+    if listen_failed:
+        return {
+            "ok": True,
+            "listen_failed": True,
+            "listen_permission": listen_permission(orig.get("view")) or listen_permission(scan.get("view")) or orig.get("listen_permission") or scan.get("listen_permission"),
+            "bytes_equal": None,
+            "renderer_gain_visible": None,
+            "note": "listen failed; not a renderer mismatch",
+            "orig": orig,
+            "scan": scan,
+        }
+    view_equal = (
+        orig["view"].get("status") == scan["view"].get("status")
+        and orig["view"].get("sha256") == scan["view"].get("sha256")
+    )
+    fragment_equal = (
+        orig["fragment"].get("status") == scan["fragment"].get("status")
+        and orig["fragment"].get("sha256") == scan["fragment"].get("sha256")
+    )
+    bytes_equal = bool(view_equal and fragment_equal)
+    gain = renderer_gain_visible(orig.get("timing"), scan.get("timing"))
+    record = {
+        "ok": bytes_equal,
+        "listen_failed": False,
+        "bytes_equal": bytes_equal,
+        "view_equal": view_equal,
+        "fragment_equal": fragment_equal,
+        "renderer_gain_visible": gain,
+        "orig": orig,
+        "scan": scan,
+        "note": "one bounded origin timing after listen; not HTTP throughput",
+    }
+    if not bytes_equal:
+        record["error"] = "origin responses were not byte-identical"
+    return record
 
 
 def run_host(harness, work, report):
@@ -402,3 +507,14 @@ def run_host(harness, work, report):
     report["host"]["staging"] = staging
     if not staging["ok"]:
         report["error"] = staging.get("error")
+        return
+
+    print("host HTTP orig", flush=True)
+    orig_http = fetch_origin(orig_root / "server", orig_root / "app")
+    print("host HTTP scan", flush=True)
+    scan_http = fetch_origin(scan_root / "server", scan_root / "app")
+    http = compare_http(orig_http, scan_http)
+    report["host_http"] = http
+    report["host"]["http"] = http
+    if not http["ok"]:
+        report["error"] = http.get("error") or "origin comparison failed"
