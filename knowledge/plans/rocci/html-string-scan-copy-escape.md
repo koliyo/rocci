@@ -1,10 +1,10 @@
 ---
 type: Implementation Plan
 title: Replace string Html split/join escaping with scan/copy
-description: "Port the Phase 1 string scan/copy kernel (no CR encoding) into both ui and Rocdown Html.roc copies. Keep them byte-identical. Node Html, html_type Str, and constructor lowering stay independent. Do not start until asked."
+description: "Both string Html.roc copies use scan/copy escape with a no-escape fast path. Files stay byte-identical. Node Html, html_type Str, and constructor lowering stay independent. CR stays raw. Exploratory; Phases 0–1 local."
 tags: [domain/rocci, domain/rocdown, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T14:35:00Z }
+generated: { by: process:cursor, at: 2026-09-12T15:10:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -23,7 +23,7 @@ sources:
     title: ~21% painter gain on RocdownTheme siteShell; CR bytes equal; no product Html edit
   - id: ui-html
     resource: ../../../crates/rocci-ui/runtime/Html.roc
-    title: Split/join escape; playground and rocci test
+    title: Scan/copy escape; playground and rocci test
   - id: rocdown-html
     resource: ../../../crates/rocci-rocdown/runtime/Html.roc
     title: Byte-identical copy staged for theme painters
@@ -42,6 +42,9 @@ sources:
   - id: ui-readme
     resource: ../../../crates/rocci-ui/README.md
     title: Where to name string Roc Html scan/copy
+  - id: platform-readme
+    resource: ../../../crates/rocci-platform/README.md
+    title: Node scan/copy; theme Str is a separate string module
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: Unification and fusion stay skipped
@@ -51,7 +54,14 @@ sources:
 
 Exploratory product follow-up from [theme/string Html escaping](/plans/rocci/html-string-theme-escape.md).
 The painter screen passed locally. This is not an approved Decision.
-Do not start a phase until asked.[^explore][^phase-1-receipt][^investigation]
+[^explore][^phase-1-receipt][^investigation]
+
+**State:** draft; Phases 0–1 completed locally on `html-string-scan-copy-escape`.
+Both string `Html.roc` copies use scan/copy with a no-escape fast path and
+stay byte-identical (SHA-256 `b5306129…`). Expects lock clean identity,
+`&<>"'`, raw CR/LF in attributes, and false `boolean_attribute` omission.
+Node Html is unchanged. Not hosted-CI complete.
+[^ui-html][^rocdown-html][^ui-readme][^node-html]
 
 ## Goal
 
@@ -100,6 +110,12 @@ stays `html_type: "Str"`. Node Html stays independent.
 --check` on the edited Roc; `cargo test -p rocci-ui` still passes
 without changing the Rust helper.
 
+**Outcome:** `escape` in both string Html.roc files is scan/copy. The
+`replace` split/join helper is gone. Expects pass via `roc test` on
+either copy (4 tests). Files remain byte-identical. Template goldens
+were not regenerated. Rust `rocci_ui::html::escape` is unchanged.
+[^ui-html][^rocdown-html][^kernel][^rust-escape]
+
 ## Phase 1 — Record the product change and its limits
 
 **Bound**
@@ -113,6 +129,15 @@ without changing the Rust helper.
 
 **Exit:** docs and knowledge name the algorithm, both files, revert, and
 that Node Html is unchanged.
+
+**Outcome:** rocci-ui README names string Roc Html scan/copy, raw CR,
+byte-identical Rocdown copy, revert, and that Node Html is independent.
+Platform README no longer calls theme `Str` unmeasured; Node Html is
+still this module with `&#13;`. This plan, the parent investigation, and
+the research recommendation record the shipped string kernel. The
+September 9 NavList status quo and the Card `string_scan_escape`
+failure are not rewritten.
+[^ui-readme][^platform-readme][^prior-html-plan][^investigation]
 
 ## Validation
 
@@ -130,5 +155,6 @@ that Node Html is unchanged.
 [^kernel]: Isolated `KERNEL_STRING_SCAN`; `costs.patch_string_html` matches it.
 [^node-html]: Platform `escape_html_bytes` already scan/copies with quote and CR/LF branches.
 [^rust-escape]: Crate-test only; Phase 0 of the exploration named it as not a Str owner.
-[^ui-readme]: README today names the Rust helper, not the Roc string kernel.
+[^ui-readme]: README names the Roc string kernel, both copies, revert, and Node independence.
+[^platform-readme]: Node module still uses `&#13;` / `&#10;`; theme Str is a different file.
 [^prior-html-plan]: Unification and fusion stay skipped.

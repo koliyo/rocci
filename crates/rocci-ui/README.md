@@ -10,6 +10,15 @@ Domain-neutral view records and presentation primitives for Rocci.
 3. **Shared Base Chrome Templates** (`templates/chrome/*.rocci`): Shared `.rocci` markup components for domain-neutral chrome (`PageOutline.rocci`, `NavList.rocci`, `Breadcrumbs.rocci`). Product shells (`SiteShell`, `RocdownTheme`) remain product-owned. Markdown rendering, catalog data, and OKF governance remain outside `rocci-ui`.
 4. **Shared client chrome** (`assets/toc.js`, `assets/goto.js`, `assets/copy.js`, `assets/resize.js`): small page-owned scripts. `goto.js` is the Cmd/Ctrl-K fuzzy page palette and same-origin HTML swap used by Rocdown, rocci.dev, OKF review, and desktop preview; a new document starts at the top unless the URL has a heading hash. `toc.js` highlights the current outline heading while scrolling. `resize.js` adds drag handles between the sidebars and the article; preview windows persist those widths on disk with window geometry, and browsers without host IPC keep them in `localStorage`. `copy.js` adds a copy-to-clipboard control on fenced code blocks. `copy.js` and `resize.js` ship concatenated into the hashed `goto.js` payload.
 
+`runtime/Html.roc` is the string Html module staged for playground and
+`rocci test`. Text and attributes share one scan/copy `escape` helper
+(`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&#39;`) with a no-escape fast path.
+CR/LF stay raw (not Node `&#13;` / `&#10;`). This is not a new Html type;
+platform Node Html stays independent. The Rocdown runtime copy
+(`crates/rocci-rocdown/runtime/Html.roc`) must stay byte-identical. Revert
+is restoring the split/join `replace` / `escape` bodies in both files.
+The Rust `rocci_ui::html::escape` helper is unchanged.
+
 ## Dependency Rules
 
 `rocci-ui` must have **zero dependencies** on `rocci-rocdown` or the portable OKF engine (`okf` in [okmate](https://github.com/koliyo/okmate)).

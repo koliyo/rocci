@@ -54,7 +54,8 @@ outcome is unchanged.[^investigation][^research][^prior-html-plan]
 `escape_html_bytes` is scan/copy with a no-escape fast path. Constructor
 lowering is unchanged. Remaining gaps: Linux (must keep repeating; no
 experiment host). Theme `Str` is a separate
-[string scan/copy](./html-string-scan-copy-escape.md) follow-up. macOS HTTP
+[string scan/copy](./html-string-scan-copy-escape.md) follow-up (Phases 0–1
+local). macOS HTTP
 origin is byte-identical with no visible renderer gain on the HostPage path.
 Not hosted-CI complete.
 [^platform-html][^platform-readme][^host-coverage][^string-kernel-plan]
@@ -151,4 +152,4 @@ gaps. The September 9 NavList status quo is not rewritten.
 [^prior-html-plan]: September 9 NavList one-shot status quo remains a historical outcome.
 [^host-coverage]: macOS origin bytes match; renderer gain not visible; Linux absent and must stay listed.
 [^platform-readme]: Platform README names scan/copy and the unmeasured hosts.
-[^string-kernel-plan]: String Html is out of this bound; follow-up filed, not started.
+[^string-kernel-plan]: String Html is out of this bound; follow-up Phases 0–1 local.

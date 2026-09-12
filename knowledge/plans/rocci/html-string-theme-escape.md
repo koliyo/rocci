@@ -4,7 +4,7 @@ title: Decide whether theme and string Html split/join escaping deserves a kerne
 description: "Phases 0–2 on main: named Str owners; painter screen passed (~21% on RocdownTheme siteShell). Filed html-string-scan-copy-escape.md. Product Html unchanged in this plan. Do not switch painters to Html.Node."
 tags: [domain/rocci, domain/rocdown, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T14:35:00Z }
+generated: { by: process:cursor, at: 2026-09-12T15:10:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -35,10 +35,10 @@ sources:
     title: Isolated string kernels plus RocdownTheme siteShell runner
   - id: ui-html
     resource: ../../../crates/rocci-ui/runtime/Html.roc
-    title: Split/join escape used by playground, rocci test, and rocci-string
+    title: Scan/copy escape used by playground, rocci test, and rocci-string
   - id: rocdown-html
     resource: ../../../crates/rocci-rocdown/runtime/Html.roc
-    title: Byte-identical split/join helper staged for theme painters
+    title: Scan/copy helper staged for theme painters
   - id: theme
     resource: ../../../crates/rocci-rocdown/src/plan/theme.rs
     title: compile_single_module sets html_type Str
@@ -62,7 +62,7 @@ sources:
     title: NavList one-shot status quo; painters already annotate Str
   - id: string-kernel-plan
     resource: ./html-string-scan-copy-escape.md
-    title: Filed product follow-up; both string Html.roc copies; Node stays independent
+    title: Product follow-up Phases 0–1 local; both string Html.roc copies
 ---
 
 # Decide whether theme and string Html split/join escaping deserves a kernel change
@@ -74,8 +74,9 @@ Not an approved Decision. Closing with no change is a valid Exit.
 RocdownTheme and DocsComponents (`html_type: Str` over the Rocdown Html
 copy) plus playground/`rocci test` over the identical ui copy. Isolated
 string scan/copy (no CR encoding) passed the painter screen. Product
-follow-up: [string scan/copy](./html-string-scan-copy-escape.md). This
-plan did not edit product Html. Not hosted-CI complete.
+follow-up: [string scan/copy](./html-string-scan-copy-escape.md) Phases
+0–1 local. This exploration did not itself edit product Html. Not
+hosted-CI complete.
 [^investigation][^research][^phase-0-receipt][^phase-1-receipt][^string-kernel-plan]
 
 ## Goal
@@ -211,7 +212,7 @@ stays independent. It is not started. Product Html is still split/join.
 [^host-coverage]: Preview HTTP origin for Node, not painters.
 [^phase-2-receipt]: string_scan_escape large gain 3.7%; empty-card regression ~34%.
 [^phase-0-receipt]: Local Phase 0 owner table; ui and Rocdown Html.roc hashes match; string contract excludes `&#13;`.
-[^ui-html]: Split/join `escape`; playground, rocci test, and experiment string backend.
+[^ui-html]: Scan/copy `escape`; playground, rocci test, and experiment string backend.
 [^rocdown-html]: Byte-identical `include_str!` copy staged for Rocdown theme compile and site apply.
 [^theme]: `html_type: "Str"` in `compile_single_module`.
 [^docs-components]: DocsComponents Aside interpolates kind, title, and aria into class/text/attributes.
@@ -222,4 +223,4 @@ stays independent. It is not started. Product Html is still split/join.
 [^prior-html-plan]: Unification and fusion stay skipped.
 [^phase-1-receipt]: Local Phase 1; painter gain 20.6%; small inside 5ms floor; CR bytes equal.
 [^theme-escape]: `--theme-escape` runner; copies Rocdown string Html in the work dir only.
-[^string-kernel-plan]: Product follow-up; both copies; no `&#13;`; Node Html independent; not started.
+[^string-kernel-plan]: Product follow-up; both copies; no `&#13;`; Node Html independent; Phases 0–1 local.

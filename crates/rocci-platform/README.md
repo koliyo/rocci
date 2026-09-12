@@ -19,7 +19,8 @@ buffer. Attribute CR/LF stay `&#13;` / `&#10;`. This is not a second Html
 type or a language change. A macOS `127.0.0.1` HostPage origin compared fold
 versus scan/copy: responses were byte-identical; renderer gain was not
 visible on that low-load path. Linux remains unmeasured (keep repeating).
-Theme `Str` painters are unmeasured.
+Theme `Str` painters use a separate string `Html.roc` (scan/copy, raw CR);
+that is not this Node module.
 
 `pf.Rocci` is hosted glue onto `crates/rocci-template`: `compile!` returns
 generated Roc source plus diagnostics; `parse!` returns a `format_ast`
