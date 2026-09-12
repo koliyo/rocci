@@ -1,7 +1,8 @@
 use lsp_types::{
-    CompletionItem, CompletionItemKind, CompletionResponse, Diagnostic, DiagnosticSeverity,
-    DocumentSymbol, DocumentSymbolResponse, GotoDefinitionResponse, Hover, HoverContents, Location,
-    MarkupContent, MarkupKind, NumberOrString, Position, Range, SymbolKind,
+    CompletionItem, CompletionItemKind, CompletionResponse, CompletionTextEdit, Diagnostic,
+    DiagnosticSeverity, DocumentSymbol, DocumentSymbolResponse, GotoDefinitionResponse, Hover,
+    HoverContents, Location, MarkupContent, MarkupKind, NumberOrString, Position, Range,
+    SymbolKind, TextEdit,
 };
 use rocci_template::{
     CommandDecl, CompileOutput, ComponentCall, ComponentDecl, ContextDecl, Document, FixtureDecl,
@@ -577,6 +578,24 @@ pub fn completion_item(
         label: label.to_string(),
         kind: Some(kind),
         detail,
+        ..CompletionItem::default()
+    }
+}
+
+pub fn completion_item_replacing(
+    label: &str,
+    kind: CompletionItemKind,
+    detail: Option<String>,
+    range: Range,
+) -> CompletionItem {
+    CompletionItem {
+        label: label.to_string(),
+        kind: Some(kind),
+        detail,
+        text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+            range,
+            new_text: label.to_string(),
+        })),
         ..CompletionItem::default()
     }
 }

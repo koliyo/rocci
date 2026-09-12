@@ -1,8 +1,8 @@
 use lsp_types::{
-    ClientCapabilities, CompletionParams, CompletionResponse, Diagnostic, DiagnosticSeverity,
-    DidOpenTextDocumentParams, DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse,
-    GeneralClientCapabilities, GotoDefinitionParams, Hover, HoverContents, HoverParams,
-    InitializeParams, MarkupContent, MarkupKind, PartialResultParams, Position,
+    ClientCapabilities, CompletionParams, CompletionResponse, CompletionTextEdit, Diagnostic,
+    DiagnosticSeverity, DidOpenTextDocumentParams, DocumentSymbol, DocumentSymbolParams,
+    DocumentSymbolResponse, GeneralClientCapabilities, GotoDefinitionParams, Hover, HoverContents,
+    HoverParams, InitializeParams, MarkupContent, MarkupKind, PartialResultParams, Position,
     PositionEncodingKind, Range, SemanticTokensParams, TextDocumentIdentifier, TextDocumentItem,
     TextDocumentPositionParams, Uri, WorkDoneProgressParams,
 };
@@ -1446,6 +1446,67 @@ fn completes_markdown_routes_and_relative_paths() {
     assert!(
         found.iter().any(|label| label.starts_with("/docs/")),
         "{found:?}"
+    );
+    let dest_start = src.find("](").expect("dest") + 2;
+    let route = items
+        .iter()
+        .find(|item| item.label.starts_with("/docs/"))
+        .expect("docs route");
+    let Some(CompletionTextEdit::Edit(edit)) = &route.text_edit else {
+        panic!("markdown dest must replace the typed href: {route:?}");
+    };
+    assert_eq!(edit.new_text, route.label);
+    assert_eq!(
+        edit.range,
+        Range::new(
+            Position::new(0, dest_start as u32),
+            Position::new(0, src.len() as u32),
+        )
+    );
+
+    let prefix_src = "[Applications](/docs/appl";
+    server
+        .did_open(DidOpenTextDocumentParams {
+            text_document: TextDocumentItem {
+                uri: uri.clone(),
+                language_id: "rocdown".to_string(),
+                version: 2,
+                text: prefix_src.to_string(),
+            },
+        })
+        .expect("open prefix buffer");
+    let (line, character) = line_col(prefix_src, prefix_src.len());
+    let CompletionResponse::Array(items) = server
+        .completion(CompletionParams {
+            text_document_position: position_params(&uri, line, character),
+            work_done_progress_params: WorkDoneProgressParams::default(),
+            partial_result_params: PartialResultParams::default(),
+            context: None,
+        })
+        .expect("prefix completion")
+    else {
+        panic!("expected completion array");
+    };
+    let dest_start = prefix_src.find("](").expect("dest") + 2;
+    let route = items
+        .iter()
+        .find(|item| item.label.contains("/docs/applications"))
+        .expect("applications route");
+    let Some(CompletionTextEdit::Edit(edit)) = &route.text_edit else {
+        panic!("typed /docs/ prefix must be replaced: {route:?}");
+    };
+    assert_eq!(edit.new_text, route.label);
+    assert!(
+        !edit.new_text.starts_with("/docs//docs/"),
+        "{}",
+        edit.new_text
+    );
+    assert_eq!(
+        edit.range,
+        Range::new(
+            Position::new(0, dest_start as u32),
+            Position::new(0, prefix_src.len() as u32),
+        )
     );
 
     let siblings = env::temp_dir().join(format!(

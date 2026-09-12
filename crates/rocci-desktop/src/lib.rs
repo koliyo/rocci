@@ -28,6 +28,9 @@ const COMPAT_SCRIPT: &str = r#"
   window.addEventListener("h35-pick-folder", function (event) {
     window.dispatchEvent(new CustomEvent("rocci-pick-folder", { detail: event.detail }));
   });
+  var chrome = document.createElement("style");
+  chrome.textContent = "html { --rocci-chrome-top: var(--h35-chrome-top, 0px); --rocci-chrome-right: var(--h35-chrome-right, 0px); --rocci-chrome-bottom: var(--h35-chrome-bottom, 0px); --rd-chrome-top: var(--h35-chrome-top, 0px); }";
+  document.documentElement.appendChild(chrome);
 })();
 "#;
 
@@ -134,6 +137,8 @@ mod tests {
         assert!(COMPAT_SCRIPT.contains("__rocciGoto"));
         assert!(COMPAT_SCRIPT.contains("rocci-pick-folder"));
         assert!(COMPAT_SCRIPT.contains("h35-pick-folder"));
+        assert!(COMPAT_SCRIPT.contains("--rocci-chrome-top: var(--h35-chrome-top, 0px)"));
+        assert!(COMPAT_SCRIPT.contains("--rd-chrome-top: var(--h35-chrome-top, 0px)"));
     }
 
     #[test]
