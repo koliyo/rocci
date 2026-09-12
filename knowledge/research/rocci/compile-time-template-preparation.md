@@ -4,7 +4,7 @@ title: Compile-time template preparation can support a Roc library, but cannot r
 description: "Templegen prepares template data at compile time. A typed closure fixes the reproduced context-shape gap in 16 local probes; prepared rendering wins the measured 100-row workloads but builds slower and differs from product HTML on carriage-return attributes. Full Rocci still needs Roc source lowering."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/syntax, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T12:20:00Z }
+generated: { by: process:cursor, at: 2026-09-12T12:35:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -12,6 +12,12 @@ sources:
   - id: follow-up-plan
     resource: ../../plans/rocci/compile-time-template-preparation.md
     title: Bounded next investigations, compatibility requirements, and product decision criteria
+  - id: scan-copy-plan
+    resource: ../../plans/rocci/html-scan-copy-escape.md
+    title: Follow-up to port node_scan_escape into platform Html
+  - id: boolean-plan
+    resource: ../../plans/rocci/html-boolean-attribute.md
+    title: Follow-up to omit boolean_attribute when false
   - id: experiment
     resource: ../../../roc/template-preparation-experiment/run.py
     title: Reproducible type, diagnostics, HTML, compiler, and runtime experiment
@@ -335,20 +341,21 @@ than a blanket reading of that historical record might suggest.[^native-postmort
 
 ## Recommendation
 
-Next investigation: [template preparation and Html runtime costs](/plans/rocci/compile-time-template-preparation.md).
-Phase 0 completed locally on `compile-time-template-preparation`: a hashed
-baseline reproduces the claimed speed ordering and named HTML findings
-without replacing the September 12 receipt. Phase 1 adds a compatibility
-matrix: benchmarked Card cases have no unexplained differences; quotes are
-equivalent serialization; a raw CR in an attribute is a real DOM-value split.
-Phase 2 attributes the large-fixture speed gap to escaping algorithms, not
-compile-time preparation: a matched string builder beat prepared rendering,
-and `node_scan_escape` is the selected runtime candidate. Phase 3 defers
-the generator-free library spike. Phase 4 keeps that candidate byte-identical
-on Hello, Card, Compat, and Callout; theme painters stay on `Str`; candidate
-HTTP and Linux coverage are absent. Remaining: Phase 5 recommendation.
-The earlier source-lowering decision remains intact.
-[^follow-up-plan][^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt]
+This investigation is complete locally. Compile-time template preparation is
+**not** the performance opportunity: a matched string builder beat prepared
+rendering. Keep Rust-owned `.rocci` parsing and source lowering.
+
+| Evidence | Next deliverable |
+| --- | --- |
+| `boolean_attribute(False)` emits `disabled=""`; string omits it; `.rocci` only lowers True | [Omit the attribute when false](/plans/rocci/html-boolean-attribute.md); independent of speed. |
+| `node_scan_escape` matches representative Node fixtures and is ~34% faster on the 100-row escaped Card | [Scan/copy escape in platform Html](/plans/rocci/html-scan-copy-escape.md); keep constructor lowering and `&#13;`. Narrow to macOS Node Html until HTTP/Linux exist. |
+| Restricted library subset plus typed closure | Defer. No generator-free packaging from this investigation. |
+| Builder-control beat prepared rendering | No fusion, unification, or second emit mode. The September 9 NavList status quo stands. |
+| Theme painters use `Str`; candidate HTTP and Linux coverage absent | Do not claim those hosts. |
+
+These follow-ups are exploratory plans, not approved Decisions, and are not
+started. This investigation did not ship the algorithms.
+[^follow-up-plan][^scan-copy-plan][^boolean-plan][^phase-2-receipt][^phase-4-receipt][^html-research][^native-research]
 
 Keep Rust-owned `.rocci` parsing and source lowering as the product path.
 The existing native-compiler research remains relevant to a **Roc program
@@ -358,17 +365,14 @@ the compiler**, with application logic authored separately in Roc. It does
 not bridge those two options automatically.[^native-research]
 
 The small experiment proposed here has now been executed below. Its results
-support further investigation of a restricted library and of current Html
-runtime costs. They do not justify replacing `.rocci` or introducing another
-product grammar. A later library experiment would need HTML-context-aware
-escaping, broader composition coverage, and better source mapping before a
-product decision.[^experiment-results]
+do not justify replacing `.rocci` or introducing another product grammar.
+The restricted library remains deferred. Html runtime follow-ups are the
+scan/copy escape plan and the boolean-helper repair, not fusion.
+[^experiment-results][^scan-copy-plan][^boolean-plan]
 
-For unchanged `.rocci` syntax, investigate optimizations inside the existing
-lowerer separately if measurements justify them. Static markup fusion or
-buffer growth strategies can be borrowed without replacing typed Roc
-expressions with serialized values. Any such optimization must preserve
-escaping, component composition, and source mapping.[^html-research][^lower-html]
+For unchanged `.rocci` syntax, keep constructor lowering. Buffer-growth
+fusion is not selected; scan/copy escaping is the measured Node runtime
+change.[^html-research][^lower-html][^scan-copy-plan]
 
 ## Follow-up experiments
 
@@ -698,14 +702,13 @@ cross-platform or webview-origin benefit from this phase.
 The restricted-library idea passes the first viability test: type-safe
 context binding can be layered over compile-time preparation on the current
 pin without a product parser change. Empty samples, the encoder vocabulary,
-attribute semantics, and coarse diagnostics remain real limits.
-The performance results also justify investigating buffer growth and escaping
-in the existing Html runtimes independently. Phase 2 later showed buffer
-growth is not the large-fixture win and that matched algorithms beat prepared
-rendering, so compile-time preparation is not the performance opportunity.
+attribute semantics, and coarse diagnostics remain real limits. Phase 3
+defers packaging that library. Compile-time preparation is not the
+performance opportunity. Follow-ups are scan/copy Node escape and
+`boolean_attribute(False)` omission; neither is started or approved.
 Neither result makes embedded Roc expressions executable or establishes a
 replacement for `.rocci`.
-[^typed-adapter][^experiment-results][^phase-2-receipt]
+[^typed-adapter][^experiment-results][^phase-2-receipt][^scan-copy-plan][^boolean-plan]
 
 [^discussion]: Exact linked announcement and archived reply; no documented platform compiler hook.
 [^templegen-main]: Main-branch generator, closed Ctx, formatter calls, two strategies, and later benchmark summary.
@@ -737,6 +740,8 @@ replacement for `.rocci`.
 [^string-html]: Shared escaping and string-based Html construction used by the comparison app.
 [^html-preprocessing]: CRLF and literal CR are normalized before tokenization; character references are decoded later.
 [^follow-up-plan]: Separate plan for evidence quality, controlled comparisons, API boundaries, and representative host checks; not a product cutover.
+[^scan-copy-plan]: Follow-up to port `node_scan_escape`; not started; not an approved Decision.
+[^boolean-plan]: Follow-up to omit `boolean_attribute` when false; not started.
 [^phase-0-receipt]: Phase 0 local baseline receipt; September 12 file preserved; claimed speed ordering reproduced.
 [^phase-1-receipt]: Phase 1 local matrix and helper probes; html5lib 1.1; no unexplained benchmarked Card differences.
 [^phase-2-receipt]: Phase 2 local cost table; process totals; `node_scan_escape` selected; builder-control beat prepared rendering.

@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T12:20:00Z }
+generated: { by: process:cursor, at: 2026-09-12T12:35:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -66,6 +66,12 @@ sources:
   - id: platform-readme
     resource: ../../../crates/rocci-platform/README.md
     title: Platform ownership, application pin, and vendor provenance
+  - id: scan-copy-plan
+    resource: ./html-scan-copy-escape.md
+    title: Follow-up to port node_scan_escape into platform Html
+  - id: boolean-plan
+    resource: ./html-boolean-attribute.md
+    title: Follow-up to omit boolean_attribute when false
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: Earlier NavList measurements and status-quo decision
@@ -99,21 +105,14 @@ one-shot workloads, while the new experiment uses repeated rendering and
 activate the older plan's skipped fusion or runtime-unification phases.
 [^prior-html-plan][^native-plan]
 
-**State:** draft; Phases 0–4 completed locally on `compile-time-template-preparation`.
-The September 12 receipt is preserved. Phase 0 reproduced the claimed speed
-ordering. Phase 1 has a compatibility matrix with no unexplained benchmarked
-differences; CR-in-attribute remains a real DOM-value split, and
-`boolean_attribute(False)` is product/string drift not reachable from `.rocci`.
-Phase 2 attributes the large-fixture gap to escaping algorithms, not
-compile-time preparation: a matched string builder beat prepared rendering,
-and `node_scan_escape` is the selected runtime candidate for Phase 4.
-Phase 3 defers generator-free library consumption: the Phase 1 subset plus
-typed-closure probes remain the supported contract; no library candidate
-is carried into Phase 4. Phase 4: Hello, Card, Compat, and Callout bytes match
-between current nodes and `node_scan_escape`; theme painters select `Str`;
-candidate HTTP and Linux coverage are absent. Not hosted-CI complete. Phase 5
-has not started.
-[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^adapter][^host][^host-page]
+**State:** draft; Phases 0–5 completed locally on `compile-time-template-preparation`.
+The September 12 receipt is preserved. Compile-time template preparation is
+not the performance opportunity. Follow-ups (not started, not approved
+Decisions): [scan/copy node escape](./html-scan-copy-escape.md) and
+[`boolean_attribute(False)` omission](./html-boolean-attribute.md). Library
+spike deferred. HTTP, Linux, and theme-`Str` coverage remain absent. Not
+hosted-CI complete.
+[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^adapter][^host][^host-page]
 
 ## Evidence and open questions
 
@@ -418,6 +417,11 @@ scoped follow-up ready for implementation review. Otherwise a recorded stop
 is a valid result. This plan's investigative phases do not themselves ship
 the candidate algorithms.
 
+Phase 5 outcome (local, not hosted-CI): scan/copy Node escape is the
+runtime follow-up; boolean false omission is a separate correctness
+follow-up; prepared library and fusion/unification stay deferred; the
+September 9 NavList status quo is unchanged.[^scan-copy-plan][^boolean-plan][^prior-html-plan]
+
 ## Validation and completion evidence
 
 - Planning-only edits: `okmate check knowledge --profile base` and
@@ -458,6 +462,8 @@ the candidate algorithms.
 [^theme]: Theme painters use Str signatures; runtime changes may have separate consumers.
 [^platform-readme]: Actual application platform, supported targets, and vendor ownership.
 [^prior-html-plan]: Prior status-quo decision remains a historical outcome for its measured scope.
+[^scan-copy-plan]: Follow-up implementation plan; not started; not an approved Decision.
+[^boolean-plan]: Follow-up correctness plan; not started; independent of speed.
 [^native-plan]: Source-emitting Roc compiler work is a separate project from prepared-template interpretation.
 [^pure-render]: Existing pure component contract.
 [^rust-catalog]: Static content ownership must not change as a renderer shortcut.

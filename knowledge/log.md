@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-09-12
 
+- Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 5 on `compile-time-template-preparation`: preparation is not the performance opportunity; filed [scan/copy Node escape](plans/rocci/html-scan-copy-escape.md) and [boolean_attribute(False)](plans/rocci/html-boolean-attribute.md) follow-ups. Exploratory; not started; not hosted-CI complete.
+
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 4 on `compile-time-template-preparation`: Hello/Card/Compat/Callout bytes match for `node_scan_escape`; theme painters stay on `Str`; candidate HTTP and Linux coverage absent. Exploratory; not hosted-CI complete.
 
 - Recorded [template preparation and Html runtime investigation](plans/rocci/compile-time-template-preparation.md) Phase 3 on `compile-time-template-preparation`: deferred generator-free library consumption; Phase 1 subset plus typed-closure probes remain the contract; no library candidate for Phase 4. Exploratory; not hosted-CI complete.
