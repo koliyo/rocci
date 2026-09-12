@@ -4,7 +4,7 @@ title: Investigate template preparation and Html runtime costs before choosing a
 description: "Follow the September 12 typed-template results with stronger evidence capture, HTML compatibility tests, controlled runtime experiments, and conditional library/host probes. Prefer improvements that preserve Rocci source lowering; no new grammar, runtime unification, or product cutover is selected."
 tags: [domain/rocci, integration/roc, concern/architecture, concern/rendering, concern/performance, concern/validation]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T12:35:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -72,6 +72,12 @@ sources:
   - id: boolean-plan
     resource: ./html-boolean-attribute.md
     title: Follow-up to omit boolean_attribute when false
+  - id: host-coverage-plan
+    resource: ./html-scan-copy-host-coverage.md
+    title: Exploration of HTTP origin and Linux coverage for node_scan_escape
+  - id: string-theme-plan
+    resource: ./html-string-theme-escape.md
+    title: Exploration of split/join string Html used by theme painters
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: Earlier NavList measurements and status-quo decision
@@ -107,12 +113,13 @@ activate the older plan's skipped fusion or runtime-unification phases.
 
 **State:** draft; Phases 0–5 completed locally on `compile-time-template-preparation`.
 The September 12 receipt is preserved. Compile-time template preparation is
-not the performance opportunity. Follow-ups (not started, not approved
-Decisions): [scan/copy node escape](./html-scan-copy-escape.md) and
-[`boolean_attribute(False)` omission](./html-boolean-attribute.md). Library
-spike deferred. HTTP, Linux, and theme-`Str` coverage remain absent. Not
-hosted-CI complete.
-[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^adapter][^host][^host-page]
+not the performance opportunity. Implementation follow-ups (not started, not
+approved Decisions): [scan/copy node escape](./html-scan-copy-escape.md) and
+[`boolean_attribute(False)` omission](./html-boolean-attribute.md). Exploration
+follow-ups (not started): [HTTP/Linux host coverage](./html-scan-copy-host-coverage.md)
+and [theme/string Html escaping](./html-string-theme-escape.md). Library spike
+deferred. Not hosted-CI complete.
+[^phase-0-receipt][^phase-1-receipt][^phase-2-receipt][^phase-4-receipt][^scan-copy-plan][^boolean-plan][^host-coverage-plan][^string-theme-plan][^adapter][^host][^host-page]
 
 ## Evidence and open questions
 
@@ -464,6 +471,8 @@ September 9 NavList status quo is unchanged.[^scan-copy-plan][^boolean-plan][^pr
 [^prior-html-plan]: Prior status-quo decision remains a historical outcome for its measured scope.
 [^scan-copy-plan]: Follow-up implementation plan; not started; not an approved Decision.
 [^boolean-plan]: Follow-up correctness plan; not started; independent of speed.
+[^host-coverage-plan]: Exploration of preview-origin HTTP and Linux for the Node kernel.
+[^string-theme-plan]: Exploration of split/join string Html for theme painters; close-or-file.
 [^native-plan]: Source-emitting Roc compiler work is a separate project from prepared-template interpretation.
 [^pure-render]: Existing pure component contract.
 [^rust-catalog]: Static content ownership must not change as a renderer shortcut.

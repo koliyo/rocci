@@ -4,7 +4,7 @@ title: Replace node Html escaping with scan/copy and a no-escape fast path
 description: "Port the measured node_scan_escape kernel into crates/rocci-platform/platform/Html.roc. Keep constructor lowering, CR numeric references in attributes, and the public Html API. Do not claim HTTP, Linux, or theme-Str benefit from the investigation."
 tags: [domain/rocci, concern/rendering, concern/performance]
 status: draft
-generated: { by: process:cursor, at: 2026-09-12T12:35:00Z }
+generated: { by: process:cursor, at: 2026-09-12T13:53:00Z }
 stale_after: 2026-10-12
 authority: exploratory
 owners: [human:nils]
@@ -33,6 +33,9 @@ sources:
   - id: prior-html-plan
     resource: ./html-node-lowering.md
     title: Earlier status-quo decision for NavList-scale one-shot work
+  - id: host-coverage
+    resource: ./html-scan-copy-host-coverage.md
+    title: Exploration of HTTP origin and Linux coverage
 ---
 
 # Replace node Html escaping with scan/copy
@@ -57,7 +60,9 @@ every public constructor. Do not change generated Roc goldens.
   split/join escaping.
 - Prepared-template libraries, Templegen, or packaging.
 - Claiming HTTP, Linux, or webview-origin speedups. Phase 4 did not obtain
-  candidate HTTP or Linux coverage.[^phase-4-receipt]
+  candidate HTTP or Linux coverage. Measure those hosts in
+  [HTTP/Linux coverage](/plans/rocci/html-scan-copy-host-coverage.md)
+  before widening this plan's recommendation.[^phase-4-receipt][^host-coverage]
 - Changing `boolean_attribute` true/false branches (separate correctness
   repair).
 
@@ -115,3 +120,4 @@ passes without golden edits; `roc fmt --check` on the edited Roc.
 [^cli-html]: Wrapper imports; keep behavior aligned.
 [^lower]: Generated Roc stays Html constructor calls.
 [^prior-html-plan]: September 9 NavList one-shot status quo remains a historical outcome.
+[^host-coverage]: Separate exploration; this plan stays macOS Node until that receipt exists.
