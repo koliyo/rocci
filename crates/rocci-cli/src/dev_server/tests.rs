@@ -58,13 +58,13 @@ fn test_inject_live_reload_and_relax_csp() {
 
 #[test]
 fn reload_js_honors_live_reload_storage() {
-    assert!(RELOAD_JS.contains("window.__rocciLiveReload"));
-    assert!(RELOAD_JS.contains("rocci-live-reload"));
+    assert!(RELOAD_JS.contains("window.__h35LiveReload"));
+    assert!(RELOAD_JS.contains("h35-live-reload"));
     assert!(RELOAD_JS.contains("sessionStorage.getItem(KEY) !== \"0\""));
     assert!(RELOAD_JS.contains("if (enabled())"));
     assert!(RELOAD_JS.contains("dirty = true"));
     assert!(RELOAD_JS.contains("if (on && dirty)"));
-    assert!(RELOAD_JS.contains("if (window.__rocciLiveReload)"));
+    assert!(RELOAD_JS.contains("if (window.__h35LiveReload)"));
     assert!(RELOAD_JS.contains("URLSearchParams"));
     assert!(RELOAD_JS.contains("get(\"reload\") === \"0\""));
     assert!(RELOAD_JS.contains("seedFromQuery"));

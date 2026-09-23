@@ -6,6 +6,18 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-23
+
+- Okmate now listens to `h35-pick-folder` directly, removing the last split-related product event alias. Its full locked offline desktop-feature suite passes. The [split review](audits/shared/h35-desktop-split.md) records the final boundary and remaining native runtime limits.
+- Final `85676e8` verification passed: h35 CI on macOS and Linux ([run 35862994113](https://github.com/koliyo/h35-desktop/actions/runs/35862994113)), Rocci's locked offline workspace suite and documentation build, Okmate's locked offline desktop tests, and OKF base validation with only pre-existing warnings. Native visual interaction and Windows runtime remain unverified; the [split review](audits/shared/h35-desktop-split.md) stays draft.
+- Removed the temporary desktop state migration, compatibility aliases, and old inspector preference import after choosing a clean host contract. Rocci pages now use h35 interfaces directly, and Rocci and Okmate pin published host `85676e8`. The [split review](audits/shared/h35-desktop-split.md) remains draft pending final pinned tests and native cross-platform checks.
+- h35-desktop CI passed on published `7395c41` ([run 35860921990](https://github.com/koliyo/h35-desktop/actions/runs/35860921990)). Product pins and adapters are still local; Rocci CI and Knowledge have not run on them, so no phase is logged complete.
+- Published h35-desktop `7395c41` and fetched it into Rocci and Okmate lockfiles; locked offline desktop tests pass for both products. The [split review](audits/shared/h35-desktop-split.md) remains draft pending native visual and cross-platform checks plus hosted CI; no implementation phase is logged complete.
+- Revised the draft [h35-desktop split and host boundary review](audits/shared/h35-desktop-split.md) with local implementation evidence: trusted-origin/token IPC, product-owned inspector URL and state migration, tested exact pins, and a browser Okmate page check. Native cross-platform smoke and hosted CI remain open; no phase is logged complete.
+- Filed draft [h35-desktop split and host boundary review](audits/shared/h35-desktop-split.md): keep the extraction, narrow IPC trust, move inspector semantics toward product ownership, and correct stale pin wording. Code and unit-test review only; no native-window smoke or hosted-CI completion claimed.
+- Filed draft [desktop host body box and file-scoped :scope](research/shared/h35-desktop-body-box.md) and [one host pin and an authoring rule](plans/shared/h35-desktop-body-box.md). The h35-desktop split stays; the site bar was bare `:scope` height. Exploratory; no phase started; not hosted-CI complete.
+- Restored [one host pin and an authoring rule](plans/shared/h35-desktop-body-box.md) after the plan file was missing from disk. Phase 2 pins Rocci and Okmate to current `h35-desktop` `main` HEAD, not a frozen merge commit. Exploratory; no phase started.
+
 ## 2026-09-12
 
 - Filed draft [template preparation process audit](audits/rocci/template-preparation-process.md): separates useful findings and runtime changes from phase-driven continuation and proposes a value check before further research. Artifact review only; no benchmark rerun, policy approval, or hosted-CI completion claimed.

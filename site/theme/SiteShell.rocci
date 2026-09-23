@@ -140,23 +140,25 @@ import PageOutline
 }
 
 @css {
-    :scope, :scope body {
+    :scope:is(html), body {
         height: 100%;
         min-height: 0;
     }
     .skip-link {
-        position: absolute;
-        top: -3rem;
+        position: fixed;
+        z-index: 100;
+        top: 1rem;
         left: 1rem;
         background: var(--accent);
         color: #ffffff;
         padding: 0.5rem 1rem;
         border-radius: 0.25rem;
-        z-index: 100;
-        transition: top 0.1s ease;
+        clip-path: inset(100%);
+        pointer-events: none;
     }
     .skip-link:focus {
-        top: 1rem;
+        clip-path: none;
+        pointer-events: auto;
     }
     .site-header {
         position: sticky;
@@ -380,12 +382,12 @@ import PageOutline
         .mobile-menu[open] .mobile-panel { display: block; }
         .mobile-panel {
             position: fixed;
-            top: calc(var(--header-height) + var(--rocci-chrome-top, 0px));
+            top: calc(var(--header-height) + var(--h35-chrome-top, 0px));
             right: 0;
             left: 0;
             z-index: 40;
-            max-height: calc(100vh - var(--header-height) - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
-            max-height: calc(100dvh - var(--header-height) - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
+            max-height: calc(100vh - var(--header-height) - var(--h35-chrome-top, 0px) - var(--h35-chrome-bottom, 0px));
+            max-height: calc(100dvh - var(--header-height) - var(--h35-chrome-top, 0px) - var(--h35-chrome-bottom, 0px));
             padding: 1.3rem 1rem 2rem;
             overflow-y: auto;
             border-bottom: 1px solid var(--line);
@@ -441,7 +443,6 @@ import PageOutline
         a { color: inherit; text-decoration: underline; }
     }
     @media (prefers-reduced-motion: reduce) {
-        .skip-link { transition: none; }
         * { scroll-behavior: auto; }
     }
     @media (forced-colors: active) {

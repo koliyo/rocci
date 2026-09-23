@@ -195,7 +195,7 @@ body.is-col-resizing {
 .rd-header-6 {
   color: var(--rd-header-1-color);
   font-family: var(--rd-header-1-font);
-  scroll-margin-top: calc(1.25rem + var(--rd-chrome-top, 0px));
+  scroll-margin-top: calc(1.25rem + var(--h35-chrome-top, 0px));
 }
 .rd-header-1:target,
 .rd-header-2:target,

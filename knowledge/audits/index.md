@@ -5,3 +5,4 @@
 * [OKF](okf/) - Portable engine, review application, knowledge load and render, and bundle layout.
 * [Site](site/) - rocci.dev IA, publish, playground, public launch, and branding.
 * [Ops](ops/) - CI, test suite, hosting, python-uv, and Tangled.
+* [Shared](shared/) - Cross-product desktop host and integration boundaries.

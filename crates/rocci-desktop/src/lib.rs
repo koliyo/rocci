@@ -8,29 +8,18 @@ pub use h35_desktop::{NavigateHandler, PreviewEvent, PreviewSink, display_path};
 
 const ICON_PNG: &[u8] = include_bytes!("../assets/rocci-icon.png");
 
-const COMPAT_SCRIPT: &str = r#"
+const PRODUCT_SCRIPT: &str = r#"
 (function () {
-  if (window.__h35PreviewNav && !window.__rocciPreviewNav) {
-    window.__rocciPreviewNav = window.__h35PreviewNav;
+  if (typeof __H35_LAYOUT__ !== "undefined" && __H35_LAYOUT__) {
+    window.__ROCCI_LAYOUT__ = __H35_LAYOUT__;
   }
-  if (window.__h35Goto && !window.__rocciGoto) {
-    window.__rocciGoto = window.__h35Goto;
-  }
-  if (window.__rocciGoto && window.__h35PreviewNav && !window.__h35PreviewNav.goto) {
-    window.__h35PreviewNav.goto = window.__rocciGoto;
-  }
-  if (window.__h35LiveReload && !window.__rocciLiveReload) {
-    window.__rocciLiveReload = window.__h35LiveReload;
-  }
-  if (window.__h35Picker && !window.__rocciBrowser) {
-    window.__rocciBrowser = window.__h35Picker;
-  }
-  window.addEventListener("h35-pick-folder", function (event) {
-    window.dispatchEvent(new CustomEvent("rocci-pick-folder", { detail: event.detail }));
-  });
-  var chrome = document.createElement("style");
-  chrome.textContent = "html { --rocci-chrome-top: var(--h35-chrome-top, 0px); --rocci-chrome-right: var(--h35-chrome-right, 0px); --rocci-chrome-bottom: var(--h35-chrome-bottom, 0px); --rd-chrome-top: var(--h35-chrome-top, 0px); }";
-  document.documentElement.appendChild(chrome);
+  window.__h35InspectorHref = function (baseUrl, route, query) {
+    var url = new URL(baseUrl, window.location.href);
+    var params = new URLSearchParams(query);
+    params.set("route", route);
+    url.search = params.toString();
+    return url.href;
+  };
 })();
 "#;
 
@@ -98,7 +87,7 @@ pub fn preview(options: PreviewOptions) -> Result<()> {
         .clone()
         .unwrap_or_else(|| "preview".to_string());
     let state_dir = state_dir().unwrap_or_else(|| PathBuf::from("."));
-    let mut extra = COMPAT_SCRIPT.to_string();
+    let mut extra = PRODUCT_SCRIPT.to_string();
     if let Some(more) = &options.extra_initialization_script {
         extra.push('\n');
         extra.push_str(more);
@@ -132,13 +121,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn compat_script_aliases_product_names() {
-        assert!(COMPAT_SCRIPT.contains("__rocciPreviewNav"));
-        assert!(COMPAT_SCRIPT.contains("__rocciGoto"));
-        assert!(COMPAT_SCRIPT.contains("rocci-pick-folder"));
-        assert!(COMPAT_SCRIPT.contains("h35-pick-folder"));
-        assert!(COMPAT_SCRIPT.contains("--rocci-chrome-top: var(--h35-chrome-top, 0px)"));
-        assert!(COMPAT_SCRIPT.contains("--rd-chrome-top: var(--h35-chrome-top, 0px)"));
+    fn product_script_seeds_layout_and_builds_inspector_url() {
+        assert!(PRODUCT_SCRIPT.contains("window.__ROCCI_LAYOUT__ = __H35_LAYOUT__"));
+        assert!(PRODUCT_SCRIPT.contains("window.__h35InspectorHref"));
+        assert!(!PRODUCT_SCRIPT.contains("__rocciPreviewNav"));
     }
 
     #[test]

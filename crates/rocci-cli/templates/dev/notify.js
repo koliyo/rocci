@@ -1,9 +1,6 @@
 (function () {
   var p = new URLSearchParams(location.search);
-  var msg = {
-    type: "h35-inspector",
-    tab: p.get("tab") || "performance",
-    view: p.get("view") || "source",
-  };
+  p.delete("route");
+  var msg = { type: "h35-inspector", query: p.toString() };
   parent.postMessage(msg, "*");
 })();

@@ -1888,7 +1888,7 @@ fn builtin_theme_keeps_phone_menu_and_table_wrap() {
     assert!(theme.contains("min-height: calc(100% - var(--header-height))"));
     assert!(theme.contains("height: calc(100% - var(--header-height))"));
     assert!(theme.contains(
-        "max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px))"
+        "max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--h35-chrome-top, 0px) - var(--h35-chrome-bottom, 0px))"
     ));
     let panel = theme.find("class=\"mobile-panel\"").expect("mobile panel");
     let details_end = theme[panel..].find("</details>").expect("details close");

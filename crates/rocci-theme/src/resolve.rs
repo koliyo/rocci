@@ -292,7 +292,7 @@ mod tests {
         assert!(theme.css.contains(".rd-table-wrap"));
         assert!(theme.css.contains("overflow-x: auto"));
         assert!(theme.css.contains(".rd-document body"));
-        assert!(theme.css.contains("--rd-chrome-top"));
+        assert!(theme.css.contains("--h35-chrome-top"));
         assert!(!theme.css.contains("max-width: 70rem"));
     }
 
