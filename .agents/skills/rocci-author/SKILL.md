@@ -199,6 +199,8 @@ POSTs. Author-facing wording:
 3. Reach for `@match` / `match` before adding another `@else if` / `else if`.
 4. Colocate isolated CSS. Authors keep writing `class="card"`; lowering scopes
    it. Document chrome belongs on `body` or `:scope`, not `html { ... }`.
+   Bare `:scope` in file `@css` matches every stamped element; document
+   height belongs on `html` / `body` or `:scope:is(html)`.
 5. Add `@fixture` data for new components that `rocci show` should preview.
    Add `@test` (optionally `{fixture: name}`) for boolean checks run by
    `rocci test`.
