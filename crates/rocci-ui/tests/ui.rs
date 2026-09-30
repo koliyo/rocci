@@ -117,7 +117,7 @@ fn copy_script_is_self_contained() {
 #[test]
 fn chrome_script_includes_copy_hooks() {
     let chrome = chrome_script();
-    assert!(chrome.contains("window.__rocciGoto"));
+    assert!(chrome.contains("window.__h35Goto"));
     assert!(chrome.contains("window.__rocciCopy"));
     assert!(chrome.contains("rd-code-block"));
     assert!(chrome.contains("window.__rocciResize"));
@@ -133,7 +133,7 @@ fn chrome_script_includes_copy_hooks() {
 
 #[test]
 fn goto_script_is_self_contained() {
-    assert!(GOTO_SCRIPT.contains("window.__rocciGoto"));
+    assert!(GOTO_SCRIPT.contains("window.__h35Goto"));
     assert!(GOTO_SCRIPT.contains("/pages.json"));
     assert!(GOTO_SCRIPT.contains("isExampleSource"));
     assert!(GOTO_SCRIPT.contains("/examples\\/[^/]+\\/source"));

@@ -15,7 +15,7 @@
   }
 
   function hasHostStore() {
-    return !!(window.ipc && window.ipc.postMessage);
+    return typeof window.__h35HostSend === "function";
   }
 
   function readStore(key) {
@@ -68,7 +68,7 @@
       document.documentElement.style.getPropertyValue("--rocci-outline-width") || seed.outline || "";
     window.__ROCCI_LAYOUT__ = { nav: nav, outline: outline };
     if (hasHostStore()) {
-      window.ipc.postMessage("layout:" + JSON.stringify({ nav: nav, outline: outline }));
+      window.__h35HostSend("layout:" + JSON.stringify({ nav: nav, outline: outline }));
       return;
     }
     if (nav) {

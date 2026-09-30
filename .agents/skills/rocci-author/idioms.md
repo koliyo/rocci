@@ -275,6 +275,8 @@ Putting `content` in the props record escapes the article as text.
 - `@css` is preamble: only before render-producing items. File-level rules
   share one file id; component rules use a per-component id. Patch fragments
   should not carry `<style>` — prefer file-level or shared CSS there.
+  Bare `:scope` in file `@css` matches every stamped element; document
+  height belongs on `html` / `body` or `:scope:is(html)`.
 - `#` at the start of a template item is a comment. `@@` emits a literal `@`.
 
 ## Rocdown pages

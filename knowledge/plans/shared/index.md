@@ -2,6 +2,7 @@
 
 Chrome that spans OKF, Rocdown, and Rocci products.
 
+* [One desktop host pin and a document-box authoring rule](h35-desktop-body-box.md) - Keep the h35-desktop split, state that bare `:scope` matches every stamped element, and pin Rocci and Okmate to current `h35-desktop` `main` HEAD. Exploratory; no phase started. Research: [desktop host body box](/research/shared/h35-desktop-body-box.md).
 * [CLI entry points for Rocci, Rocdown, and OKF preview](cli-entry-points.md) - Keep the three product CLIs, reject a plugin host, and make `rocci-okf run` the file-aware OKF viewer.
 * [Editor preview for Rocci and Rocdown](editor-preview.md) - VS Code play command serves `--no-window` and opens a beside-file webview; Zed gets native-window tasks until it has a webview. Phases 1–5 landed on branch `editor-preview`; not merged to `main`. Research: [editor preview](/research/shared/editor-preview.md).
 * [Hosted editor preview chrome and unbundled tools](editor-preview-host.md) - Follow-on: VS Code webview hosts the Rocci toolbar and Dev inspector; GitHub-release downloads replace packaged binaries. Exploratory; no phase started. Research: [hosted editor preview](/research/shared/editor-preview-host.md).

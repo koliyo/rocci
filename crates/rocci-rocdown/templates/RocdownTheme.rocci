@@ -10,9 +10,11 @@ import PageOutline
         --rd-color-muted: var(--muted);
         --rd-color-accent: var(--accent);
         --rd-color-border: var(--line);
+    }
+    :scope:is(html) {
         height: 100%;
     }
-    :scope body {
+    body {
         height: 100%;
         min-height: 0;
         margin: 0;
@@ -27,9 +29,13 @@ import PageOutline
         border-radius: .5rem;
         background: var(--ink);
         color: var(--surface);
-        transform: translateY(-160%);
+        clip-path: inset(100%);
+        pointer-events: none;
     }
-    .skip-link:focus { transform: translateY(0); }
+    .skip-link:focus {
+        clip-path: none;
+        pointer-events: auto;
+    }
 
     .site-header {
         position: sticky;
@@ -366,11 +372,11 @@ import PageOutline
         .mobile-menu[open] .mobile-panel { display: block; }
         .mobile-panel {
             position: fixed;
-            top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + var(--rocci-chrome-top, 0px));
+            top: calc(var(--header-height) + env(safe-area-inset-top, 0px) + var(--h35-chrome-top, 0px));
             right: 0;
             left: 0;
-            max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
-            max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--rocci-chrome-top, 0px) - var(--rocci-chrome-bottom, 0px));
+            max-height: calc(100vh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--h35-chrome-top, 0px) - var(--h35-chrome-bottom, 0px));
+            max-height: calc(100dvh - var(--header-height) - env(safe-area-inset-top, 0px) - var(--h35-chrome-top, 0px) - var(--h35-chrome-bottom, 0px));
             padding: 1.3rem max(1rem, env(safe-area-inset-right, 0px)) max(2rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
             overflow-y: auto;
             border-bottom: 1px solid var(--line);

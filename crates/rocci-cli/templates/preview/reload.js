@@ -1,8 +1,8 @@
 (function () {
-  if (window.__rocciLiveReload) {
+  if (window.__h35LiveReload) {
     return;
   }
-  var KEY = "rocci-live-reload";
+  var KEY = "h35-live-reload";
   var es = null;
   var dirty = false;
   function seedFromQuery() {
@@ -47,7 +47,7 @@
       setTimeout(connect, 1000);
     };
   }
-  window.__rocciLiveReload = { enabled: enabled, set: setEnabled };
+  window.__h35LiveReload = { enabled: enabled, set: setEnabled };
   seedFromQuery();
   connect();
 })();
