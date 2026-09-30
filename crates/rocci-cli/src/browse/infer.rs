@@ -96,8 +96,7 @@ pub(crate) fn infer_one(
 
 pub(crate) fn infer_from_default(expr: &str) -> Inferred {
     let trimmed = expr.trim();
-    if trimmed == "Bool.true" || trimmed == "Bool.false" || trimmed == "True" || trimmed == "False"
-    {
+    if trimmed == "True" || trimmed == "False" {
         return Inferred::Scalar(ParamKind::Bool);
     }
     if is_i64(trimmed) {
@@ -161,10 +160,10 @@ pub(crate) fn display_default(kind: &ParamKind, default_roc: Option<&str>) -> St
 
 pub(crate) fn display_roc_literal(value: &str) -> String {
     let trimmed = value.trim();
-    if trimmed == "Bool.true" || trimmed == "True" {
+    if trimmed == "True" {
         return "true".to_string();
     }
-    if trimmed == "Bool.false" || trimmed == "False" {
+    if trimmed == "False" {
         return "false".to_string();
     }
     if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
