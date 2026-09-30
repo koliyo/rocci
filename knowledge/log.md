@@ -6,6 +6,16 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-09-30
+
+- Refined the draft [Roc operator pipeline plan](plans/ops/rocci-ops-roc-pipeline.md) to preserve existing rocci-ops CLI dispatch, step-data plans, and workflow structure. Added an explicit comparison with roc-pandoc and the implications of task apps, compiler separation, effects APIs, concurrency, and release gates; extra entry apps, dual pins, and shared bootstrap jobs are no longer migration requirements. All phases remain planned.
+
+- Revised the draft [Roc operator pipeline plan](plans/ops/rocci-ops-roc-pipeline.md) after inspecting roc-pandoc `465cc4a7`: direct Roc entry apps over shared modules, independent tooling/product compiler pins, a basic-cli effects compatibility probe, and tests of exact candidate archives before protected publication. Compiled CI reuse is now measured and optional; native origin binaries remain required. No implementation phase started.
+
+- Added draft [complete the Roc operator pipeline](plans/ops/rocci-ops-roc-pipeline.md), grounded in verified branch `26ea6692`, current Python/workflow code, the prototype post-mortem, and September 18 compiler evidence. Plans full execution parity, compiled CI/origin bootstrap, and Python retirement; all phases remain planned and no workflow was dispatched.
+
+- Filed draft [Roc nightly September 18 compatibility and opportunities](research/rocci/roc-nightly-2026-09-18.md) and saved probe evidence. Local pin advanced from `62fcb65` to `1d982dc`; explicit embedded Wasm `main` export repairs the compatibility failure. Roc-gated tests (747 passed), offline workspace (1,302 passed), and a fresh-cache 54-page docs build passed on macOS arm64. Defaults and indexed iterators were verified; Linux packaging and hosted CI/Knowledge completion remain unclaimed.
+
 ## 2026-09-12
 
 - Filed draft [template preparation process audit](audits/rocci/template-preparation-process.md): separates useful findings and runtime changes from phase-driven continuation and proposes a value check before further research. Artifact review only; no benchmark rerun, policy approval, or hosted-CI completion claimed.

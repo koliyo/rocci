@@ -64,4 +64,10 @@ Old cache entries without `fingerprints.json` miss once (`missing fingerprints.j
 
 ## Embedded WebAssembly platform
 
-The crate includes an embedded, relocatable WASI platform (`platform/main.roc`, `platform/host.c`, `platform/targets/wasm32/host.o`) which is staged on demand via `stage_wasm_platform_into` to enable standalone WebAssembly evaluation without requiring an external Roc platform repository.
+The crate includes an embedded, relocatable WASI platform (`platform/main.roc`, `platform/host.c`, `platform/targets/wasm32/host.o`) staged on demand via `stage_wasm_platform_into`. Its target explicitly exports the C host's `main` function, as required by Roc nightly `2026-09-18-1d982dc`; the object does not define a WASI `_start` entry.
+
+Rocdown's current `--host wasm` site path compiles and instantiates a no-op
+Wasm app, then compiles and runs the native applicator to render pages. Its
+Wasm/native HTML parity test covers that combined path, not independent Wasm
+rendering. `WasmHost::render` can execute modules with `render` or `_start`
+exports, but the embedded C host does not provide either entry.

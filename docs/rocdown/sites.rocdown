@@ -38,6 +38,11 @@ rocdown build .
 Roc. `build` writes the output tree atomically: a failed build leaves the
 previous tree in place.
 
+`build --host native` (also the current `auto` choice) renders with a native
+Roc applicator. The current `--host wasm` path still uses native Roc for the
+page rendering after compiling and instantiating a Wasm stub; it does not
+produce the site independently in Wasm.
+
 ## `[site]`
 
 | Field | Default | Meaning |

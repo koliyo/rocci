@@ -7,7 +7,7 @@ platform ""
     provides { "roc_main": main_for_host! }
     targets: {
         inputs_dir: "targets/",
-        wasm32: { inputs: ["host.o", app] },
+        wasm32: { inputs: ["host.o", app], exports: ["main"] },
     }
 
 main_for_host! : {} => I32

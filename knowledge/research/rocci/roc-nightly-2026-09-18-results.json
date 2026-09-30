@@ -1,0 +1,365 @@
+{
+  "date": "2026-09-30",
+  "platform": "macOS arm64",
+  "previous": "nightly-2026-09-03-62fcb65",
+  "candidate": "nightly-2026-09-18-1d982dc",
+  "upstream_commits": 1026,
+  "initial_probes": [
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "Defaults.roc",
+      "exit": 1,
+      "seconds": 0.16,
+      "output": "All (0) tests passed in 38.1 ms.\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Defaults.roc:6:18\n\nThe first argument being passed to this function has the wrong type.\n\ndirect = get({}) == 42\n             ^^\n\nThis argument has the type:\n\n    {}\n\nBut Defaults.get needs the first argument to be:\n\n    Defaults.Config\n\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Defaults.roc:7:23\n\nThe first argument being passed to this function has the wrong type.\n\npolymorphic = get(id({})) == 42\n                  ^^^^^^\n\nThis argument has the type:\n\n    {}\n\nBut Defaults.get needs the first argument to be:\n\n    Defaults.Config\n\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Defaults.roc:8:33\n\nThe second argument being passed to this function has the wrong type.\n\nmapped = List.map([{}, {}], get) == [42, 42]\n                            ^^^\n\nThis argument has the type:\n\n    Defaults.Config -> I64\n\nBut the function needs the second argument to be:\n\n    {} -> b\n\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "BoolDefaults.roc",
+      "exit": 1,
+      "seconds": 0.038,
+      "output": "All (1) tests passed in 26.8 ms.\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500 <probe-dir>/BoolDefaults.roc:5:18\n\nThe first argument being passed to this function has the wrong type.\n\ndirect = get({}) == True\n             ^^\n\nThis argument has the type:\n\n    {}\n\nBut BoolDefaults.get needs the first argument to be:\n\n    BoolDefaults.Config\n\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "StructuralDefaults.roc",
+      "exit": 1,
+      "seconds": 0.015,
+      "output": "All (0) tests passed in 4.5 ms.\n\u2500\u2500 \u2717 default not allowed in structural record \u2500 <probe-dir>/StructuralDefaults.roc:2:13\n\nField defaults (??) are only allowed on the fields of a nominal record type\ndeclaration's backing record, not in structural record types (type aliases,\ninline annotations, or nested records).\n\nget : { value : I64 ?? 42 } -> I64\n        ^^^^^^^^^^^^^^^^^\n\nHint: A default belongs to one named type, so declare a nominal type (with :=)\nwhose backing record carries the default, and use that type here.\n\n\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/StructuralDefaults.roc:5:31\n\nThe first argument being passed to this function has the wrong type.\n\nexpect StructuralDefaults.get({}) == 42\n                              ^^\n\nThis argument has the type:\n\n    {}\n\nBut StructuralDefaults.get needs the first argument to be:\n\n    { value: I64 }\n\nHint: This record is missing the field: value\n\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "Defaults.roc",
+      "exit": 1,
+      "seconds": 0.177,
+      "output": "All (1) tests passed in 70.3 ms.\n\u2500\u2500 \u2717 type mismatch \u2500 ../../../..<probe-dir>/Defaults.roc:7:23\n\nThe first argument being passed to this function has the wrong type.\n\npolymorphic = get(id({})) == 42\n                  ^^^^^^\n\nThis argument has the type:\n\n    {}\n\nBut Defaults.get needs the first argument to be:\n\n    Defaults.Config\n\n\u2500\u2500 \u2717 type mismatch \u2500 ../../../..<probe-dir>/Defaults.roc:8:33\n\nThe second argument being passed to this function has the wrong type.\n\nmapped = List.map([{}, {}], get) == [42, 42]\n                            ^^^\n\nThis argument has the type:\n\n    Defaults.Config -> I64\n\nBut the function needs the second argument to be:\n\n    {} -> b\n\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "BoolDefaults.roc",
+      "exit": 0,
+      "seconds": 0.024,
+      "output": "All (2) tests passed in 11.5 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "StructuralDefaults.roc",
+      "exit": 1,
+      "seconds": 0.015,
+      "output": "All (0) tests passed in 4.4 ms.\n\u2500\u2500 \u2717 default not allowed in structural record \u2500 ../../../..<probe-dir>/StructuralDefaults.roc:2:13\n\nField defaults (??) are only allowed on the fields of a nominal record type\ndeclaration's backing record, not in structural record types (type aliases,\ninline annotations, or nested records).\n\nget : { value : I64 ?? 42 } -> I64\n        ^^^^^^^^^^^^^^^^^\n\nHint: A default belongs to one named type, so declare a nominal type (with :=)\nwhose backing record carries the default, and use that type here.\n\n\u2500\u2500 \u2717 type mismatch \u2500 ../../../..<probe-dir>/StructuralDefaults.roc:5:31\n\nThe first argument being passed to this function has the wrong type.\n\nexpect StructuralDefaults.get({}) == 42\n                              ^^\n\nThis argument has the type:\n\n    {}\n\nBut StructuralDefaults.get needs the first argument to be:\n\n    { value: I64 }\n\nHint: This record is missing the field: value\n\n"
+    }
+  ],
+  "backend_probes": [
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "EmptyDefault.roc",
+      "opt": "dev",
+      "exit": 1,
+      "seconds": 0.157,
+      "output": "All (0) tests passed in 35.8 ms.\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500 <probe-dir>/EmptyDefault.roc:6:25\n\nThe first argument being passed to this function has the wrong type.\n\nexpect EmptyDefault.get({}) == 42\n                        ^^\n\nThis argument has the type:\n\n    {}\n\nBut EmptyDefault.get needs the first argument to be:\n\n    EmptyDefault.Config\n\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "EmptyDefault.roc",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 0.016,
+      "output": "All (0) tests passed in 4.8 ms.\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500 <probe-dir>/EmptyDefault.roc:6:25\n\nThe first argument being passed to this function has the wrong type.\n\nexpect EmptyDefault.get({}) == 42\n                        ^^\n\nThis argument has the type:\n\n    {}\n\nBut EmptyDefault.get needs the first argument to be:\n\n    EmptyDefault.Config\n\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "BoolDefaults.roc",
+      "opt": "dev",
+      "exit": 1,
+      "seconds": 0.037,
+      "output": "All (1) tests passed in 24.9 ms.\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500 <probe-dir>/BoolDefaults.roc:5:18\n\nThe first argument being passed to this function has the wrong type.\n\ndirect = get({}) == True\n             ^^\n\nThis argument has the type:\n\n    {}\n\nBut BoolDefaults.get needs the first argument to be:\n\n    BoolDefaults.Config\n\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "BoolDefaults.roc",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 0.414,
+      "output": "All (1) tests passed in 402.1 ms.\n\u2500\u2500 \u2717 type mismatch \u2500\u2500\u2500\u2500\u2500 <probe-dir>/BoolDefaults.roc:5:18\n\nThe first argument being passed to this function has the wrong type.\n\ndirect = get({}) == True\n             ^^\n\nThis argument has the type:\n\n    {}\n\nBut BoolDefaults.get needs the first argument to be:\n\n    BoolDefaults.Config\n\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "BoolLowercase.roc",
+      "opt": "dev",
+      "exit": 1,
+      "seconds": 0.019,
+      "output": "\u2500\u2500 \u2717 does not exist \u2500\u2500\u2500 <probe-dir>/BoolLowercase.roc:2:33\n\nBool.true does not exist.\n\nConfig := { value : Bool ?? Bool.true }\n                            ^^^^^^^^^\n\nBool is in scope, but it has no associated true.\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/BoolLowercase.roc:6:1\n\nexpect BoolLowercase.get(BoolLowercase.Config.{}) == True\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 1 tests in 6.2 ms.:\n    0 passed\n    1 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "BoolLowercase.roc",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 0.263,
+      "output": "\u2500\u2500 \u2717 does not exist \u2500\u2500\u2500 <probe-dir>/BoolLowercase.roc:2:33\n\nBool.true does not exist.\n\nConfig := { value : Bool ?? Bool.true }\n                            ^^^^^^^^^\n\nBool is in scope, but it has no associated true.\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/BoolLowercase.roc:6:1\n\nexpect BoolLowercase.get(BoolLowercase.Config.{}) == True\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 1 tests in 249.0 ms.:\n    0 passed\n    1 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "RecursiveUnion.roc",
+      "opt": "dev",
+      "exit": 0,
+      "seconds": 0.03,
+      "output": "All (3) tests passed in 12.5 ms.\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "probe": "RecursiveUnion.roc",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 0.3,
+      "output": "All (3) tests passed in 286.3 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "EmptyDefault.roc",
+      "opt": "dev",
+      "exit": 0,
+      "seconds": 0.021,
+      "output": "All (1) tests passed in 6.3 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "EmptyDefault.roc",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 0.045,
+      "output": "All (1) tests passed in 31.3 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "BoolDefaults.roc",
+      "opt": "dev",
+      "exit": 0,
+      "seconds": 0.019,
+      "output": "All (2) tests passed in 8.1 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "BoolDefaults.roc",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 0.042,
+      "output": "All (2) tests passed in 29.2 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "BoolLowercase.roc",
+      "opt": "dev",
+      "exit": 1,
+      "seconds": 0.018,
+      "output": "\u2500\u2500 \u2717 does not exist \u2500 ../../../..<probe-dir>/BoolLowercase.roc:2:33\n\nBool.true does not exist.\n\nConfig := { value : Bool ?? Bool.true }\n                            ^^^^^^^^^\n\nBool is in scope, but it has no associated true.\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500 ../../../..<probe-dir>/BoolLowercase.roc:6:1\n\nexpect BoolLowercase.get(BoolLowercase.Config.{}) == True\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 1 tests in 5.9 ms.:\n    0 passed\n    1 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "BoolLowercase.roc",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 0.04,
+      "output": "\u2500\u2500 \u2717 does not exist \u2500 ../../../..<probe-dir>/BoolLowercase.roc:2:33\n\nBool.true does not exist.\n\nConfig := { value : Bool ?? Bool.true }\n                            ^^^^^^^^^\n\nBool is in scope, but it has no associated true.\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500 ../../../..<probe-dir>/BoolLowercase.roc:6:1\n\nexpect BoolLowercase.get(BoolLowercase.Config.{}) == True\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 1 tests in 27.5 ms.:\n    0 passed\n    1 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "RecursiveUnion.roc",
+      "opt": "dev",
+      "exit": 0,
+      "seconds": 0.023,
+      "output": "All (3) tests passed in 10.7 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "probe": "RecursiveUnion.roc",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 0.101,
+      "output": "All (3) tests passed in 88.5 ms.\n"
+    }
+  ],
+  "annotated_defaults": [
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "opt": "dev",
+      "exit": 1,
+      "output": "\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/AnnotatedDefaults.roc:6:13\n\nThis expression is used in an unexpected way.\n\nvalue = id({})\n        ^^^^^^\n\nIt has the type:\n\n    {}\n\nBut the annotation says it should be:\n\n    AnnotatedDefaults.Config\n\n\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/AnnotatedDefaults.roc:8:16\n\nThis expression is used in an unexpected way.\n\nrepeated = List.repeat({}, 2)\n           ^^^^^^^^^^^^^^^^^^\n\nIt has the type:\n\n    List({})\n\nBut the annotation says it should be:\n\n    List(AnnotatedDefaults.Config)\n\n\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/AnnotatedDefaults.roc:10:14\n\nThis expression is used in an unexpected way.\n\nmapped = List.map([1, 2], |_| {})\n         ^^^^^^^^^^^^^^^^^^^^^^^^\n\nIt has the type:\n\n    List({})\n\nBut the annotation says it should be:\n\n    List(AnnotatedDefaults.Config)\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/AnnotatedDefaults.roc:13:1\n\nexpect AnnotatedDefaults.value.value == 42\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/AnnotatedDefaults.roc:14:1\n\nexpect AnnotatedDefaults.values(AnnotatedDefaults.repeated) == [42, 42]\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/AnnotatedDefaults.roc:15:1\n\nexpect AnnotatedDefaults.values(AnnotatedDefaults.mapped) == [42, 42]\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 3 tests in 104.9 ms.:\n    0 passed\n    3 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "opt": "speed",
+      "exit": 1,
+      "output": "\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/AnnotatedDefaults.roc:6:13\n\nThis expression is used in an unexpected way.\n\nvalue = id({})\n        ^^^^^^\n\nIt has the type:\n\n    {}\n\nBut the annotation says it should be:\n\n    AnnotatedDefaults.Config\n\n\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/AnnotatedDefaults.roc:8:16\n\nThis expression is used in an unexpected way.\n\nrepeated = List.repeat({}, 2)\n           ^^^^^^^^^^^^^^^^^^\n\nIt has the type:\n\n    List({})\n\nBut the annotation says it should be:\n\n    List(AnnotatedDefaults.Config)\n\n\u2500\u2500 \u2717 type mismatch \u2500 <probe-dir>/AnnotatedDefaults.roc:10:14\n\nThis expression is used in an unexpected way.\n\nmapped = List.map([1, 2], |_| {})\n         ^^^^^^^^^^^^^^^^^^^^^^^^\n\nIt has the type:\n\n    List({})\n\nBut the annotation says it should be:\n\n    List(AnnotatedDefaults.Config)\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/AnnotatedDefaults.roc:13:1\n\nexpect AnnotatedDefaults.value.value == 42\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/AnnotatedDefaults.roc:14:1\n\nexpect AnnotatedDefaults.values(AnnotatedDefaults.repeated) == [42, 42]\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/AnnotatedDefaults.roc:15:1\n\nexpect AnnotatedDefaults.values(AnnotatedDefaults.mapped) == [42, 42]\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 3 tests in 570.0 ms.:\n    0 passed\n    3 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "opt": "dev",
+      "exit": 0,
+      "output": "All (3) tests passed in 16.1 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "opt": "speed",
+      "exit": 0,
+      "output": "All (3) tests passed in 73.1 ms.\n"
+    }
+  ],
+  "indexed_iterator": [
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "opt": "dev",
+      "exit": 1,
+      "output": "\u2500\u2500 \u2717 missing method \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Indexed.roc:2:38\n\nThis with_index method is being called on a value whose type doesn't have that\nmethod.\n\nvalues = [10.I64, 20, 30].iter().with_index()\n                                 ^^^^^^^^^^\n\nThe value's type, which does not have a method named with_index, is:\n\n    Iter(I64)\n\nHint: For this to work, the type would need to have a method named with_index\nassociated with it in the type's declaration.\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Indexed.roc:5:1\n\nexpect Indexed.indexed == [(0, 10), (1, 20), (2, 30)]\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 1 tests in 76.4 ms.:\n    0 passed\n    1 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "opt": "speed",
+      "exit": 1,
+      "output": "\u2500\u2500 \u2717 missing method \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Indexed.roc:2:38\n\nThis with_index method is being called on a value whose type doesn't have that\nmethod.\n\nvalues = [10.I64, 20, 30].iter().with_index()\n                                 ^^^^^^^^^^\n\nThe value's type, which does not have a method named with_index, is:\n\n    Iter(I64)\n\nHint: For this to work, the type would need to have a method named with_index\nassociated with it in the type's declaration.\n\nRoc application crashed with this message:\n\n\truntime error\n\n\n\u2500\u2500 \u2717 fail \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 <probe-dir>/Indexed.roc:5:1\n\nexpect Indexed.indexed == [(0, 10), (1, 20), (2, 30)]\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\nRan 1 tests in 447.1 ms.:\n    0 passed\n    1 failed\n    0 compiler errors\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "opt": "dev",
+      "exit": 0,
+      "output": "All (1) tests passed in 16.1 ms.\n"
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "opt": "speed",
+      "exit": 0,
+      "output": "All (1) tests passed in 55.5 ms.\n"
+    }
+  ],
+  "app_builds": [
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "app": "counter",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 7.234
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "app": "live-counter",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 5.535
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "app": "styling",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 1.129
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "app": "counter",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 2.436
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "app": "live-counter",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 4.365
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "app": "styling",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 1.15
+    }
+  ],
+  "extra_app_builds": [
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "app": "examples/rocci/custom/datastar",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 9.588
+    },
+    {
+      "compiler": "2026-09-03-62fcb65",
+      "app": "examples/rocci/standalone/blocks",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 1.453
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "app": "examples/rocci/custom/datastar",
+      "opt": "speed",
+      "exit": 0,
+      "seconds": 8.558
+    },
+    {
+      "compiler": "2026-09-18-1d982dc",
+      "app": "examples/rocci/standalone/blocks",
+      "opt": "speed",
+      "exit": 1,
+      "seconds": 1.32
+    }
+  ],
+  "rocci_defaults": {
+    "source": "@component Hello = |{ name ?? \"World\" }|\n    <p>Hello, {name}</p>\n\n@component Greeting = |{}|\n    <Hello />\n\n@test helloDefault = hello({}) == \"<p>Hello, World</p>\"\n@test greetingDefault = greeting({}) == \"<p>Hello, World</p>\"\n",
+    "new_exit": 0,
+    "new_output": "All (6) tests passed in 22.9 ms.\n",
+    "old_exit": 1,
+    "old_summary": "Type mismatch: {} does not satisfy Defaults.HelloProps"
+  },
+  "sources": {
+    "EmptyDefault.roc": "EmptyDefault := [].{\n    Config := { value : I64 ?? 42 }\n    get : Config -> I64\n    get = |{ value }| value\n}\nexpect EmptyDefault.get({}) == 42\n",
+    "Indexed.roc": "Indexed := [].{\n    values = [10.I64, 20, 30].iter().with_index()\n    indexed = Iter.fold(values, [], |acc, item| acc.append(item))\n}\nexpect Indexed.indexed == [(0, 10), (1, 20), (2, 30)]\n",
+    "Defaults.roc": "Defaults := [].{\n    Config := { value : I64 ?? 42 }\n    get : Config -> I64\n    get = |{ value }| value\n    id = |x| x\n    direct = get({}) == 42\n    polymorphic = get(id({})) == 42\n    mapped = List.map([{}, {}], get) == [42, 42]\n}\nexpect Defaults.direct\nexpect Defaults.polymorphic\nexpect Defaults.mapped\n",
+    "RecursiveUnion.roc": "RecursiveUnion := [].{\n    walk : List(U8) -> Try({}, [BadUtf8, InvalidPercentEncoding])\n    walk = |bytes|\n        match bytes {\n            [] => Ok({})\n            [0, ..] => Err(BadUtf8)\n            [1, ..] => Err(InvalidPercentEncoding)\n            [_, .. as tail] => walk(tail)\n        }\n}\nexpect RecursiveUnion.walk([2, 3, 4]) == Ok({})\nexpect RecursiveUnion.walk([2, 0]) == Err(BadUtf8)\nexpect RecursiveUnion.walk([2, 1]) == Err(InvalidPercentEncoding)\n",
+    "AnnotatedDefaults.roc": "AnnotatedDefaults := [].{\n    Config := { value : I64 ?? 42 }\n    id : a -> a\n    id = |x| x\n    value : Config\n    value = id({})\n    repeated : List(Config)\n    repeated = List.repeat({}, 2)\n    mapped : List(Config)\n    mapped = List.map([1, 2], |_| {})\n    values = |xs| List.map(xs, |item| item.value)\n}\nexpect AnnotatedDefaults.value.value == 42\nexpect AnnotatedDefaults.values(AnnotatedDefaults.repeated) == [42, 42]\nexpect AnnotatedDefaults.values(AnnotatedDefaults.mapped) == [42, 42]\n",
+    "StructuralDefaults.roc": "StructuralDefaults := [].{\n    get : { value : I64 ?? 42 } -> I64\n    get = |{ value }| value\n}\nexpect StructuralDefaults.get({}) == 42\n",
+    "BoolDefaults.roc": "BoolDefaults := [].{\n    Config := { value : Bool ?? True }\n    get : Config -> Bool\n    get = |{ value }| value\n    direct = get({}) == True\n    nominal = get(Config.{}) == True\n}\nexpect BoolDefaults.direct\nexpect BoolDefaults.nominal\n",
+    "BoolLowercase.roc": "BoolLowercase := [].{\n    Config := { value : Bool ?? Bool.true }\n    get : Config -> Bool\n    get = |{ value }| value\n}\nexpect BoolLowercase.get(BoolLowercase.Config.{}) == True\n"
+  },
+  "roc_gated": {
+    "passed": 747,
+    "failed": 0,
+    "ignored": 1,
+    "binaries": 21
+  },
+  "offline_workspace": {
+    "passed": 1302,
+    "failed": 0,
+    "ignored": 14,
+    "binaries": 84
+  },
+  "docs_build": {
+    "exit": 0,
+    "fresh_rocci_cache": true,
+    "pages": 54,
+    "static": 54,
+    "hydrate": 0,
+    "live": 0
+  },
+  "final_checks": {
+    "docs_build": {
+      "exit": 0,
+      "fresh_rocci_cache": true,
+      "pages": 54,
+      "wasm_limitation_rendered": true
+    },
+    "cargo_fmt_all_check": 0,
+    "git_diff_check": 0,
+    "knowledge_base": {
+      "exit": 0,
+      "errors": 0,
+      "warnings": 37,
+      "codes": {
+        "OKF4002": 34,
+        "OKF3002": 3
+      },
+      "new_record_diagnostics": 0,
+      "lifecycle_provenance_warnings": 0
+    }
+  }
+}

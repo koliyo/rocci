@@ -2,6 +2,8 @@
 
 CI, hosting, python-uv, and Tangled.
 
+* [Complete the Roc operator pipeline on rocci-ops-roc](rocci-ops-roc-pipeline.md) - Successor to the parallel exercise: reconcile the branch/new nightly, fix effects, complete command parity, preserve the CLI/job structure during Roc cutover, and retire Python. Compares roc-pandoc alternatives and implications; origin ships a native operator. All phases planned; no implementation or workflow dispatch performed.
+
 * [Publish rocci-platform as a GitHub release asset](rocci-platform-github-release.md) - Attach a Roc-pinnable `.tar.zst` to existing tag releases. Phases 1–5 implemented on this branch (PATH URL fallback; checkout keeps the path pin). Not CI-complete. Research: [no GitHub platform URL](/research/ops/rocci-platform-github-release.md). Exploratory.
 * [Fast default suite and hosted Roc smokes](workspace-test-suite.md) - Opt-in `ROCCI_REQUIRE_ROC=1`, shrink default fuzz and `cli_e2e`, drop kitchen-sink and CI overlap, hosted Linux Roc job, `rocci-ops` pytest on `lint`. Audit: [workspace test-suite review](/audits/ops/workspace-test-suite.md). Exploratory; no phase started.
 * [Public-repo CI security and Dependabot](public-ci-security.md) - Hosted `/ci`/`/CI` on review comments, `koliyo`-only `/ci-local` self-hosted (`/cl-local` alias), automatic hosted CI on `main`/`staging`/`production`, environment-secret isolation, Dependabot. Audit: [public CI security](/audits/ops/public-ci-security.md). Exploratory; YAML phases are in tree; UI residuals remain.
