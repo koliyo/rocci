@@ -172,7 +172,7 @@ Roc; `compile` reports each test as `TestInfo` (`name`, optional `fixture`,
 `{fixture: ident}` must name a local `@fixture`.
 
 ```rocci
-@test helloNamePresent = Bool.true
+@test helloNamePresent = True
 
 @test{fixture: helloSample}
 helloFixturePaired = Str.contains(helloSample.name, "Ada")

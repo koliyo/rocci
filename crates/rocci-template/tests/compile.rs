@@ -207,7 +207,7 @@ fn parse_families_cover_rc1001_through_rc1007() {
         (
             r#"
 @test
-= Bool.true
+= True
 "#,
             "RC1001",
             "expected test name",
@@ -382,6 +382,8 @@ fn infers_string_and_bool_default_types() {
     assert_eq!(infer_record_default_type("False").as_deref(), Some("Bool"));
     assert_eq!(infer_record_default_type("0").as_deref(), Some("I64"));
     assert!(infer_record_default_type("Neutral").is_none());
+    assert!(infer_record_default_type("Bool.true").is_none());
+    assert!(infer_record_default_type("Bool.false").is_none());
 }
 
 #[test]
@@ -835,7 +837,7 @@ helloRenders = helloSample.name == "Roc"
 fn rejects_missing_test_name() {
     let src = r#"
 @test
-= Bool.true
+= True
 "#;
     let errors = compile_err(src);
     assert!(
@@ -850,7 +852,7 @@ fn rejects_missing_test_name() {
 fn rejects_missing_test_equals() {
     let src = r#"
 @test
-helloRenders Bool.true
+helloRenders True
 "#;
     let errors = compile_err(src);
     assert!(
@@ -865,7 +867,7 @@ helloRenders Bool.true
 fn rejects_unknown_test_attribute() {
     let src = r#"
 @test{target: Hello}
-helloRenders = Bool.true
+helloRenders = True
 "#;
     let errors = compile_err(src);
     assert!(
@@ -883,7 +885,7 @@ fn rejects_duplicate_test_fixture_attribute() {
 helloSample = { name: "Roc" }
 
 @test{fixture: helloSample, fixture: helloSample}
-helloRenders = Bool.true
+helloRenders = True
 
 @component Hello = |{ name }| {
     <p>{name}</p>
@@ -902,7 +904,7 @@ helloRenders = Bool.true
 fn rejects_unknown_test_fixture_name() {
     let src = r#"
 @test{fixture: missing}
-helloRenders = Bool.true
+helloRenders = True
 "#;
     let errors = compile_err(src);
     assert!(
@@ -918,7 +920,7 @@ fn rejects_test_inside_component_body() {
     let src = r#"
 @component Hello = |{ name }| {
     @test
-    helloRenders = Bool.true
+    helloRenders = True
     <p>{name}</p>
 }
 "#;

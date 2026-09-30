@@ -103,7 +103,7 @@ pub fn infer_record_default_type(expr: &str) -> Option<String> {
         return Some("Str".to_string());
     }
     match trimmed {
-        "True" | "False" | "Bool.true" | "Bool.false" => return Some("Bool".to_string()),
+        "True" | "False" => return Some("Bool".to_string()),
         _ => {}
     }
     if trimmed.parse::<i64>().is_ok() {
@@ -118,14 +118,6 @@ pub fn default_field_type(authored_ty: Option<&str>, default: &str) -> Option<St
         return Some(ty.to_string());
     }
     infer_record_default_type(default)
-}
-
-fn roc_type_default_expr(expr: &str) -> String {
-    match expr.trim() {
-        "True" => "Bool.true".to_string(),
-        "False" => "Bool.false".to_string(),
-        other => other.to_string(),
-    }
 }
 
 /// Backing record for defaulted props, e.g. `{ name : Str ?? "Roc" }`.
@@ -154,14 +146,12 @@ pub fn component_props_backing_record(parsed: &ParsedParams) -> Option<String> {
             .map(|(_, ty)| ty.as_str());
         if let Some((_, default)) = parsed.param_defaults.iter().find(|(n, _)| n == name) {
             let ty = default_field_type(authored_ty, default)?;
-            // Type-position `Bool ?? Bool.true` typechecks then crashes Roc at runtime.
+            // Bool defaults stay filled at call sites. An earlier nightly crashed
+            // on a Bool default written as `Bool.true` in the nominal record.
             if ty == "Bool" {
                 return None;
             }
-            fields.push(format!(
-                "{name} : {ty} ?? {}",
-                roc_type_default_expr(default)
-            ));
+            fields.push(format!("{name} : {ty} ?? {}", default.trim()));
         } else {
             let ty = authored_ty?;
             fields.push(format!("{name} : {ty}"));

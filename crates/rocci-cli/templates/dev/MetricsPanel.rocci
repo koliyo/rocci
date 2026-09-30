@@ -199,7 +199,7 @@ samplePanel = {
     path: "App.rocci",
     view: "source",
     body: "<div class=\"x\">ok</div>",
-    available: Bool.true,
+    available: True,
     reason: "",
 }
 
@@ -216,7 +216,7 @@ samplePage = {
     path: "App.rocci",
     view: "source",
     body: "<div class=\"x\">ok</div>",
-    available: Bool.true,
+    available: True,
     reason: "",
 }
 

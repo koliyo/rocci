@@ -41,12 +41,12 @@ sampleUser = {
         age: 30,
         flags: ["admin", "verified 🚀"],
     },
-    selected: Bool.true,
+    selected: True,
     tone: Light,
 }
 
 @component
-UserCard = |{ user, selected ?? Bool.false, tone : [Dark, Light] ?? Light }, children| {
+UserCard = |{ user, selected ?? False, tone : [Dark, Light] ?? Light }, children| {
     @css {
         .card {
             border: 1px solid #e5e7eb;
@@ -91,7 +91,7 @@ Badge = |{ label, tone ?? "neutral" }|
     </span>
 
 @component
-StatusView = |{ status, isVisible ?? Bool.true }| {
+StatusView = |{ status, isVisible ?? True }| {
     @if !isVisible {
         <p class="hidden">Status is hidden 🙈</p>
     } @else {
@@ -126,7 +126,7 @@ UserDirectory = |{ users, query, status }| {
             <p>Managing {Num.toStr(List.len(users))} team members 👥</p>
         </header>
 
-        <StatusView status={status} isVisible={Bool.true} />
+        <StatusView status={status} isVisible={True} />
 
         @if List.isEmpty(filtered) {
             <section class="empty-state">

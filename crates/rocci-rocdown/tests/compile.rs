@@ -1530,7 +1530,7 @@ fn rejects_test_in_rocdown_documents() {
     let errs = compile_err(
         r#"
 @test
-helloRenders = Bool.true
+helloRenders = True
 "#,
     );
     assert!(

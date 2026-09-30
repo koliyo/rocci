@@ -125,7 +125,7 @@ fn generate_large_rocci(target_lines: usize) -> String {
     buf.push_str("    <main class=\"container\">\n");
     for i in 1..=comp_idx.min(20) {
         buf.push_str(&format!(
-            "        <Component{i} id=\"{i}\" count={{{i}}} active={{Bool.true}} />\n"
+            "        <Component{i} id=\"{i}\" count={{{i}}} active={{True}} />\n"
         ));
     }
     buf.push_str("    </main>\n}\n");

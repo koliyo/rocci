@@ -9,7 +9,7 @@
 # Tests
 
 ```rocci
-@test helloNamePresent = Bool.true
+@test helloNamePresent = True
 
 @test{fixture: helloSample}
 helloFixturePaired = Str.contains(helloSample.name, "Ada")
