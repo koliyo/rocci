@@ -27,10 +27,10 @@ all = { level = "allow", priority = -1 }
 libc = "0.2.172"
 libsqlite3-sys = { version = "0.30.1", features = ["bundled"] }
 bytes = "1.11"
-brotli = "8.0"
+brotli = "9.0"
 cap-primitives = "4.0"
 flate2 = "1.1"
-zstd = { version = "0.13", default-features = false }
+zstd = { version = "0.14", default-features = false }
 futures = "0.3"
 h2 = "0.4"
 hyper = { version = "1.6", features = ["http1", "http2", "client", "server"] }
@@ -47,4 +47,4 @@ tokio = { version = "1.45", features = ["rt", "rt-multi-thread", "macros", "net"
 tower-service = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
