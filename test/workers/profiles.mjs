@@ -3,19 +3,20 @@ import { readFile, writeFile, copyFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { applications } from "./cases.mjs";
 import { fileURLToPath } from "node:url";
-const root = fileURLToPath(new URL("../../../", import.meta.url));
+const root = fileURLToPath(new URL("../../", import.meta.url));
 const roc = process.env.ROCCI_WORKER_ROC ?? "roc";
 const results = [];
-for (const [application, runner] of [
-  ["counter", "counter"],
-  ["async", "async"],
-]) {
+for (const subject of applications) {
+  const profiles = subject.profiles.filter((profile) => profile !== "speed");
+  if (!profiles.length) continue;
+  const application = subject.id;
   const directory = path.join(root, "target/worker-" + application),
     wasm = path.join(directory, "app.wasm");
   const original = await readFile(wasm);
   try {
-    for (const opt of ["dev", "size"]) {
+    for (const opt of profiles) {
       const output = path.join(directory, "app-" + opt + ".wasm");
       const result = spawnSync(
         roc,
@@ -53,11 +54,12 @@ for (const [application, runner] of [
       )
         throw new Error(result.stdout + result.stderr);
       await copyFile(output, wasm);
-      const test = spawnSync(
-        process.execPath,
-        ["crates/rocci-worker-platform/tools/" + runner + ".mjs"],
-        { cwd: root, encoding: "utf8", timeout: 180000, env: process.env },
-      );
+      const test = spawnSync(process.execPath, [subject.test], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 180000,
+        env: process.env,
+      });
       if (test.status !== 0) throw new Error(test.stdout + test.stderr);
       const bytes = await readFile(output);
       results.push({

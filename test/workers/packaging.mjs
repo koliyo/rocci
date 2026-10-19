@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
-const root = fileURLToPath(new URL("../../../", import.meta.url));
+const root = fileURLToPath(new URL("../../", import.meta.url));
 const cli = path.join(root, "target/debug/rocci");
 const out = await mkdtemp(path.join(root, "target/worker fresh app "));
 const env = {

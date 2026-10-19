@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-10-19
 
+- Clarified [Worker test ownership](status/worker-source-portability.md): application-specific drivers, hosted assertions and binding profiles live with their apps; repository integration orchestration lives in `test/workers/`. The platform retains application-agnostic runtime/ABI/provider support, and normal application hosting remains generated.
+
 - Consolidated [Worker packaging](status/worker-source-portability.md) around the delivered implementation: application tests use the canonical counter/live-counter/SQL examples; removed copied historical counter fixtures, the separate C prototype ABI and its experiment tooling, duplicate test data/server code and the generated qualification dump. Historical measurements remain available at an immutable Git revision.
 
 - Delivered the experimental [Worker source portability package](status/worker-source-portability.md), with individual phase 0–6 microplans and qualification, unchanged C0/C1/C2, real Roc JSPI, exact SQL/transaction semantics, live delivery, generated npm/Wrangler hosting, source diagnostics and plain Roc distribution. Implementation `0e1b5f311a89ba6d8c3bea52e68e5ad914c0f2c8` passed [CI 39272312080](https://github.com/koliyo/rocci/actions/runs/39272312080) (all seven jobs) and [Knowledge 39272323897](https://github.com/koliyo/rocci/actions/runs/39272323897). Local and disposable hosted application tests passed and test resources were deleted. Published-release installation, exhaustive provider residency/economics and optional phase 7 remain unclaimed.

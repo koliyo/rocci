@@ -1,11 +1,11 @@
 /** Optional two-toolchain lane; compare native and Worker counter bytes at one origin per host. */
 import { mkdtemp, copyFile, writeFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { serve } from "./serve.mjs";
-const root = fileURLToPath(new URL("../../../", import.meta.url));
+import { serve } from "../../../../../crates/rocci-worker-platform/tools/serve.mjs";
+const root = fileURLToPath(new URL("../../../../../", import.meta.url));
 if (!process.env.ROCCI_NATIVE_ROC)
   throw new Error("Set ROCCI_NATIVE_ROC to the repository native compiler pin");
 const out = await mkdtemp(path.join(root, "target/worker-native-parity-"));
@@ -29,6 +29,27 @@ const child = spawn(
   ["run", out, "--no-window", "--port", "auto", "--no-live-reload"],
   { cwd: out, env, detached: true, stdio: ["ignore", "pipe", "pipe"] },
 );
+function descendants(parent) {
+  const rows = execFileSync("ps", ["-axo", "pid=,ppid="], {
+    encoding: "utf8",
+    timeout: 1000,
+  })
+    .trim()
+    .split("\n")
+    .map((line) => line.trim().split(/\s+/).map(Number));
+  const owned = new Set([parent]);
+  const pending = [parent];
+  while (pending.length) {
+    const next = pending.pop();
+    for (const [pid, ppid] of rows) {
+      if (ppid === next && !owned.has(pid)) {
+        owned.add(pid);
+        pending.push(pid);
+      }
+    }
+  }
+  return [...owned].reverse();
+}
 let log = "",
   stopped = false;
 child.stdout.on("data", (chunk) => {
@@ -134,6 +155,9 @@ try {
   );
   console.log(`PASS: exact native/Worker counter parity: ${out}`);
 } finally {
+  // Roc starts its compiler/server in a separate process group. Snapshot the
+  // owned descendants before terminating the CLI and losing their parent IDs.
+  const owned = descendants(child.pid);
   if (!stopped) {
     try {
       process.kill(-child.pid, "SIGTERM");
@@ -143,9 +167,13 @@ try {
     exited,
     new Promise((resolve) => setTimeout(resolve, 2000)),
   ]);
-  if (!stopped) {
+  // The CLI can exit before its native server closes the inherited pipes.
+  try {
+    process.kill(-child.pid, "SIGKILL");
+  } catch {}
+  for (const pid of owned) {
     try {
-      process.kill(-child.pid, "SIGKILL");
+      process.kill(pid, "SIGKILL");
     } catch {}
   }
   await writeFile(path.join(out, "native.log"), log);

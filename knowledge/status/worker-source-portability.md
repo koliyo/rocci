@@ -4,7 +4,7 @@ title: Worker packaging implementation
 description: Experimental Cloudflare Worker packaging, supported runtime contracts and maintained verification using canonical applications.
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-10-19T15:34:06Z }
+generated: { by: process:cursor, at: 2026-10-19T15:59:55Z }
 stale_after: 2026-11-19
 authority: descriptive
 owners: [human:nils]
@@ -28,7 +28,7 @@ sources:
     resource: ../../crates/rocci-cli/tests/worker_examples.rs
     title: Canonical example staging and source preservation regression
   - id: applications
-    resource: ../../crates/rocci-worker-platform/tools/applications.mjs
+    resource: ../../test/workers/applications.mjs
     title: Maintained real Roc/workerd application suite
   - id: editor
     resource: ../../crates/rocci-lsp/src/projection_workspace.rs
@@ -60,8 +60,13 @@ The maintained implementation has one Wasm host in Rust. Its application
 suite compiles the existing standalone counter and live-counter examples,
 the plain Roc SQL example and a focused async regression program. There are
 no copied counter versions or a second prototype ABI in the product tree.
-An offline regression checks generated lifecycle/routes and verifies that
-staging preserves the canonical example sources.[^host][^examples][^applications]
+Application-specific HTTP drivers, hosted assertions and binding profiles live
+beside each app. `test/workers/` owns repository coordination and selects those
+app-owned tests. Platform `src/`, `runtime/` and reusable `tools/` do not know
+about the counter or any application domain. Ordinary builds generate their
+entry and require no authored application JavaScript. An offline regression
+checks generated lifecycle/routes and verifies that staging preserves the
+canonical example sources.[^host][^examples][^applications]
 
 ## Supported runtime profile
 
@@ -106,12 +111,12 @@ follow-on scope.[^plan]
 
 ## Maintained verification
 
-`tools/applications.mjs` stages and compiles each canonical application once,
+`test/workers/applications.mjs` stages and compiles each canonical application once,
 then exercises those exact modules on local workerd. Focused tests cover typed
 SQL, multi-write commit/rollback/drop, typed errors, traps, initialization
 failure, resource/queue saturation, body/fetch bounds and cancellation. The
 live test covers ordinary command/empty-SSE roles, two subscribers, concurrent
-writes, idle refresh and reconnect. `tools/profiles.mjs` reuses the counter
+writes, idle refresh and reconnect. `test/workers/profiles.mjs` reuses the counter
 and async programs for development and size optimization.[^applications][^runtime]
 
 The public packaging test checks an unrelated starter, path spaces, locked

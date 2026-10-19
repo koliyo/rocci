@@ -1,11 +1,14 @@
+/** Counter HTTP acceptance; ordinary application hosting is generated. */
 import { mkdir, writeFile, copyFile } from "node:fs/promises";
-import { serve } from "./serve.mjs";
+import { serve } from "../../../../../crates/rocci-worker-platform/tools/serve.mjs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
 
-const root = fileURLToPath(new URL("../../../", import.meta.url));
-const pkg = fileURLToPath(new URL("../", import.meta.url));
+const root = fileURLToPath(new URL("../../../../../", import.meta.url));
+const pkg = fileURLToPath(
+  new URL("../../../../../crates/rocci-worker-platform/", import.meta.url),
+);
 const out = path.join(root, "target/worker-counter");
 await mkdir(path.join(out, "runtime"), { recursive: true });
 await mkdir(path.join(out, "public/assets"), { recursive: true });

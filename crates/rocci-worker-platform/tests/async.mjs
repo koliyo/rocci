@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, copyFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { serve } from "./serve.mjs";
+import { serve } from "../tools/serve.mjs";
 const root = fileURLToPath(new URL("../../../", import.meta.url)),
   pkg = fileURLToPath(new URL("../", import.meta.url));
 const built = path.join(root, "target/worker-async"),

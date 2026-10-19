@@ -1,11 +1,14 @@
+/** Live-counter HTTP acceptance; ordinary application hosting is generated. */
 import { mkdir, mkdtemp, copyFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { serve } from "./serve.mjs";
+import { serve } from "../../../../../crates/rocci-worker-platform/tools/serve.mjs";
 
-const root = fileURLToPath(new URL("../../../", import.meta.url));
-const pkg = fileURLToPath(new URL("../", import.meta.url));
+const root = fileURLToPath(new URL("../../../../../", import.meta.url));
+const pkg = fileURLToPath(
+  new URL("../../../../../crates/rocci-worker-platform/", import.meta.url),
+);
 const application = "live-counter";
 const built = path.join(root, `target/worker-${application}`);
 const out = await mkdtemp(path.join(built, "run-"));

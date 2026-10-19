@@ -1,11 +1,12 @@
+/** SQL example HTTP acceptance; ordinary application hosting is generated. */
 import { mkdir, mkdtemp, copyFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { serve } from "./serve.mjs";
+import { serve } from "../../../tools/serve.mjs";
 
-const root = fileURLToPath(new URL("../../../", import.meta.url));
-const pkg = fileURLToPath(new URL("../", import.meta.url));
+const root = fileURLToPath(new URL("../../../../../", import.meta.url));
+const pkg = fileURLToPath(new URL("../../../", import.meta.url));
 const built = path.join(root, "target/worker-transactions");
 const out = await mkdtemp(path.join(built, "run-"));
 await mkdir(path.join(out, "runtime"));
@@ -55,7 +56,10 @@ await serve(out, async (origin) => {
     fetch(origin + path, { signal: AbortSignal.timeout(10000) });
   const count = async () => Number(await (await request("/snapshot")).text());
   assert.equal(await count(), 0);
-  assert.deepEqual(await(await request("/__init_failure")).json(),{closed:true,settled:true});
+  assert.deepEqual(await (await request("/__init_failure")).json(), {
+    closed: true,
+    settled: true,
+  });
   const values = await (await request("/values")).text();
   for (const text of [
     "9223372036854775807",

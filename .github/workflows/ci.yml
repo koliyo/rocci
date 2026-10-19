@@ -250,11 +250,11 @@ jobs:
           cargo clippy -p rocci-worker-platform --target wasm32-unknown-unknown -- -D warnings
           cargo test -p rocci-lsp --test worker_profile -- --ignored
       - name: Test exact application artifacts on workerd
-        run: node crates/rocci-worker-platform/tools/applications.mjs
+        run: node test/workers/applications.mjs
       - name: Verify development and size application profiles
-        run: node crates/rocci-worker-platform/tools/profiles.mjs
+        run: node test/workers/profiles.mjs
       - name: Verify ordinary npm and Wrangler workflow
-        run: node crates/rocci-worker-platform/tools/packaging.mjs
+        run: node test/workers/packaging.mjs
       - name: Verify standalone platform and runtime packages
         run: node crates/rocci-worker-platform/tools/package.mjs
       - uses: actions/upload-artifact@v7

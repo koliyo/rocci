@@ -11,11 +11,29 @@ import {
 } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 import assert from "node:assert/strict";
-const root = fileURLToPath(new URL("../../../", import.meta.url)),
-  pkg = fileURLToPath(new URL("../", import.meta.url));
+import { applications } from "./cases.mjs";
+const root = fileURLToPath(new URL("../../", import.meta.url));
+const pkg = path.join(root, "crates/rocci-worker-platform");
+const subjects = await Promise.all(
+  applications
+    .filter((application) => application.hosted)
+    .map(async (application) => ({
+      id: application.id,
+      ...(await import(
+        pathToFileURL(path.join(root, application.hosted)).href
+      )),
+    })),
+);
+assert.ok(subjects.length);
+for (const { profile } of subjects) {
+  assert.match(profile.className, /^[A-Za-z_][A-Za-z0-9_]*$/);
+  assert.match(profile.binding, /^[A-Za-z_][A-Za-z0-9_]*$/);
+  assert.match(profile.prefix, /^[a-z][a-z0-9-]*$/);
+}
+
 const out = await mkdtemp(path.join(root, "target/worker-hosted-"));
 const name = `rocci-portability-test-${Date.now().toString(36)}`;
 const token = randomBytes(32).toString("hex");
@@ -61,23 +79,34 @@ for (const file of ["guest", "cloudflare", "transactions", "admission", "sql"])
     path.join(pkg, `runtime/${file}.mjs`),
     path.join(out, `runtime/${file}.mjs`),
   );
-for (const application of ["counter", "live-counter", "transactions"])
+for (const application of subjects)
   await copyFile(
-    path.join(root, `target/worker-${application}/app.wasm`),
-    path.join(out, `${application}.wasm`),
+    path.join(root, `target/worker-${application.id}/app.wasm`),
+    path.join(out, `${application.id}.wasm`),
   );
+const definitions = subjects.map(
+  (application, index) => `
+import module${index} from './${application.id}.wasm';
+export class ${application.profile.className} extends WorkerObject {
+ constructor(ctx, env) { super(module${index}, ctx, env, {sqliteAliases:${JSON.stringify(application.profile.aliases)}}); }
+}`,
+);
+const bindings = Object.fromEntries(
+  subjects.map((application) => [
+    application.profile.prefix,
+    application.profile.binding,
+  ]),
+);
 await writeFile(
   path.join(out, "index.mjs"),
   `
-import counter from './counter.wasm';import liveCounter from './live-counter.wasm';import tx from './transactions.wasm';
 import {WorkerObject} from './runtime/cloudflare.mjs';
-export class Starter extends WorkerObject{constructor(ctx,env){super(counter,ctx,env,{sqliteAliases:['./counter.db']});}}
-export class Live extends WorkerObject{constructor(ctx,env){super(liveCounter,ctx,env,{sqliteAliases:['./counter.db']});}}
-export class Transactions extends WorkerObject{constructor(ctx,env){super(tx,ctx,env,{sqliteAliases:['./transactions.db']});}}
+${definitions.join("\n")}
+const bindings = ${JSON.stringify(bindings)};
 export default {async fetch(request,env){
  if(!env.TEST_TOKEN||request.headers.get('Authorization')!=='Bearer '+env.TEST_TOKEN)return new Response('Unauthorized',{status:401});
- const url=new URL(request.url);const parts=url.pathname.split('/');const binding={'counter':'STARTER','live-counter':'LIVE',tx:'TRANSACTIONS'}[parts[1]];
- if(!binding)return new Response('Missing fixture',{status:404});url.pathname='/'+parts.slice(2).join('/');
+ const url=new URL(request.url);const parts=url.pathname.split('/');const binding=bindings[parts[1]];
+ if(!binding)return new Response('Missing test application',{status:404});url.pathname='/'+parts.slice(2).join('/');
  return env[binding].getByName('qualification').fetch(new Request(url,request));
 }};
 `,
@@ -92,14 +121,18 @@ await writeFile(
       workers_dev: true,
       preview_urls: false,
       durable_objects: {
-        bindings: [
-          { name: "STARTER", class_name: "Starter" },
-          { name: "LIVE", class_name: "Live" },
-          { name: "TRANSACTIONS", class_name: "Transactions" },
-        ],
+        bindings: subjects.map((application) => ({
+          name: application.profile.binding,
+          class_name: application.profile.className,
+        })),
       },
       migrations: [
-        { tag: "v1", new_sqlite_classes: ["Starter", "Live", "Transactions"] },
+        {
+          tag: "v1",
+          new_sqlite_classes: subjects.map(
+            (application) => application.profile.className,
+          ),
+        },
       ],
     },
     null,
@@ -134,7 +167,11 @@ try {
     lastStatus;
   for (let attempt = 0; attempt < 120; attempt++) {
     const response = await fetch(
-      origin + "/counter/health?qualification=" + Date.now(),
+      origin +
+        "/" +
+        subjects[0].profile.prefix +
+        "/health?qualification=" +
+        Date.now(),
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -169,120 +206,17 @@ try {
     }
     throw new Error("Hosted secret propagation did not settle");
   };
-  assert.match(
-    await (
-      await request("/counter/actions/counter/reset", { method: "POST" })
-    ).text(),
-    /<output[^>]*>0<\/output>/,
-  );
-  assert.match(
-    await (
-      await request("/counter/actions/counter/increment", {
-        method: "POST",
-        headers: { "datastar-request": "true" },
-      })
-    ).text(),
-    /<output[^>]*>1<\/output>/,
-  );
-  assert.match(
-    await (await request("/counter/")).text(),
-    /<output[^>]*>1<\/output>/,
-  );
-  results.scenarios.push("unchanged counter init/document/finite fragment");
-  const values = await (await request("/tx/values")).text();
-  for (const value of [
-    "9223372036854775807",
-    "-9223372036854775808",
-    "🌍",
-    "255",
-    "null",
-  ])
-    assert.ok(values.includes(value), values);
-  results.scenarios.push(
-    "typed full-range I64, REAL, text, blob and NULL storage class",
-  );
-  for (const [endpoint, count] of [
-    ["commit", 2],
-    ["rollback", 2],
-    ["drop", 2],
-    ["typed-error", 2],
-    ["trap", 2],
-    ["unsupported-effect", 2],
-    ["post-commit-error", 4],
-  ]) {
-    await request("/tx/" + endpoint);
-    assert.equal(Number(await (await request("/tx/snapshot")).text()), count);
-  }
-  results.scenarios.push(
-    "real transaction commit/rollback/drop/typed error/trap/post-commit visibility",
-  );
-  await request("/live-counter/actions/counter/reset", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: "{}",
-  });
-  results.scenarios.push(
-    "live counter reset status: " + (await request("/live-counter/")).status,
-  );
-  async function subscriber() {
-    const controller = new AbortController();
-    const response = await request("/live-counter/sse", {
-      signal: controller.signal,
-    });
-    assert.equal(response.status, 200);
-    const reader = response.body.getReader();
-    return {
-      async count(expected) {
-        let text = "";
-        const timeout = setTimeout(() => controller.abort(), 20000);
-        try {
-          while (true) {
-            const chunk = await reader.read();
-            if (chunk.done) throw new Error("SSE ended");
-            text += new TextDecoder().decode(chunk.value);
-            if (
-              new RegExp("<output[^>]*>" + expected + "<\\/output>").test(text)
-            )
-              return;
-          }
-        } finally {
-          clearTimeout(timeout);
-        }
-      },
-      async close() {
-        controller.abort();
-        await reader.cancel().catch(() => {});
-      },
-    };
-  }
-  const first = await subscriber();
-  results.scenarios.push("first SSE headers");
-  await first.count(0);
-  results.scenarios.push("first SSE snapshot");
-  const second = await subscriber();
-  results.scenarios.push("second SSE headers");
-  try {
-    await second.count(0);
-    results.scenarios.push("second SSE snapshot");
-    await request("/live-counter/actions/counter/increment", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: "{}",
-    });
-    await Promise.all([first.count(1), second.count(1)]);
-  } finally {
-    await first.close();
-    await second.close();
-  }
-  results.scenarios.push(
-    "unchanged live counter two subscribers and commit-before-publish",
-  );
+  const forApplication = (application) => (url, init) =>
+    request("/" + application.profile.prefix + url, init);
+  for (const application of subjects)
+    await application.exercise(forApplication(application), results.scenarios);
   run(["deploy", "--config", "wrangler.json"]);
-  assert.match(
-    await (await request("/counter/")).text(),
-    /<output[^>]*>1<\/output>/,
-  );
-  results.scenarios.push("redeploy reconstructs durable counter state");
+  for (const application of subjects)
+    if (application.afterRedeploy)
+      await application.afterRedeploy(
+        forApplication(application),
+        results.scenarios,
+      );
   results.passed = true;
 } finally {
   if (deployed) {

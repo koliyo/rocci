@@ -65,3 +65,17 @@ curl -sN --max-time 1 http://127.0.0.1:8080/sse >/tmp/sse-a &
 curl -sN --max-time 1 http://127.0.0.1:8080/sse >/tmp/sse-b &
 wait
 ```
+
+## Worker acceptance tests
+
+The scripts in `tests/` belong to this example. They exercise its HTTP and
+state behavior; normal Worker builds use generated hosting and require no
+authored JavaScript support. From the repository root, build and run this
+example's acceptance suite with the qualified Worker compiler:
+
+```sh
+ROCCI_WORKER_ROC=/path/to/pinned/roc node test/workers/applications.mjs live-counter
+```
+
+The repository's hosted lane imports this app's `tests/worker-hosted.mjs`
+assertions. It uses only disposable guarded test resources.

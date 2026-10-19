@@ -82,11 +82,10 @@ export async function serve(
       exited,
       new Promise((resolve) => setTimeout(resolve, 2000)),
     ]);
-    if (!stopped) {
-      try {
-        process.kill(-child.pid, "SIGKILL");
-      } catch {}
-    }
+    // A provider wrapper can exit before its remaining child processes.
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {}
     await writeFile(path.join(directory, "runtime.log"), log);
   }
 }

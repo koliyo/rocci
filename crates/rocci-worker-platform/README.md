@@ -91,20 +91,23 @@ untrusted header. This escape hatch is opt-in; ordinary apps need no JS host.
 ```sh
 npm ci --prefix crates/rocci-worker-platform/tooling
 node --test crates/rocci-worker-platform/tests/*.test.mjs
-ROCCI_WORKER_ROC=/path/to/pinned/roc node crates/rocci-worker-platform/tools/applications.mjs
-ROCCI_WORKER_ROC=/path/to/pinned/roc node crates/rocci-worker-platform/tools/profiles.mjs
+ROCCI_WORKER_ROC=/path/to/pinned/roc node test/workers/applications.mjs
+ROCCI_WORKER_ROC=/path/to/pinned/roc node test/workers/profiles.mjs
 ```
 
-The application suite compiles the existing standalone counter and live-counter
-examples, the plain Roc SQL example and a focused async regression program,
-then runs those exact modules on local workerd. The examples are the single
-source for application behavior. Outputs, hashes and logs are under `target/worker-*`.
-The opt-in `tools/hosted.mjs` lane requires explicit test credentials and
-creates and deletes only disposable guarded test resources. It never runs
-in the offline suite. CI retains the verified application graph
-and conformance results. Broader providers, whole-isolate cancellation stress,
-idle residency economics and broader provider profiles require independent
-evidence before promoting this preview.
+The platform crate contains reusable hosting, ABI, capability limits and generic
+provider test support. Application-specific acceptance drivers live with their
+applications. Repository-wide orchestration and the CI application catalogue
+live in `test/workers/`; they consume the platform like any other application.
+Ordinary apps use the generated entry and require no authored JavaScript host.
+
+The repository suite compiles its declared application subjects once and runs
+those exact modules on local workerd. Outputs, hashes and logs are under
+`target/worker-*`. The opt-in `test/workers/hosted.mjs` lane requires explicit
+test credentials and creates and deletes only disposable guarded resources.
+Each app owns its hosted assertions and binding choices. CI retains the
+verified artifacts and results. Broader providers, whole-isolate cancellation
+stress and idle residency economics require independent evidence.
 
 The scaffold watches existing root source files and authored directories,
 including an assets directory. Add newly created root source files to

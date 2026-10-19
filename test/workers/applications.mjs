@@ -4,7 +4,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-const root = fileURLToPath(new URL("../../../", import.meta.url));
+import { applications } from "./cases.mjs";
+const root = fileURLToPath(new URL("../../", import.meta.url));
 const roc = process.env.ROCCI_WORKER_ROC ?? "roc";
 const archive = path.join(
   root,
@@ -23,14 +24,18 @@ function run(command, args, options = {}) {
     );
   return result;
 }
-const fixtures = [
-  ["counter", "examples/rocci/standalone/counter/Counter.rocci"],
-  ["live-counter", "examples/rocci/standalone/live-counter/LiveCounter.rocci"],
-  ["transactions", "crates/rocci-worker-platform/examples/sql/main.roc"],
-  ["async", "crates/rocci-worker-platform/tests/Async.roc"],
-];
+const requested = process.argv.slice(2);
+const selected = requested.length
+  ? applications.filter((application) => requested.includes(application.id))
+  : applications;
+if (
+  requested.some(
+    (id) => !applications.some((application) => application.id === id),
+  )
+)
+  throw new Error("Unknown Worker integration application");
 const artifacts = [];
-for (const [name, input] of fixtures) {
+for (const { id: name, entry: input } of selected) {
   const out = path.join(root, `target/worker-${name}`);
   await mkdir(out, { recursive: true });
   run("cargo", [
@@ -98,17 +103,8 @@ run(
   ],
   { stdio: "inherit" },
 );
-for (const args of [
-  ["counter.mjs"],
-  ["transactions.mjs"],
-  ["live.mjs"],
-  ["async.mjs"],
-])
-  run(
-    process.execPath,
-    [`crates/rocci-worker-platform/tools/${args[0]}`, ...args.slice(1)],
-    { stdio: "inherit" },
-  );
+for (const application of selected)
+  run(process.execPath, [application.test], { stdio: "inherit" });
 await mkdir(path.join(root, "target/worker-conformance"), { recursive: true });
 await writeFile(
   path.join(root, "target/worker-conformance/applications.json"),
