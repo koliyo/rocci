@@ -4,7 +4,7 @@ title: Worker source portability implementation evidence
 description: Phase microplans, frozen source promises and measured qualification of a real Roc Worker ABI; managed compatibility remains gated.
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-10-19T14:42:11Z }
+generated: { by: process:cursor, at: 2026-10-19T14:48:19Z }
 stale_after: 2026-11-19
 authority: descriptive
 owners: [human:nils]
@@ -234,6 +234,10 @@ allocations. Local/hosted Wasm linear memory stayed at 9,961,472 bytes during
 that qualifier. Experimental unspecialized lowering leaked four guest bytes
 per call and is excluded. Node process memory samples are stored; they are not
 an exhaustive whole-isolate continuation memory or long idle cost measurement.
+The maintained Rust host also passed C0 and async/cancellation application
+tests in development and size profiles, reusing the speed lane sources and
+runtime harnesses. Cold Linux CI found a compiler installer write-handle leak;
+the installer now closes the executable before validating it.
 Application artifacts use the maintained Rust host, with its own transaction,
 body/fetch, source, cleanup and actual-provider tests.[^qualification][^evidence]
 

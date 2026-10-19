@@ -93,6 +93,7 @@ untrusted header. This escape hatch is opt-in; ordinary apps need no JS host.
 npm ci --prefix crates/rocci-worker-platform/tooling
 node --test crates/rocci-worker-platform/tests/*.test.mjs
 ROCCI_WORKER_ROC=/path/to/pinned/roc node crates/rocci-worker-platform/tools/applications.mjs
+ROCCI_WORKER_ROC=/path/to/pinned/roc node crates/rocci-worker-platform/tools/profiles.mjs
 # Independent ARC/JSPI compiler matrix (requires clang 23.1.3):
 node --expose-gc crates/rocci-worker-platform/tools/conformance.mjs
 node crates/rocci-worker-platform/tools/workerd.mjs

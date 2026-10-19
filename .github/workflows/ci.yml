@@ -251,6 +251,8 @@ jobs:
           cargo test -p rocci-lsp --test worker_profile -- --ignored
       - name: Test exact application artifacts on workerd
         run: node crates/rocci-worker-platform/tools/applications.mjs
+      - name: Verify development and size application profiles
+        run: node crates/rocci-worker-platform/tools/profiles.mjs
       - name: Verify ordinary npm and Wrangler workflow
         run: node crates/rocci-worker-platform/tools/packaging.mjs
       - name: Verify standalone platform and runtime packages
@@ -261,7 +263,7 @@ jobs:
           name: worker-conformance
           path: |
             target/worker-conformance/*.json
-            target/worker-*/app.wasm
+            target/worker-*/app*.wasm
             target/worker-*/platform/*.roc
             target/worker-*/*results.json
             target/worker-*/*.log

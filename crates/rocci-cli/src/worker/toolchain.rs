@@ -140,6 +140,8 @@ pub fn compiler(explicit: Option<&Path>, offline: bool) -> Result<PathBuf> {
             let temporary = directory.join(format!("roc.next-{}", std::process::id()));
             let mut output = fs::File::create(&temporary)?;
             std::io::copy(&mut entry, &mut output)?;
+            // Linux refuses to execute a file while a write handle is open.
+            drop(output);
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt;

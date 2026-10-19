@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-10-19T14:42:11Z",
+  "recorded_at": "2026-10-19T14:48:19Z",
   "baseline_revision": "9b451fc34834af50fcee5d850b7d2253c9cbbd3d",
   "scope": "Working-tree implementation qualification; CI revision recorded separately",
   "source_edits": [],
@@ -585,6 +585,40 @@
       "origin": "https://rocci-portability-test-mvfd41yo.nils-hjelte.workers.dev",
       "passed": true,
       "cleanedUp": true
+    },
+    "application_profiles": {
+      "compiler": "nightly-2026-10-09-258ab27",
+      "scope": "Actual maintained Rust host on workerd; existing counter and async/cancellation harnesses; speed artifacts restored",
+      "results": [
+        {
+          "fixture": "c0",
+          "opt": "dev",
+          "sha256": "7d789533eb55dbc5f9b8bc9f22b90c6cd1a4978be7724039cdf405789a054da7",
+          "bytes": 1104254,
+          "passed": true
+        },
+        {
+          "fixture": "c0",
+          "opt": "size",
+          "sha256": "76590a4cafbc680846e827fa47e3f60d7ab94c091363f2f3ba1d87ff681b9cc3",
+          "bytes": 414327,
+          "passed": true
+        },
+        {
+          "fixture": "async",
+          "opt": "dev",
+          "sha256": "61d256ed829ab0287488a4ef9821af3ff97d96cb0afcf245be9828206c99a08d",
+          "bytes": 865597,
+          "passed": true
+        },
+        {
+          "fixture": "async",
+          "opt": "size",
+          "sha256": "90bcb4905fb23a8fcccb09ce0fb12e11599236c7123471f55c00ea3262b06801",
+          "bytes": 350817,
+          "passed": true
+        }
+      ]
     }
   },
   "limitations": [
