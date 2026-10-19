@@ -15,7 +15,7 @@ export class Streams {
   private heartbeat?: ReturnType<typeof setInterval>;
   private clock?: ReturnType<typeof setInterval>;
   latest?: Snapshot;
-  constructor(private refresh: () => Snapshot) {}
+  constructor(private refresh: () => Snapshot, private checkOwnership: () => void = () => {}) {}
   get size(): number { return this.viewers.size; }
   subscribe(): { response: Response; viewer: Viewer } {
     if (this.size >= 20) throw new Error('Viewer capacity reached');
@@ -31,7 +31,12 @@ export class Streams {
     void writer.closed.then(() => this.remove(viewer), () => this.remove(viewer));
     if (!this.heartbeat) {
       this.heartbeat = setInterval(() => {
-        for (const v of this.viewers) { v.heartbeat = true; v.wake?.(); }
+        try {
+          // Old HTTP responses can survive actor replacement until they touch
+          // storage. Fence the shared heartbeat before emitting more bytes.
+          this.checkOwnership();
+          for (const v of this.viewers) { v.heartbeat = true; v.wake?.(); }
+        } catch { for (const viewer of this.viewers) this.remove(viewer); }
       }, 15000);
       this.clock = setInterval(() => {
         try { if (this.latest) this.publish(this.refresh()); }

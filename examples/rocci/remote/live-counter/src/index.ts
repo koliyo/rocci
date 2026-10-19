@@ -95,6 +95,10 @@ export class Counter extends DurableObject<Env> {
   private streams = new Streams(() => {
     // Presentation ticks use the last completed durable snapshot, never a new SQL read.
     return this.capture(this.streams.latest!.state);
+  }, () => {
+    // One row per object heartbeat, shared by every viewer. Accessing storage
+    // detects a replaced actor even when its old HTTP streams remain alive.
+    this.exec('SELECT revision FROM counter_state WHERE id=1').one();
   });
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);

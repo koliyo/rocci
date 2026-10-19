@@ -137,9 +137,10 @@ checks and actual local workerd/SQLite fault and recovery scenarios. Tests
 stamp the package/config/assets/source fingerprint in `dist/tested.json`.
 `deploy` refuses changed or untested artifacts and uploads that bundle with
 `--no-bundle`; it never rebuilds it. After changes, rebuild/package/test again.
-Deployment explicitly requests immediate Durable Object code replacement,
-so open streams reconnect instead of indefinitely retaining an older actor
-version. A reconnect always receives a current durable snapshot.
+Deployment explicitly requests immediate Durable Object code replacement.
+Cloudflare's global rollout is still eventually consistent: verify the actor's
+reported version, and keep adjacent versions compatible during propagation.
+Streams reconnect when their actor is replaced and receive a durable snapshot.
 Generated configuration excludes the API token. Source, generated Roc,
 Wasm, assets, tool pins and ABI/schema versions are hashed in
 `dist/manifest.json`; bundle hashes are in `dist/package.json`. Deployment
@@ -247,8 +248,13 @@ frame plus one latest pending snapshot, and caps viewers at 20 per object.
 Heartbeats run every 15 seconds; age refreshes run every minute only while
 viewers exist. Cancellation clears viewers/timers, sometimes after the next
 heartbeat detects the closed connection. Both incoming-request signal flags
-are explicitly enabled. There is no SQL polling loop or hibernation claim for
-an open SSE connection.
+are explicitly enabled. Each shared heartbeat reads one storage row to verify
+actor ownership: Cloudflare can let an old HTTP stream survive replacement
+until it touches storage. A failed ownership read aborts every old stream,
+forcing resynchronization. This is at most four ownership reads per minute
+per active object, independent of viewer count. Domain rendering is driven by
+commits and minute ticks, without the native 100ms state/render poll. Open SSE
+connections do not hibernate. See [global uniqueness](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness).
 
 ## Export, restore, compatible upgrade and rollback
 
