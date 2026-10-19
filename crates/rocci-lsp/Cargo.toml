@@ -19,6 +19,11 @@ lsp-types = { workspace = true }
 rocci-datastar = { workspace = true }
 rocci-highlight = { workspace = true }
 rocci-template = { workspace = true }
+rocci-core = { workspace = true }
+rocci-worker-platform = { workspace = true }
+sha2 = "0.11"
+url = "2.5"
+toml.workspace = true
 serde = { workspace = true }
 serde_json = { workspace = true }
 

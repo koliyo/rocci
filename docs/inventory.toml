@@ -264,6 +264,10 @@ path = "docs/applications/package.rocdown"
 disposition = "keep"
 
 [[page]]
+path = "docs/applications/workers.rocdown"
+disposition = "keep"
+
+[[page]]
 path = "docs/rocdown/index.rocdown"
 disposition = "keep"
 notes = "Experimental; Markdown-first; live pages reuse Applications."

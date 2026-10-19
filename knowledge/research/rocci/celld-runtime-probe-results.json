@@ -1,0 +1,82 @@
+{
+  "observed_date": "2026-10-19",
+  "scope": "Local Apple Silicon loopback probe only; no hosted deployment, fleet failover or full Rocci handler port.",
+  "rocci_revision": "bbf7b1effb4bbeca6fb1548ac119e82c20435622",
+  "celld_revision": "90b43017241f81189453d326d05948f388b34652",
+  "celld_version": "0.6.2",
+  "celld_release_asset_sha256": "b81a38299800679e9651fd7c1544540185682dcb59eed1a24c8cc36c6b31e76d",
+  "node_version": "26.12.0",
+  "wrangler_version": "4.151.1",
+  "workerd_version": "1.20261012.1",
+  "method": [
+    "Compile suspend.c with clang --target=wasm32 -O1 -nostdlib -Wl,--no-entry -Wl,--export=__stack_pointer -Wl,--export-memory suspend.c -o suspend.wasm.",
+    "Copy the existing actor counter dist/actor.wasm alongside the probe, matching its recorded artifact SHA-256.",
+    "Start celld dev with no_bundle and local persistence; GET the loopback origin; stop its process group and wait.",
+    "Run the same entry/config/Wasm through wrangler dev; GET its loopback origin; stop its process group and wait.",
+    "Keep logs outside the watched app directory. The initial Wrangler attempt reloaded repeatedly when its log was inside it."
+  ],
+  "limits": [
+    "The JSPI workload is compiled C with a volatile stack frame and an asynchronous JavaScript timer, not a Roc hosted-effect ABI test.",
+    "The actual Roc module is tested separately through its existing synchronous import-free ABI.",
+    "Sequential calls only; unchanged C stack pointer and linear memory do not measure V8 JSPI stack allocation, whole-process memory or leak freedom.",
+    "Does not prove cancellation, concurrent suspended Roc invocations, outbound fetch, SSE parity or deployment recovery."
+  ],
+  "inputs": {
+    "suspend.c": "__attribute__((import_module(\"env\"), import_name(\"delayed\")))\nextern int delayed(int);\n\n__attribute__((export_name(\"run\")))\nint run(int value) {\n    volatile int frame[4] = {value, value + 1, value + 2, value + 3};\n    int answer = delayed(value);\n    return answer + frame[1];\n}\n",
+    "index.js": "import { DurableObject } from 'cloudflare:workers';\nimport suspendModule from './suspend.wasm';\nimport actorModule from './actor.wasm';\n\nexport class Probe extends DurableObject {\n  async fetch() {\n    const sql = this.ctx.storage.sql;\n    sql.exec('CREATE TABLE IF NOT EXISTS counter (n INTEGER NOT NULL)');\n    sql.exec('DELETE FROM counter');\n    sql.exec('INSERT INTO counter VALUES (0)');\n    let rawBegin;\n    try { sql.exec('BEGIN'); rawBegin = 'accepted'; sql.exec('ROLLBACK'); }\n    catch (error) { rawBegin = String(error); }\n    try {\n      this.ctx.storage.transactionSync(() => {\n        sql.exec('UPDATE counter SET n=1');\n        throw new Error('intentional rollback');\n      });\n    } catch (error) {\n      if (error.message !== 'intentional rollback') throw error;\n    }\n    const rollbackValue = sql.exec('SELECT n FROM counter').one().n;\n    const features = { suspending: typeof WebAssembly.Suspending, promising: typeof WebAssembly.promising };\n    let jspi = null;\n    if (features.suspending === 'function' && features.promising === 'function') {\n      const instance = new WebAssembly.Instance(suspendModule, { env: {\n        delayed: new WebAssembly.Suspending(async value => {\n          await new Promise(resolve => setTimeout(resolve, 1));\n          return value + 1;\n        }),\n      } });\n      const run = WebAssembly.promising(instance.exports.run);\n      const before = instance.exports.__stack_pointer.value;\n      let last;\n      for (let i = 0; i < 1000; i++) {\n        last = await run(i);\n        if (last !== 2 * i + 2) throw new Error('JSPI result mismatch');\n      }\n      jspi = { calls: 1000, last, stackBefore: before, stackAfter: instance.exports.__stack_pointer.value,\n        memoryBytes: instance.exports.memory.buffer.byteLength };\n    }\n    const actor = new WebAssembly.Instance(actorModule, {}).exports;\n    const input = new TextEncoder().encode('1\\nlive\\n0\\n0\\n100\\nincrement\\n-\\n-');\n    new Uint8Array(actor.memory.buffer).set(input, actor.input_ptr());\n    actor.invoke(input.length);\n    const output = new TextDecoder().decode(new Uint8Array(actor.memory.buffer, actor.output_ptr(), actor.output_len()));\n    return Response.json({ features, rawBegin, rollbackValue, jspi,\n      roc: { header: output.split('\\n\\n')[0], counter: output.includes('id=\"counter\"'),\n        feed: output.includes('id=\"counter-feed\"'), arenaUsed: actor.arena_used(), memoryBytes: actor.memory.buffer.byteLength } });\n  }\n}\nexport default { fetch(request, env) { return env.PROBE.getByName('probe').fetch(request); } };\n",
+    "wrangler.json": "{\n  \"name\": \"rocci-celld-probe\",\n  \"main\": \"index.js\",\n  \"no_bundle\": true,\n  \"compatibility_date\": \"2026-10-19\",\n  \"durable_objects\": { \"bindings\": [{ \"name\": \"PROBE\", \"class_name\": \"Probe\" }] },\n  \"migrations\": [{ \"tag\": \"v1\", \"new_sqlite_classes\": [\"Probe\"] }]\n}\n"
+  },
+  "results": {
+    "celld-0.6.2": {
+      "features": {
+        "suspending": "function",
+        "promising": "function"
+      },
+      "rawBegin": "Error: SQL error: prepare SQL cursor: not authorized",
+      "rollbackValue": 0,
+      "jspi": {
+        "calls": 1000,
+        "last": 2000,
+        "stackBefore": 65536,
+        "stackAfter": 65536,
+        "memoryBytes": 65536
+      },
+      "roc": {
+        "header": "1\nok\n1\n1\n1|100|0|555443",
+        "counter": true,
+        "feed": true,
+        "arenaUsed": 14316,
+        "memoryBytes": 5570560
+      }
+    },
+    "workerd-via-wrangler-4.151.1": {
+      "features": {
+        "suspending": "function",
+        "promising": "function"
+      },
+      "rawBegin": "Error: To execute a transaction, please use the state.storage.transaction() or state.storage.transactionSync() APIs instead of the SQL BEGIN TRANSACTION or SAVEPOINT statements. The JavaScript API is safer because it will automatically roll back on exceptions, and because it interacts correctly with Durable Objects' automatic atomic write coalescing.",
+      "rollbackValue": 0,
+      "jspi": {
+        "calls": 1000,
+        "last": 2000,
+        "stackBefore": 65536,
+        "stackAfter": 65536,
+        "memoryBytes": 65536
+      },
+      "roc": {
+        "header": "1\nok\n1\n1\n1|100|0|555443",
+        "counter": true,
+        "feed": true,
+        "arenaUsed": 14316,
+        "memoryBytes": 5570560
+      }
+    },
+    "artifact": {
+      "index.js": "073a81729c508f9dd4a392b755800bdb65f8f03568e92f3bcbb16d5ad7d9a074",
+      "suspend.c": "958ed3c23a960b2a62a7fcaaf3298775e0836bd3387c0e88f91d979c4947ae18",
+      "suspend.wasm": "1aac6185704aad22a4f8d5a087c81bd3b3d13f158f12040eb65319e87d282101",
+      "actor.wasm": "1173da4b3ab19c2d29eff8c749c3e510ee7a959332a90b3bffd6d57a6ad08bcd",
+      "wrangler.json": "80e3d063ef0aa355bde7f1c0eed019625b1c7834ff852c41f7fb3a19f0a96e9a"
+    }
+  }
+}

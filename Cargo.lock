@@ -3522,6 +3522,7 @@ version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
+ "flate2",
  "notify",
  "rocci-core",
  "rocci-datastar",
@@ -3531,11 +3532,15 @@ dependencies = [
  "rocci-template",
  "rocci-theme",
  "rocci-ui",
+ "rocci-worker-platform",
  "serde",
  "serde_json",
  "sha2 0.11.0",
+ "tar",
  "toml 1.1.6+spec-1.1.0",
+ "toml_edit 0.25.15+spec-1.1.0",
  "ureq",
+ "wasmparser 0.252.0",
 ]
 
 [[package]]
@@ -3596,12 +3601,17 @@ version = "0.1.2"
 dependencies = [
  "lsp-server",
  "lsp-types",
+ "rocci-core",
  "rocci-datastar",
  "rocci-highlight",
  "rocci-template",
+ "rocci-worker-platform",
  "serde",
  "serde_json",
+ "sha2 0.11.0",
+ "toml 1.1.6+spec-1.1.0",
  "tree-sitter",
+ "url",
 ]
 
 [[package]]
@@ -3783,6 +3793,13 @@ version = "0.1.2"
 dependencies = [
  "rocci-wasi-http",
  "wasip3",
+]
+
+[[package]]
+name = "rocci-worker-platform"
+version = "0.1.2"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]
@@ -4581,6 +4598,7 @@ dependencies = [
  "indexmap",
  "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
+ "toml_writer",
  "winnow 1.0.4",
 ]
 

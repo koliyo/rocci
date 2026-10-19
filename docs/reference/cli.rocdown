@@ -178,3 +178,18 @@ Missing fork or missing `roc` is an error. Serve with
 `--dir=<dest>.assets::/assets`. `rocci run` stays the native Rocci
 platform. `--http-module` still requires basic-webserver 0.16.0 / the
 sibling fork wasm32 target. Still omitted: Cmd, in-guest TLS, desktop URL.
+
+## Worker preview
+
+```sh
+rocci worker init [INPUT] --provider cloudflare [--stateless]
+rocci worker build [INPUT] [--roc PATH] [--host-archive PATH] [--opt speed|size|dev] [--locked] [--offline]
+```
+
+Init adds ordinary Wrangler configuration without rewriting Roc/Rocci source.
+Build packages `.rocci/worker/` atomically; failures preserve the prior tree.
+Wrangler's build hook invokes this command during `npm run dev` and deploy.
+Commit `rocci-worker.lock` after reviewing toolchain changes. Offline builds
+require preseeded compiler, host, Datastar and leaf Roc dependency caches.
+Automatic installation supports Apple Silicon macOS and x64 Linux; Windows is
+unqualified. See [the Worker guide](/docs/applications/workers/).

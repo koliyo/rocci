@@ -1,0 +1,90 @@
+/** Reuse the speed lane sources and real runtime acceptance for other profiles. */
+import { readFile, writeFile, copyFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import path from "node:path";
+import { applications } from "./cases.mjs";
+import { fileURLToPath } from "node:url";
+const root = fileURLToPath(new URL("../../", import.meta.url));
+const roc = process.env.ROCCI_WORKER_ROC ?? "roc";
+const results = [];
+for (const subject of applications) {
+  const profiles = subject.profiles.filter((profile) => profile !== "speed");
+  if (!profiles.length) continue;
+  const application = subject.id;
+  const directory = path.join(root, "target/worker-" + application),
+    wasm = path.join(directory, "app.wasm");
+  const original = await readFile(wasm);
+  try {
+    for (const opt of profiles) {
+      const output = path.join(directory, "app-" + opt + ".wasm");
+      const result = spawnSync(
+        roc,
+        [
+          "build",
+          "--no-cache",
+          "--target=wasm32",
+          "--specialize=yes",
+          "--opt=" + opt,
+          "--wasm-stack-size=1048576",
+          "--output=" + output,
+          "main.roc",
+        ],
+        {
+          cwd: directory,
+          encoding: "utf8",
+          timeout: 60000,
+          env: {
+            ...process.env,
+            XDG_CACHE_HOME: path.join(
+              root,
+              "target/worker-package-cache/worker/compiler-cache",
+            ),
+          },
+        },
+      );
+      if (
+        result.status !== 0 &&
+        !(
+          result.status === 2 &&
+          (result.stdout + result.stderr)
+            .split("\n")
+            .some((line) => line.trimStart().startsWith("0 errors and "))
+        )
+      )
+        throw new Error(result.stdout + result.stderr);
+      await copyFile(output, wasm);
+      const test = spawnSync(process.execPath, [subject.test], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 180000,
+        env: process.env,
+      });
+      if (test.status !== 0) throw new Error(test.stdout + test.stderr);
+      const bytes = await readFile(output);
+      results.push({
+        application,
+        opt,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+        bytes: bytes.length,
+        passed: true,
+      });
+      console.log("PASS maintained host " + application + " " + opt);
+    }
+  } finally {
+    await writeFile(wasm, original);
+  }
+}
+await writeFile(
+  path.join(root, "target/worker-conformance/application-profiles.json"),
+  JSON.stringify(
+    {
+      compiler: "nightly-2026-10-09-258ab27",
+      scope:
+        "Actual maintained Rust host on workerd; existing counter and async/cancellation harnesses; speed artifacts restored",
+      results,
+    },
+    null,
+    2,
+  ) + "\n",
+);

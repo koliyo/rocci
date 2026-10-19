@@ -210,3 +210,65 @@ jobs:
           cache-dependency-path: editors/vscode/package-lock.json
       - name: Run editor checks
         run: uv run --no-dev rocci-ops ci editors
+
+  worker:
+    name: Worker verified artifact conformance
+    runs-on: ubuntu-latest
+    env:
+      ROCCI_CACHE: ${{ github.workspace }}/target/worker-package-cache
+      DATASTAR_JS: ${{ github.workspace }}/target/worker-package-cache/datastar/v1.0.2/datastar.js
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.pr_sha || github.sha }}
+      - name: Install Linux desktop build deps
+        run: sudo ./docker/install-linux-deps.sh builder
+      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26.12.0
+      - name: Install pinned provider runtime
+        run: npm ci --prefix crates/rocci-worker-platform/tooling --no-audit --no-fund
+      - name: Build host and CLI
+        run: |
+          cargo build --locked --release -p rocci-worker-platform --target wasm32-unknown-unknown
+          cargo build --locked -p rocci-cli --bin rocci
+      - name: Install and check pinned compiler through the public CLI
+        run: |
+          target/debug/rocci worker init target/worker-bootstrap --stateless
+          target/debug/rocci worker build target/worker-bootstrap
+          python3 - <<'PYCODE'
+          import json, os
+          profile=json.load(open('target/worker-bootstrap/.rocci/worker-editor.json'))
+          with open(os.environ['GITHUB_ENV'],'a') as out:
+              out.write('ROCCI_WORKER_ROC='+profile['compiler']+'\n')
+          PYCODE
+      - name: Check Wasm host and Worker editor
+        run: |
+          cargo clippy -p rocci-worker-platform --target wasm32-unknown-unknown -- -D warnings
+          cargo test -p rocci-lsp --test worker_profile -- --ignored
+      - name: Test exact application artifacts on workerd
+        run: node test/workers/applications.mjs
+      - name: Verify development and size application profiles
+        run: node test/workers/profiles.mjs
+      - name: Verify ordinary npm and Wrangler workflow
+        run: node test/workers/packaging.mjs
+      - name: Verify standalone platform and runtime packages
+        run: node crates/rocci-worker-platform/tools/package.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: worker-conformance
+          path: |
+            target/worker-conformance/*.json
+            target/worker-*/app*.wasm
+            target/worker-*/platform/*.roc
+            target/worker-*/*results.json
+            target/worker-*/*.log
+            target/worker-release/run-*/*.tar.zst
+            target/worker-release/run-*/*.tar.gz
+            target/worker-release/run-*/*.json
+            target/worker-release/run-*/*.sha256
+          if-no-files-found: error

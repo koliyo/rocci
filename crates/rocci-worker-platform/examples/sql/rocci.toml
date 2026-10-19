@@ -1,0 +1,15 @@
+[app]
+entry = "main.roc"
+
+[worker]
+provider = "cloudflare"
+execution = "durable-object"
+binding = "APP"
+object_key = "sql-example"
+
+[worker.sqlite]
+path = "./transactions.db"
+storage = "object"
+
+[assets]
+datastar = false

@@ -261,3 +261,12 @@ Rocci is licensed under the [Apache License, Version 2.0](LICENSE).
 [`LICENSE-UPL`](crates/rocci-platform/LICENSE-UPL) in that crate.
 Third-party components retain their own licenses; see
 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+### Worker packaging preview
+
+`rocci worker init <app> --provider cloudflare` adds ordinary Wrangler scripts
+without editing the application. `rocci worker build` packages its effectful
+handlers as core Wasm with a pinned JSPI platform. See the
+[capability profile](crates/rocci-worker-platform/README.md) and
+[starter guide](docs/applications/workers.rocdown). Native run/desktop and the
+private actor experiment keep their existing toolchains.

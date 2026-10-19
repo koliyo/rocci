@@ -10,6 +10,7 @@ mod error;
 mod event;
 mod session;
 mod state;
+mod worker;
 
 pub use backend::{Backend, ExternalBackend, RunningBackend, join_origin};
 pub use config::{
@@ -20,3 +21,6 @@ pub use error::{Error, Result};
 pub use event::{AppEvent, EventHook, ExitHook, Hooks, SetupHook, WindowEvent};
 pub use session::{Session, SessionStore, WindowId};
 pub use state::ManagedState;
+pub use worker::{
+    WorkerConfig, WorkerExecution, WorkerProvider, WorkerSqlite, WorkerSqliteStorage,
+};

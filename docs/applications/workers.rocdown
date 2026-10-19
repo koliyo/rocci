@@ -1,0 +1,66 @@
+@page {
+    layout: "docs",
+    meta: {
+        title: "Deploy a Worker",
+        description: "Package ordinary Rocci handlers with generated hosting and standard Wrangler commands.",
+    },
+}
+
+# Deploy a Worker
+
+This is a preview with a qualified compiler and an explicit managed capability
+profile. Hosted JSPI, disposable hosted SQLite/live acceptance and local conformance
+are measured separately from release publication. Start with the unchanged one-file
+counter, which uses ordinary typed SQLite and finite Datastar fragments.
+
+```sh
+rocci worker init examples/rocci/standalone/counter --provider cloudflare
+cd examples/rocci/standalone/counter
+npm install
+npm run dev
+```
+
+Init preserves `Counter.rocci`. Review `rocci.toml`: all visitors share the
+explicit object key, and `./counter.db` maps to that object's managed database.
+The generated `wrangler.jsonc` supplies one stable SQLite class migration and
+a custom build hook. Keep those identities when rebuilding/deploying. Secrets,
+accounts, routes and authentication use ordinary Wrangler configuration.
+
+Build automatically resolves the pinned compiler and host archive. Automatic
+installation supports Apple Silicon macOS and x64 Linux. During development of
+this unreleased implementation, maintainers must supply its built archive;
+prebuilt download requires the corresponding release. No Rust or C compiler
+is needed when using the released CLI/host package. Generated files live in
+`.rocci/worker/`; commit authored configuration, npm locks and
+`rocci-worker.lock`, and keep generated outputs ignored.
+
+```sh
+rocci worker build --locked
+npx wrangler login
+npm run deploy
+```
+
+Deployment is an explicit provider operation that may create billable managed
+resources. Choose authentication and public routes for your application before
+publishing it. Direct `wrangler dev` and `wrangler deploy` run the same hook.
+For an unrelated page without SQL, start with
+`rocci worker init my-page --stateless`. Plain Roc programs can use the same
+platform without templates; examples live in `rocci-worker-platform/examples`.
+
+Read [configuration](/docs/reference/configuration/),
+[runtime limits](/docs/reference/runtime/) and
+[troubleshooting](/docs/troubleshooting/runtime/) before relying on a native
+effect. Native filesystem/process/socket behavior and shutdown guarantees do
+not transfer to Workers. Durable state stays in SQL, and live browser state
+stays server rendered.
+
+The scaffold watches existing root source files and authored directories,
+including an assets directory. Add newly created root source files to
+Wrangler `build.watch_dir` or restart after a manual build; files inside
+watched directories are discovered automatically. Keep generated directories
+and provider logs outside that watch list.
+
+The lock retains compiler fingerprints per development host, so macOS and
+Linux builds do not overwrite each other. Review one unlocked build on each
+new host architecture before requiring `--locked` there. The compiler pin,
+Wasm host and runtime remain common to the application.

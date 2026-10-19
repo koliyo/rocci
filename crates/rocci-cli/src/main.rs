@@ -21,6 +21,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Build ordinary Roc/Rocci applications for Workers.
+    Worker {
+        #[command(subcommand)]
+        command: rocci_cli::worker::Command,
+    },
     /// Validate a rocci.toml configuration file.
     Validate {
         #[arg(default_value = "rocci.toml")]
@@ -204,6 +209,7 @@ fn try_main() -> Result<()> {
     }
 
     match Cli::parse().command {
+        Commands::Worker { command } => rocci_cli::worker::execute(command),
         Commands::Validate { config } => validate(&config),
         Commands::Bundle { config, target } => bundle::bundle(&config, target),
         Commands::Build {

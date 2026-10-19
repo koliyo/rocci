@@ -2,6 +2,8 @@
 
 Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 
+* [Deploy ordinary Rocci applications as Workers](worker-packaging-and-source-portability.md) - Detailed follow-up to the packaging audit: unchanged starter Counter first, custom Roc platform and real JSPI effects, transaction compatibility experiments, original live handlers, generated Wrangler workflow, toolchain/editor DX and plain Roc reuse. Exploratory; all phases planned and no implementation started.
+
 * [Prove a remote Rocci backend on durable actors](portable-actor-backends.md) - Planned private Cloudflare POC using the existing live-counter: real Roc decisions and Rocci rendering in core Wasm, atomic command receipts, persistent state, two-browser SSE, and deployment/recovery. Recommends a small host; specifies the unchanged-handler alternative. celld and desktop remain later gates. Exploratory; no phase started.
 
 * [Measure scan/copy Node escape on the preview HTTP origin and Linux](html-scan-copy-host-coverage.md) - Exploration: Phases 0–2 on `main`; fold versus scan HostPage is byte-identical on `127.0.0.1`; renderer gain not visible; Linux absent. Product scan/copy stays macOS Node Html. Parent: [template preparation costs](compile-time-template-preparation.md).

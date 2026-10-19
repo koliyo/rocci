@@ -63,3 +63,14 @@ Exact forms: [Runtime](/docs/reference/runtime/),
 [Server](/docs/reference/language/server/).
 
 Next: [Custom applications](/docs/applications/custom/).
+
+## Worker preview
+
+Ordinary handlers can be packaged with `rocci worker init/build`. Finite POST
+fragments still update only the acting tab. Command handlers return ordinary
+204 or empty SSE for Datastar. Shared updates remain live GETs, which receive
+fresh snapshots after reconnect. Generated live GET actions default to retry
+always unless the source specifies retry behavior; POST commands are never
+silently retried. Pure components and SQL ownership remain the same. See the
+[Worker guide](/docs/applications/workers/) for limits and identity/storage
+configuration.

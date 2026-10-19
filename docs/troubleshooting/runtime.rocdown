@@ -31,3 +31,28 @@ route shape.
 `?` in a handler is a 500. Datastar gets an HTML overlay; other clients get
 `{"error":"…"}`. `@init` failure exits the process instead.
 
+
+## Worker builds and requests
+
+Run `rocci worker build` directly to see source-mapped compiler errors. A
+failed custom build preserves the last `.rocci/worker/` tree. In dev mode an
+unchanged failure is memoized to prevent watch loops; edit an input or run the
+build directly to retry. Output/source-map/ABI hashes are in `manifest.json`.
+`--locked` errors require reviewing toolchain changes, then regenerating the
+lock deliberately. `--offline` errors name the missing cache dependency.
+
+Worker editor diagnostics require a first successful build or an explicit
+`ROCCI_WORKER_ROC` path to the qualified compiler. Restart the language server
+after changing compiler settings. A missing OS hosted symbol means the effect
+is outside the managed capability profile. Use the native runtime or change
+the explicitly unsupported effect. SQL aliases must exactly match
+`worker.sqlite.path` or `aliases`; there is no filesystem fallback. Use unique
+SQL result aliases and explicit bounded `Http.send_with!` options. A 503 means
+a queue/resource bound or an unsettled old continuation; retry the read after
+the indicated delay. Do not automatically retry a mutation whose response was
+lost. Durable SQL and reconstructed context determine its actual outcome.
+
+Generated hosting attributes logs and traps to the authored init/route/live
+declaration (`file:line`). Plain Roc falls back to its entry location. The
+source-map artifact handles compile diagnostics; optimized Wasm instruction
+addresses are not reconstructed as individual Roc expressions.

@@ -1,0 +1,12 @@
+[package]
+name = "rocci-worker-platform"
+version.workspace = true
+edition.workspace = true
+license = "Apache-2.0 AND UPL-1.0"
+description = "Core-Wasm host ABI for ordinary Roc programs in Workers"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+serde_json.workspace = true

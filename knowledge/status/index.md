@@ -9,6 +9,7 @@ collection by lifecycle.
 
 Dated snapshots:
 
+* [Worker packaging implementation](worker-source-portability.md) - Delivered experimental profile, individual phase boundaries and maintained tests using canonical applications.
 * [Private durable-actor backend results](portable-actor-backends.md) - Implemented private Cloudflare counter; hosted restore, rollback and automatic reconnect evidence, passing CI, resource measurements and explicit provider cleanup limits.
 * [WASI HTTP module PR maturity](wasi-http-module.md) - Open PR 82 is experimental but capability-complete for compiled `.rocci` under `wasmtime serve`; not merge-ready (dirty vs main, no CI). Still omitted: Cmd, in-guest TLS, desktop URL. Not shipped on `main`.
 * [OKF preview compile and render cost results](okf-compile-render-cost.md) - Machine-local debug `run --profile-report json` after Phases 1–3 and 6; Phases 4–5 skipped.

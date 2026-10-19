@@ -186,3 +186,33 @@ and the
 [structure audit](../../knowledge/audits/rocci/implementation-structure.md).
 Site-planning code still belongs in `rocci-rocdown` (`src/plan/`, `src/docs/`,
 `src/lower/`, `src/catalog/`, `src/build/`), not here.
+
+## Worker packaging preview
+
+`rocci worker init [INPUT] --provider cloudflare [--stateless]` preserves authored
+sources and adds strict `[worker]` configuration, Wrangler JSONC, npm scripts,
+a pinned tooling lock and ignore rules. Existing scripts/configuration are
+preserved; conflicts are reported. `rocci worker build [INPUT]` uses normal
+entry discovery and lowering, validates provider identity, links the qualified
+Wasm host and atomically replaces `.rocci/worker/`. It never starts native TCP.
+`--roc`, `--host-archive`, `--opt dev|speed|size`, `--locked` and `--offline`
+control the build. Environment overrides are `ROCCI_WORKER_ROC` and
+`ROCCI_WORKER_HOST`. Source maps and exact input/output/toolchain hashes are
+inspectable. See [platform limits](../rocci-worker-platform/README.md).
+
+The compatibility date is pinned; upgrades require conformance. Class names,
+migrations, singleton keys and logical SQL aliases are explicit. Builds never
+regenerate provider namespace identity. Generated assets are served through the
+same Worker origin. Warm builds validate every output; failed builds preserve
+the prior tree and memoize unchanged failures in Wrangler's watch loop.
+
+The scaffold watches existing root source files and authored directories,
+including an assets directory. Add newly created root source files to
+Wrangler `build.watch_dir` or restart after a manual build; files inside
+watched directories are discovered automatically. Keep generated directories
+and provider logs outside that watch list.
+
+The lock retains compiler fingerprints per development host, so macOS and
+Linux builds do not overwrite each other. Review one unlocked build on each
+new host architecture before requiring `--locked` there. The compiler pin,
+Wasm host and runtime remain common to the application.
