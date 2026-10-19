@@ -139,9 +139,9 @@ stamp the package/config/assets/source fingerprint in `dist/tested.json`.
 `--no-bundle`; it never rebuilds it. After changes, rebuild/package/test again.
 Deployment uploads the tested bundle, then explicitly activates that exact
 version with `wrangler versions deploy VERSION@100 --yes` and immediate Durable
-Object code replacement. This second step is required by the hosted drill:
-the declarative-export upload path's automatic deployment left the active
-streamed actor on its old version. A failed activation makes deployment fail;
+Object code replacement. The hosted drill records this explicit activation
+separately: the declarative-export upload path's automatic deployment initially
+left the active streamed actor on its old version. A failed activation makes deployment fail;
 inspect `dist/deployment.txt` before retrying.
 Cloudflare's global rollout is still eventually consistent: verify the actor's
 reported version, and keep adjacent versions compatible during propagation.
@@ -260,8 +260,8 @@ heartbeat detects the closed connection. Both incoming-request signal flags
 are explicitly enabled. Each shared heartbeat durably writes one small lease
 marker in the object's KV metadata to verify
 actor ownership: Cloudflare can let an old HTTP stream survive replacement
-until it touches storage. A synchronous SQLite read did not fence the old
-streams in the hosted drill; the marker write is followed by `storage.sync()`.
+until it touches storage. The marker write is followed by `storage.sync()`
+to require a durable ownership check before further heartbeat bytes.
 A failed ownership write aborts every old stream, forcing resynchronization.
 This is at most four small metadata writes per minute per active object,
 independent of viewer count; no extra domain operation or receipt is created.
