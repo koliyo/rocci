@@ -101,7 +101,8 @@ path until island splicing lands.
 - Raw HTML in Markdown is disabled. Use Markdown, `:note`, `:img`, a
   document-root `<Tag />`, or `@render MyComponent({ ... })`.
 - `@page` is at most once. Docs sites usually omit `route` and let the catalog
-  derive it. Use `True` / `False` in page metadata.
+  derive it. Write `True` / `False` in page metadata. `Bool.True` and
+  `Bool.False` are accepted input.
 - `:kind[params]` is a closed builtin family (`note`, `steps`, `tabs`,
   `include`, …). Nested blocks are legal; `@page` / `@roc` / handlers inside a
   block body are errors. Leftover `@docs` / `@img` is a removal error.

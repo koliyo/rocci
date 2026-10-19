@@ -96,7 +96,7 @@ pub(crate) fn infer_one(
 
 pub(crate) fn infer_from_default(expr: &str) -> Inferred {
     let trimmed = expr.trim();
-    if trimmed == "True" || trimmed == "False" {
+    if roc_bool_literal(trimmed).is_some() {
         return Inferred::Scalar(ParamKind::Bool);
     }
     if is_i64(trimmed) {
@@ -158,13 +158,22 @@ pub(crate) fn display_default(kind: &ParamKind, default_roc: Option<&str>) -> St
     }
 }
 
+fn roc_bool_literal(expr: &str) -> Option<bool> {
+    match expr.trim() {
+        "True" | "Bool.True" => Some(true),
+        "False" | "Bool.False" => Some(false),
+        _ => None,
+    }
+}
+
 pub(crate) fn display_roc_literal(value: &str) -> String {
     let trimmed = value.trim();
-    if trimmed == "True" {
-        return "true".to_string();
-    }
-    if trimmed == "False" {
-        return "false".to_string();
+    if let Some(flag) = roc_bool_literal(trimmed) {
+        return if flag {
+            "true".to_string()
+        } else {
+            "false".to_string()
+        };
     }
     if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
         return unescape_roc_string(&trimmed[1..trimmed.len() - 1]);

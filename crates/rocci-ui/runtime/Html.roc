@@ -1,18 +1,18 @@
 escape = |value| {
 	bytes = Str.to_utf8(value)
 	needs_escape = bytes.fold(
-		Bool.False,
+		False,
 		|found, byte|
 			if found {
-				Bool.True
+				True
 			} else {
 				match byte {
-					38 => Bool.True
-					60 => Bool.True
-					62 => Bool.True
-					34 => Bool.True
-					39 => Bool.True
-					_ => Bool.False
+					38 => True
+					60 => True
+					62 => True
+					34 => True
+					39 => True
+					_ => False
 				}
 			},
 	)
@@ -91,6 +91,6 @@ expect {
 
 ## False boolean_attribute omits the attribute.
 expect {
-	Html.boolean_attribute("disabled", Bool.False) == ""
-		and Html.boolean_attribute("disabled", Bool.True) == " disabled"
+	Html.boolean_attribute("disabled", False) == ""
+		and Html.boolean_attribute("disabled", True) == " disabled"
 }

@@ -413,21 +413,41 @@ fn page_layout_and_route_are_emitted() {
 }
 
 #[test]
+fn page_draft_accepts_qualified_bool() {
+    let out = compile_ok("@page {\n    draft: Bool.True,\n}\n\n# Hi\n");
+    assert!(out.page_meta.draft);
+    let out = compile_ok("@page {\n    draft: Bool.False,\n}\n\n# Hi\n");
+    assert!(!out.page_meta.draft);
+}
+
+#[test]
 fn page_draft_rejects_bool_dot_true() {
     let errs = compile_err("@page {\n    draft: Bool.true,\n}\n\n# Hi\n");
     assert!(
-        errs.iter()
-            .any(|msg| msg.contains("`draft` must be `True` or `False`")),
+        errs.iter().any(
+            |msg| msg.contains("`draft` must be `True`, `False`, `Bool.True`, or `Bool.False`")
+        ),
         "{errs:?}"
     );
+}
+
+#[test]
+fn article_params_accept_qualified_bool() {
+    let out = compile_ok(":details[summary: \"More\", open: Bool.True] Nested.\n");
+    assert!(out.roc.contains(".attribute(\"open\", \"open\")"));
+    assert!(!out.roc.contains("Bool.True"));
+    let out = compile_ok(":details[summary: \"More\", open: Bool.False] Nested.\n");
+    assert!(!out.roc.contains(".attribute(\"open\", \"open\")"));
+    assert!(!out.roc.contains("Bool.False"));
 }
 
 #[test]
 fn article_params_reject_bool_dot_true() {
     let errs = compile_err(":details[summary: \"More\", open: Bool.true] Nested.\n");
     assert!(
-        errs.iter()
-            .any(|msg| msg.contains("Roc booleans are `True` and `False`, not `Bool.true`")),
+        errs.iter().any(|msg| {
+            msg.contains("Roc booleans are `True` and `False`, or `Bool.True` and `Bool.False`")
+        }),
         "{errs:?}"
     );
 }

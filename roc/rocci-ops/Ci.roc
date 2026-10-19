@@ -23,7 +23,7 @@ job_names_list = [
 ]
 
 list_has = |xs, needle|
-    List.fold(xs, Bool.False, |acc, x| if acc { Bool.True } else { x == needle })
+    List.fold(xs, False, |acc, x| if acc { True } else { x == needle })
 
 plain = |argv| { argv: argv, cwd: "", stdout_path: "", extra_env: [] }
 
@@ -124,8 +124,8 @@ do_steps_for = |job, okmate_dir, rustup| {
 
 do_parse_ci = |args| {
     var $i = 0.U64
-    var $list = Bool.False
-    var $keep = Bool.False
+    var $list = False
+    var $keep = False
     var $jobs = []
     var $bad = ""
     while $bad == "" and $i < List.len(args) {
@@ -135,10 +135,10 @@ do_parse_ci = |args| {
             }
             Ok("-h") => { $bad = "help" }
             Ok("--help") => { $bad = "help" }
-            Ok("-l") => { $list = Bool.True }
-            Ok("--list") => { $list = Bool.True }
-            Ok("-k") => { $keep = Bool.True }
-            Ok("--keep-going") => { $keep = Bool.True }
+            Ok("-l") => { $list = True }
+            Ok("--list") => { $list = True }
+            Ok("-k") => { $keep = True }
+            Ok("--keep-going") => { $keep = True }
             Ok(job) => {
                 if list_has(job_names_list, job) {
                     $jobs = List.concat($jobs, [job])
@@ -168,22 +168,22 @@ step_argvs = |steps|
 argv_has = |argv, needle| list_has(argv, needle)
 
 any_argv_has = |steps, needle|
-    List.fold(steps, Bool.False, |acc, step| if acc { Bool.True } else { argv_has(step.argv, needle) })
+    List.fold(steps, False, |acc, step| if acc { True } else { argv_has(step.argv, needle) })
 
 any_tail2 = |steps, a, b|
     List.fold(
         steps,
-        Bool.False,
+        False,
         |acc, step| {
             if acc {
-                Bool.True
+                True
             } else if List.len(step.argv) >= 2 {
                 match (List.get(step.argv, List.len(step.argv) - 2), List.get(step.argv, List.len(step.argv) - 1)) {
                     (Ok(x), Ok(y)) => x == a and y == b
-                    _ => Bool.False
+                    _ => False
                 }
             } else {
-                Bool.False
+                False
             }
         },
     )
@@ -198,39 +198,39 @@ stdout_paths = |steps|
 expect List.len(job_names_list) == 6
 expect
     match List.get(job_names_list, 0) {
-        Ok("lint") => Bool.True
-        _ => Bool.False
+        Ok("lint") => True
+        _ => False
     }
 
 expect
     match do_parse_ci(["--list"]) {
-        ListJobs => Bool.True
-        _ => Bool.False
+        ListJobs => True
+        _ => False
     }
 
 expect
     match do_parse_ci(["lint", "test"]) {
-        RunJobs({ jobs, keep_going }) => List.len(jobs) == 2 and keep_going == Bool.False
-        _ => Bool.False
+        RunJobs({ jobs, keep_going }) => List.len(jobs) == 2 and keep_going == False
+        _ => False
     }
 
 expect
-    match stdout_paths(do_steps_for("knowledge", "/tmp/okmate", Bool.False)) {
+    match stdout_paths(do_steps_for("knowledge", "/tmp/okmate", False)) {
         paths => list_has(paths, "target/knowledge-ci/validation.json")
             and list_has(paths, "target/knowledge-ci/graph.json")
             and list_has(paths, "target/knowledge-ci/retrieval.json")
     }
 
-expect any_argv_has(do_steps_for("knowledge", "/tmp/okmate", Bool.False), "okmate")
-expect !any_argv_has(do_steps_for("knowledge", "/tmp/okmate", Bool.False), "rocci-okf")
-expect any_tail2(do_steps_for("fixtures-and-docs", "/tmp/okmate", Bool.False), "check", "site")
-expect any_tail2(do_steps_for("fixtures-and-docs", "/tmp/okmate", Bool.False), "check", "docs")
-expect any_argv_has(do_steps_for("fixtures-and-docs", "/tmp/okmate", Bool.False), "rocci-docs")
-expect any_tail2(do_steps_for("editors", "/tmp/okmate", Bool.False), "check", "zed")
-expect any_tail2(do_steps_for("lint", "/tmp/okmate", Bool.False), "check", "deps")
+expect any_argv_has(do_steps_for("knowledge", "/tmp/okmate", False), "okmate")
+expect !any_argv_has(do_steps_for("knowledge", "/tmp/okmate", False), "rocci-okf")
+expect any_tail2(do_steps_for("fixtures-and-docs", "/tmp/okmate", False), "check", "site")
+expect any_tail2(do_steps_for("fixtures-and-docs", "/tmp/okmate", False), "check", "docs")
+expect any_argv_has(do_steps_for("fixtures-and-docs", "/tmp/okmate", False), "rocci-docs")
+expect any_tail2(do_steps_for("editors", "/tmp/okmate", False), "check", "zed")
+expect any_tail2(do_steps_for("lint", "/tmp/okmate", False), "check", "deps")
 
 expect
-    match do_steps_for("lint", "/tmp/okmate", Bool.False) {
+    match do_steps_for("lint", "/tmp/okmate", False) {
         steps => {
             pytest = List.fold(
                 steps,
@@ -248,19 +248,19 @@ expect
     }
 
 expect
-    match do_steps_for("roc", "/tmp/okmate", Bool.False) {
+    match do_steps_for("roc", "/tmp/okmate", False) {
         steps => {
             List.fold(
                 steps,
-                Bool.False,
+                False,
                 |acc, step| {
                     if acc {
-                        Bool.True
+                        True
                     } else {
                         List.fold(
                             step.extra_env,
-                            Bool.False,
-                            |ok, pair| if ok { Bool.True } else { pair.key == "ROCCI_REQUIRE_ROC" and pair.val == "1" },
+                            False,
+                            |ok, pair| if ok { True } else { pair.key == "ROCCI_REQUIRE_ROC" and pair.val == "1" },
                         )
                     }
                 },

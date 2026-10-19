@@ -16,7 +16,7 @@ InternalPath := [].{
 			Utf8(str) =>
 				if Host.env_is_windows!("") {
 					{
-						is_windows: Bool.True,
+						is_windows: True,
 						unix_bytes: [],
 						windows_u16s: match Path.to_raw(Path.windows(str)) {
 							WindowsU16s(u16s) => u16s
@@ -25,18 +25,18 @@ InternalPath := [].{
 					}
 				} else {
 					{
-						is_windows: Bool.False,
+						is_windows: False,
 						unix_bytes: Str.to_utf8(str),
 						windows_u16s: [],
 					}
 				}
 			UnixBytes(bytes) => {
-				is_windows: Bool.False,
+				is_windows: False,
 				unix_bytes: bytes,
 				windows_u16s: [],
 			}
 			WindowsU16s(u16s) => {
-				is_windows: Bool.True,
+				is_windows: True,
 				unix_bytes: [],
 				windows_u16s: u16s,
 			}

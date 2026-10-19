@@ -103,7 +103,7 @@ pub fn infer_record_default_type(expr: &str) -> Option<String> {
         return Some("Str".to_string());
     }
     match trimmed {
-        "True" | "False" => return Some("Bool".to_string()),
+        "True" | "False" | "Bool.True" | "Bool.False" => return Some("Bool".to_string()),
         _ => {}
     }
     if trimmed.parse::<i64>().is_ok() {

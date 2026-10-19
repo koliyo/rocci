@@ -137,7 +137,7 @@ Cmd := [
 	new : OsStr -> Cmd
 	new = |program| Cmd({
 		args: [],
-		clear_envs: Bool.False,
+		clear_envs: False,
 		envs: [],
 		program,
 		working_dir: Inherit,
@@ -233,7 +233,7 @@ Cmd := [
 
 	## Remove the inherited environment before applying configured pairs.
 	clear_envs : Cmd -> Cmd
-	clear_envs = |Cmd(cmd)| Cmd({ ..cmd, clear_envs: Bool.True })
+	clear_envs = |Cmd(cmd)| Cmd({ ..cmd, clear_envs: True })
 
 	## Render an escaped, diagnostic representation of this command.
 	## Native values are never round-tripped through this lossy string.

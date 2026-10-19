@@ -163,50 +163,50 @@ build_release_argv_list = [
 
 expect
     match do_parse_build([]) {
-        BuildRelease => Bool.True
-        _ => Bool.False
+        BuildRelease => True
+        _ => False
     }
 
 expect
     match do_parse_build(["-h"]) {
-        BuildUsage => Bool.True
-        _ => Bool.False
+        BuildUsage => True
+        _ => False
     }
 
 expect
     match do_parse_build(["playground"]) {
-        BuildPlayground => Bool.True
-        _ => Bool.False
+        BuildPlayground => True
+        _ => False
     }
 
 expect
     match do_parse_install([]) {
-        InstallUsage => Bool.True
-        _ => Bool.False
+        InstallUsage => True
+        _ => False
     }
 
 expect
     match do_parse_install(["cli"]) {
-        InstallCli => Bool.True
-        _ => Bool.False
+        InstallCli => True
+        _ => False
     }
 
 expect
     match do_parse_package([]) {
-        PackageUsage => Bool.True
-        _ => Bool.False
+        PackageUsage => True
+        _ => False
     }
 
 expect
     match do_parse_package(["macos"]) {
-        PackageMacos => Bool.True
-        _ => Bool.False
+        PackageMacos => True
+        _ => False
     }
 
 expect
     match do_parse_serve([]) {
-        ServeUsage => Bool.True
-        _ => Bool.False
+        ServeUsage => True
+        _ => False
     }
 
 expect do_darwin_ok("macos")

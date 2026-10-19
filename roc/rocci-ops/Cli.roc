@@ -38,8 +38,8 @@ check_usage_text = "usage: rocci-ops check deps|docs|zed [args...]\n\nsubcommand
 
 has_text = |hay, needle|
     match Str.split_first(hay, needle) {
-        Ok(_) => Bool.True
-        Err(_) => Bool.False
+        Ok(_) => True
+        Err(_) => False
     }
 
 do_parse_check = |args|
@@ -99,111 +99,111 @@ expect has_text(check_usage_text, "  deps    check workspace package edges again
 
 expect
     match do_parse([]) {
-        NoArgs => Bool.True
-        _ => Bool.False
+        NoArgs => True
+        _ => False
     }
 
 expect
     match do_parse(["-h"]) {
-        Help => Bool.True
-        _ => Bool.False
+        Help => True
+        _ => False
     }
 
 expect
     match do_parse(["--help"]) {
-        Help => Bool.True
-        _ => Bool.False
+        Help => True
+        _ => False
     }
 
 expect
     match do_parse(["verify-zed"]) {
-        Unknown("verify-zed") => Bool.True
-        _ => Bool.False
+        Unknown("verify-zed") => True
+        _ => False
     }
 
 expect
     match do_parse(["ci", "--list"]) {
         CiArgs(rest) => {
             match List.get(rest, 0) {
-                Ok("--list") => Bool.True
-                _ => Bool.False
+                Ok("--list") => True
+                _ => False
             }
         }
-        _ => Bool.False
+        _ => False
     }
 
 expect
     match do_parse(["check"]) {
-        CheckNoArgs => Bool.True
-        _ => Bool.False
+        CheckNoArgs => True
+        _ => False
     }
 
 expect
     match do_parse(["check", "--help"]) {
-        CheckHelp => Bool.True
-        _ => Bool.False
+        CheckHelp => True
+        _ => False
     }
 
 expect
     match do_parse(["check", "wasm"]) {
-        CheckUnknown("wasm") => Bool.True
-        _ => Bool.False
+        CheckUnknown("wasm") => True
+        _ => False
     }
 
 expect
     match do_parse(["check", "deps"]) {
-        CheckDeps => Bool.True
-        _ => Bool.False
+        CheckDeps => True
+        _ => False
     }
 
 expect
     match do_parse(["check", "deps", "extra"]) {
-        CheckDepsUsage => Bool.True
-        _ => Bool.False
+        CheckDepsUsage => True
+        _ => False
     }
 
 expect
     match do_parse(["check", "zed", "x"]) {
-        CheckZedUsage => Bool.True
-        _ => Bool.False
+        CheckZedUsage => True
+        _ => False
     }
 
 expect
     match do_parse(["archive", "version"]) {
         ArchiveArgs(rest) => {
             match List.get(rest, 0) {
-                Ok("version") => Bool.True
-                _ => Bool.False
+                Ok("version") => True
+                _ => False
             }
         }
-        _ => Bool.False
+        _ => False
     }
 
 expect
     match do_parse(["release", "dev", "--dry-run"]) {
         ReleaseArgs(rest) => List.len(rest) == 2
-        _ => Bool.False
+        _ => False
     }
 
 expect
     match do_parse(["pr-checkout", "-n", "39"]) {
         PrCheckoutArgs(rest) => List.len(rest) == 2
-        _ => Bool.False
+        _ => False
     }
 
 expect
     match do_parse(["origin", "publish", "abc"]) {
         OriginArgs(rest) => List.len(rest) == 2
-        _ => Bool.False
+        _ => False
     }
 
 expect
     match do_parse(["deploy", "probe"]) {
         DeployArgs(rest) => {
             match List.get(rest, 0) {
-                Ok("probe") => Bool.True
-                _ => Bool.False
+                Ok("probe") => True
+                _ => False
             }
         }
-        _ => Bool.False
+        _ => False
     }

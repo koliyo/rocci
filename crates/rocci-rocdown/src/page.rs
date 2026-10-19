@@ -111,7 +111,7 @@ pub fn extract_page(src: &str, body: Span, diagnostics: &mut Vec<Diagnostic>) ->
                 Some(draft) => meta.draft = draft,
                 None => diagnostics.push(Diagnostic::error(
                     value,
-                    "`draft` must be `True` or `False`",
+                    "`draft` must be `True`, `False`, `Bool.True`, or `Bool.False`",
                 )),
             },
             "theme" => match string_literal(src, value) {
@@ -285,8 +285,8 @@ fn unescape_roc_string(text: &str) -> String {
 
 pub(crate) fn bool_literal(src: &str, span: Span) -> Option<bool> {
     match span.of(src).trim() {
-        "True" => Some(true),
-        "False" => Some(false),
+        "True" | "Bool.True" => Some(true),
+        "False" | "Bool.False" => Some(false),
         _ => None,
     }
 }
@@ -833,7 +833,10 @@ isLoaded = True
     fn bool_literal_is_roc_true_false() {
         assert_eq!(bool_literal("True", Span::new(0, 4)), Some(true));
         assert_eq!(bool_literal("False", Span::new(0, 5)), Some(false));
+        assert_eq!(bool_literal("Bool.True", Span::new(0, 9)), Some(true));
+        assert_eq!(bool_literal("Bool.False", Span::new(0, 10)), Some(false));
         assert_eq!(bool_literal("Bool.true", Span::new(0, 9)), None);
+        assert_eq!(bool_literal("Bool.false", Span::new(0, 10)), None);
         assert_eq!(bool_literal("true", Span::new(0, 4)), None);
     }
 

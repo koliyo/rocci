@@ -67,7 +67,7 @@ do_decode = |src|
     Encoding.Json.parse(rename_packages_key(src))
 
 list_has = |xs, needle|
-    List.fold(xs, Bool.False, |acc, x| if acc { Bool.True } else { x == needle })
+    List.fold(xs, False, |acc, x| if acc { True } else { x == needle })
 
 list_set = |xs, idx, val| {
     var $i = 0.U64
@@ -92,29 +92,29 @@ str_gt = |a, b| {
     a_bytes = Str.to_utf8(a)
     b_bytes = Str.to_utf8(b)
     var $i = 0.U64
-    var $done = Bool.False
-    var $gt = Bool.False
+    var $done = False
+    var $gt = False
     while !$done {
         match (List.get(a_bytes, $i), List.get(b_bytes, $i)) {
             (Err(_), Err(_)) => {
-                $done = Bool.True
-                $gt = Bool.False
+                $done = True
+                $gt = False
             }
             (Err(_), Ok(_)) => {
-                $done = Bool.True
-                $gt = Bool.False
+                $done = True
+                $gt = False
             }
             (Ok(_), Err(_)) => {
-                $done = Bool.True
-                $gt = Bool.True
+                $done = True
+                $gt = True
             }
             (Ok(x), Ok(y)) => {
                 if x > y {
-                    $done = Bool.True
-                    $gt = Bool.True
+                    $done = True
+                    $gt = True
                 } else if x < y {
-                    $done = Bool.True
-                    $gt = Bool.False
+                    $done = True
+                    $gt = False
                 } else {
                     $i = $i + 1
                 }
@@ -254,26 +254,26 @@ do_check = |meta| {
 
 expect
     match do_classify("rocci-core") {
-        BaseRocci => Bool.True
-        _ => Bool.False
+        BaseRocci => True
+        _ => False
     }
 
 expect
     match do_classify("rocci-rocdown") {
-        Rocdown => Bool.True
-        _ => Bool.False
+        Rocdown => True
+        _ => False
     }
 
 expect
     match do_forbidden("rocci-core", "rocci-rocdown") {
-        Ok(_) => Bool.True
-        Err(_) => Bool.False
+        Ok(_) => True
+        Err(_) => False
     }
 
 expect
     match do_forbidden("rocci-rocdown", "rocci-core") {
-        Err(_) => Bool.True
-        Ok(_) => Bool.False
+        Err(_) => True
+        Ok(_) => False
     }
 
 expect
@@ -282,5 +282,5 @@ expect
             result = do_check(meta)
             list_has(result.errors, "unclassified workspace package alpha")
         }
-        Err(_) => Bool.False
+        Err(_) => False
     }

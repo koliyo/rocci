@@ -144,7 +144,7 @@ page and the [Rocdown CLI](/docs/rocdown/cli/).
 | --- | --- |
 | `route` | Absolute string path; no `..`, query, fragment, encoded separator, or NUL |
 | `layout` | Statically resolvable Roc value path |
-| `draft` | `True` or `False` |
+| `draft` | `True` or `False`. `Bool.True` and `Bool.False` are also accepted |
 | `theme` | Built-in ID, local theme ID, `none`, or CSS file path |
 | `color_scheme` | `auto`, `light`, or `dark` |
 | `meta` | Roc record; title and description are statically extracted |

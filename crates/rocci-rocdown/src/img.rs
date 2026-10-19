@@ -222,7 +222,7 @@ pub fn extract_img_fields(src: &str, body: Span, diagnostics: &mut Vec<Diagnosti
             let Some(flag) = bool_literal(src, value) else {
                 diagnostics.push(Diagnostic::error(
                     value,
-                    "`decorative` must be `True` or `False`",
+                    "`decorative` must be `True`, `False`, `Bool.True`, or `Bool.False`",
                 ));
                 skip_comma(&mut cur);
                 continue;
@@ -428,7 +428,7 @@ pub fn img_fields_from_params(
                 } else {
                     diagnostics.push(Diagnostic::error(
                         field.value.span(),
-                        "`decorative` must be `True` or `False`",
+                        "`decorative` must be `True`, `False`, `Bool.True`, or `Bool.False`",
                     ));
                 }
             }

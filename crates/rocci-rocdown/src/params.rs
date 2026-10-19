@@ -254,15 +254,29 @@ fn parse_ident_or_bool(
             });
         }
         "Bool" if cur.eat('.') => {
-            let end = cur
-                .scan_ident()
-                .map(|flag| flag.end as usize)
-                .unwrap_or(cur.pos);
-            diagnostics.push(Diagnostic::error(
-                Span::new(start, end),
-                "Roc booleans are `True` and `False`, not `Bool.true`",
-            ));
-            return None;
+            let flag = cur.scan_ident();
+            let end = flag.map(|span| span.end as usize).unwrap_or(cur.pos);
+            match flag.map(|span| span.of(src)) {
+                Some("True") => {
+                    return Some(ParamValue::BoolLit {
+                        value: true,
+                        span: Span::new(start, end),
+                    });
+                }
+                Some("False") => {
+                    return Some(ParamValue::BoolLit {
+                        value: false,
+                        span: Span::new(start, end),
+                    });
+                }
+                _ => {
+                    diagnostics.push(Diagnostic::error(
+                        Span::new(start, end),
+                        "Roc booleans are `True` and `False`, or `Bool.True` and `Bool.False`",
+                    ));
+                    return None;
+                }
+            }
         }
         _ => {}
     }

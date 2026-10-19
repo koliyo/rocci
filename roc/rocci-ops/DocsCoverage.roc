@@ -31,17 +31,17 @@ do_slugify = |text| {
     bytes = Str.to_utf8(text)
     var $i = 0.U64
     var $out = []
-    var $hyphen = Bool.False
+    var $hyphen = False
     while $i < List.len(bytes) {
         match List.get(bytes, $i) {
             Ok(b) => {
                 if is_ascii_alnum(b) {
                     lower = if b >= 65 and b <= 90 { b + 32 } else { b }
                     $out = List.concat($out, [lower])
-                    $hyphen = Bool.False
+                    $hyphen = False
                 } else if List.len($out) > 0 and !$hyphen {
                     $out = List.concat($out, [45])
-                    $hyphen = Bool.True
+                    $hyphen = True
                 }
             }
             Err(_) => {}
@@ -49,11 +49,11 @@ do_slugify = |text| {
         $i = $i + 1
     }
     var $end = List.len($out)
-    var $trim = Bool.True
+    var $trim = True
     while $trim and $end > 0 {
         match List.get($out, $end - 1) {
             Ok(45) => { $end = $end - 1 }
-            _ => { $trim = Bool.False }
+            _ => { $trim = False }
         }
     }
     Str.from_utf8_lossy(bytes_range($out, 0, $end))
@@ -63,22 +63,22 @@ trim_ascii = |text| {
     bytes = Str.to_utf8(text)
     var $start = 0.U64
     var $end = List.len(bytes)
-    var $loop = Bool.True
+    var $loop = True
     while $loop and $start < $end {
         match List.get(bytes, $start) {
             Ok(32) => { $start = $start + 1 }
             Ok(9) => { $start = $start + 1 }
             Ok(13) => { $start = $start + 1 }
-            _ => { $loop = Bool.False }
+            _ => { $loop = False }
         }
     }
-    $loop = Bool.True
+    $loop = True
     while $loop and $end > $start {
         match List.get(bytes, $end - 1) {
             Ok(32) => { $end = $end - 1 }
             Ok(9) => { $end = $end - 1 }
             Ok(13) => { $end = $end - 1 }
-            _ => { $loop = Bool.False }
+            _ => { $loop = False }
         }
     }
     var $i = $start
@@ -96,11 +96,11 @@ trim_ascii = |text| {
 ends_with_slash = |text| {
     bytes = Str.to_utf8(text)
     if List.len(bytes) == 0 {
-        Bool.False
+        False
     } else {
         match List.get(bytes, List.len(bytes) - 1) {
-            Ok(47) => Bool.True
-            _ => Bool.False
+            Ok(47) => True
+            _ => False
         }
     }
 }
@@ -108,7 +108,7 @@ ends_with_slash = |text| {
 starts_with = |text, prefix|
     match Str.split_first(text, prefix) {
         Ok({ before, after: _rest }) => before == ""
-        Err(_) => Bool.False
+        Err(_) => False
     }
 
 do_split_route = |route| {
@@ -147,16 +147,16 @@ trim_slashes = |path| {
     var $end = List.len(bytes)
     while $start < $end and (
         match List.get(bytes, $start) {
-            Ok(47) => Bool.True
-            _ => Bool.False
+            Ok(47) => True
+            _ => False
         }
     ) {
         $start = $start + 1
     }
     while $end > $start and (
         match List.get(bytes, $end - 1) {
-            Ok(47) => Bool.True
-            _ => Bool.False
+            Ok(47) => True
+            _ => False
         }
     ) {
         $end = $end - 1
@@ -198,8 +198,8 @@ do_heading_ids = |text| {
             var $hashes = 0.U64
             while $hashes < 6 and (
                 match List.get(bytes, $i) {
-                    Ok(35) => Bool.True
-                    _ => Bool.False
+                    Ok(35) => True
+                    _ => False
                 }
             ) {
                 $hashes = $hashes + 1
@@ -249,28 +249,28 @@ parse_tables = |text, kind| {
     lines = Str.split_on(text, "\n")
     collected = List.fold(
         lines,
-        { current: [], tables: [], in_table: Bool.False },
+        { current: [], tables: [], in_table: False },
         |state, raw_line| {
             line = trim_ascii(raw_line)
             if line == "" or starts_with(line, "#") {
                 state
             } else if starts_with(line, "[[") {
                 flushed = if state.in_table {
-                    { current: [], tables: List.concat(state.tables, [state.current]), in_table: Bool.True }
+                    { current: [], tables: List.concat(state.tables, [state.current]), in_table: True }
                 } else {
-                    { current: [], tables: state.tables, in_table: Bool.True }
+                    { current: [], tables: state.tables, in_table: True }
                 }
                 marker = "[[${kind}]]"
                 if line == marker {
-                    { current: [], tables: flushed.tables, in_table: Bool.True }
+                    { current: [], tables: flushed.tables, in_table: True }
                 } else {
-                    { current: [], tables: flushed.tables, in_table: Bool.False }
+                    { current: [], tables: flushed.tables, in_table: False }
                 }
             } else if state.in_table {
                 match Str.split_first(line, "=") {
                     Ok({ before, after }) => {
                         pair = { key: trim_ascii(before), value: parse_quoted(after) }
-                        { current: List.concat(state.current, [pair]), tables: state.tables, in_table: Bool.True }
+                        { current: List.concat(state.current, [pair]), tables: state.tables, in_table: True }
                     }
                     Err(_) => state
                 }
@@ -312,7 +312,7 @@ header_get = |text, key| {
 }
 
 list_has = |xs, needle|
-    List.fold(xs, Bool.False, |acc, x| if acc { Bool.True } else { x == needle })
+    List.fold(xs, False, |acc, x| if acc { True } else { x == needle })
 
 allowed_status = ["current", "experimental", "planned", "removed"]
 owned_status = ["current", "experimental"]
@@ -371,8 +371,8 @@ do_check_coverage_text = |toml_text, pages| {
                 ["${fid}: unknown status `${status}`"]
             } else if status == "current" and (
                 match Str.split_first(fid, "removed") {
-                    Ok(_) => Bool.True
-                    Err(_) => Bool.False
+                    Ok(_) => True
+                    Err(_) => False
                 }
             ) {
                 ["${fid}: removed feature labeled current"]
@@ -481,8 +481,8 @@ expect do_slugify("App") == "app"
 
 expect
     match do_split_route("/docs/install/#app") {
-        { path: "/docs/install/", fragment: "app" } => Bool.True
-        _ => Bool.False
+        { path: "/docs/install/", fragment: "app" } => True
+        _ => False
     }
 
 expect

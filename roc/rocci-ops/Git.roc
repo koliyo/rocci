@@ -56,21 +56,21 @@ starts_with = |hay, needle| {
     h = Str.to_utf8(hay)
     n = Str.to_utf8(needle)
     if List.len(h) < List.len(n) {
-        Bool.False
+        False
     } else {
         var $i = 0.U64
-        var $ok = Bool.True
+        var $ok = True
         while $ok and $i < List.len(n) {
             match (List.get(h, $i), List.get(n, $i)) {
                 (Ok(a), Ok(b)) => {
                     if a == b {
                         {}
                     } else {
-                        $ok = Bool.False
+                        $ok = False
                     }
                 }
                 _ => {
-                    $ok = Bool.False
+                    $ok = False
                 }
             }
             $i = $i + 1
@@ -103,33 +103,33 @@ trim = |s| {
     len = List.len(bytes)
     var $a = 0.U64
     var $b = len
-    var $go = Bool.True
+    var $go = True
     while $go and $a < $b {
         match List.get(bytes, $a) {
             Ok(ch) => {
                 if is_ws(ch) {
                     $a = $a + 1
                 } else {
-                    $go = Bool.False
+                    $go = False
                 }
             }
             Err(_) => {
-                $go = Bool.False
+                $go = False
             }
         }
     }
-    $go = Bool.True
+    $go = True
     while $go and $b > $a {
         match List.get(bytes, $b - 1) {
             Ok(ch) => {
                 if is_ws(ch) {
                     $b = $b - 1
                 } else {
-                    $go = Bool.False
+                    $go = False
                 }
             }
             Err(_) => {
-                $go = Bool.False
+                $go = False
             }
         }
     }
@@ -139,11 +139,11 @@ trim = |s| {
 first_line = |s| {
     bytes = Str.to_utf8(s)
     var $i = 0.U64
-    var $found = Bool.False
+    var $found = False
     while !$found and $i < List.len(bytes) {
         match List.get(bytes, $i) {
             Ok(10) => {
-                $found = Bool.True
+                $found = True
             }
             _ => {
                 $i = $i + 1
@@ -156,21 +156,21 @@ first_line = |s| {
 is_digits = |s| {
     bytes = Str.to_utf8(s)
     if List.len(bytes) == 0 {
-        Bool.False
+        False
     } else {
         var $i = 0.U64
-        var $ok = Bool.True
+        var $ok = True
         while $ok and $i < List.len(bytes) {
             match List.get(bytes, $i) {
                 Ok(ch) => {
                     if ch >= 48 and ch <= 57 {
                         {}
                     } else {
-                        $ok = Bool.False
+                        $ok = False
                     }
                 }
                 Err(_) => {
-                    $ok = Bool.False
+                    $ok = False
                 }
             }
             $i = $i + 1
@@ -185,31 +185,31 @@ find_at = |hay, needle| {
     nlen = List.len(n)
     hlen = List.len(h)
     if nlen == 0 or hlen < nlen {
-        { hit: Bool.False, at: 0.U64 }
+        { hit: False, at: 0.U64 }
     } else {
         var $i = 0.U64
-        var $hit = Bool.False
+        var $hit = False
         var $at = 0.U64
         while !$hit and $i + nlen <= hlen {
             var $j = 0.U64
-            var $eq = Bool.True
+            var $eq = True
             while $eq and $j < nlen {
                 match (List.get(h, $i + $j), List.get(n, $j)) {
                     (Ok(a), Ok(b)) => {
                         if a == b {
                             {}
                         } else {
-                            $eq = Bool.False
+                            $eq = False
                         }
                     }
                     _ => {
-                        $eq = Bool.False
+                        $eq = False
                     }
                 }
                 $j = $j + 1
             }
             if $eq {
-                $hit = Bool.True
+                $hit = True
                 $at = $i
             } else {
                 $i = $i + 1
@@ -231,18 +231,18 @@ drop_prefix = |s, prefix| {
 take_digits = |s| {
     bytes = Str.to_utf8(s)
     var $i = 0.U64
-    var $go = Bool.True
+    var $go = True
     while $go and $i < List.len(bytes) {
         match List.get(bytes, $i) {
             Ok(ch) => {
                 if ch >= 48 and ch <= 57 {
                     $i = $i + 1
                 } else {
-                    $go = Bool.False
+                    $go = False
                 }
             }
             Err(_) => {
-                $go = Bool.False
+                $go = False
             }
         }
     }
@@ -354,8 +354,8 @@ do_parse_worktrees = |porcelain| {
     while $i <= List.len(bytes) {
         at_end = $i == List.len(bytes)
         is_nl = match List.get(bytes, $i) {
-            Ok(10) => Bool.True
-            _ => Bool.False
+            Ok(10) => True
+            _ => False
         }
         if at_end or is_nl {
             line = from_bytes(bytes, $start, $i)
@@ -386,34 +386,34 @@ do_parse_worktrees = |porcelain| {
 
 do_parse_pr_argv = |args| {
     var $i = 0.U64
-    var $help = Bool.False
-    var $dry = Bool.False
+    var $help = False
+    var $dry = False
     var $ref = ""
-    var $bad = Bool.False
+    var $bad = False
     while !$bad and $i < List.len(args) {
         match List.get(args, $i) {
             Err(_) => {
                 $i = List.len(args)
             }
             Ok("-h") => {
-                $help = Bool.True
+                $help = True
             }
             Ok("--help") => {
-                $help = Bool.True
+                $help = True
             }
             Ok("-n") => {
-                $dry = Bool.True
+                $dry = True
             }
             Ok("--dry-run") => {
-                $dry = Bool.True
+                $dry = True
             }
             Ok(value) => {
                 if starts_with(value, "-") {
-                    $bad = Bool.True
+                    $bad = True
                 } else if $ref == "" {
                     $ref = value
                 } else {
-                    $bad = Bool.True
+                    $bad = True
                 }
             }
         }
@@ -424,26 +424,26 @@ do_parse_pr_argv = |args| {
 
 do_parse_push_argv = |args| {
     var $i = 0.U64
-    var $help = Bool.False
-    var $dry = Bool.False
+    var $help = False
+    var $dry = False
     var $remote = ""
-    var $bad = Bool.False
+    var $bad = False
     while !$bad and $i < List.len(args) {
         match List.get(args, $i) {
             Err(_) => {
                 $i = List.len(args)
             }
             Ok("-h") => {
-                $help = Bool.True
+                $help = True
             }
             Ok("--help") => {
-                $help = Bool.True
+                $help = True
             }
             Ok("-n") => {
-                $dry = Bool.True
+                $dry = True
             }
             Ok("--dry-run") => {
-                $dry = Bool.True
+                $dry = True
             }
             Ok("-r") => {
                 $i = $i + 1
@@ -452,7 +452,7 @@ do_parse_push_argv = |args| {
                         $remote = name
                     }
                     Err(_) => {
-                        $bad = Bool.True
+                        $bad = True
                     }
                 }
             }
@@ -463,12 +463,12 @@ do_parse_push_argv = |args| {
                         $remote = name
                     }
                     Err(_) => {
-                        $bad = Bool.True
+                        $bad = True
                     }
                 }
             }
             Ok(_) => {
-                $bad = Bool.True
+                $bad = True
             }
         }
         $i = $i + 1
@@ -488,24 +488,24 @@ short_sha = |sha| {
 do_version_from_ref = |ref_type, ref_name, sha| {
     if ref_type == "tag" {
         if ref_name == "dev" {
-            { version: "dev-${short_sha(sha)}", prerelease: Bool.True }
+            { version: "dev-${short_sha(sha)}", prerelease: True }
         } else {
-            { version: ref_name, prerelease: Bool.False }
+            { version: ref_name, prerelease: False }
         }
     } else {
-        { version: "dev-${short_sha(sha)}", prerelease: Bool.True }
+        { version: "dev-${short_sha(sha)}", prerelease: True }
     }
 }
 
 do_release_params = |ref_type, ref_name, sha| {
     if ref_type == "tag" {
         if ref_name == "dev" {
-            { tag: "dev", name: "Development Build (${short_sha(sha)})", prerelease: Bool.True }
+            { tag: "dev", name: "Development Build (${short_sha(sha)})", prerelease: True }
         } else {
-            { tag: ref_name, name: ref_name, prerelease: Bool.False }
+            { tag: ref_name, name: ref_name, prerelease: False }
         }
     } else {
-        { tag: "dev", name: "Development Build (${short_sha(sha)})", prerelease: Bool.True }
+        { tag: "dev", name: "Development Build (${short_sha(sha)})", prerelease: True }
     }
 }
 
@@ -582,9 +582,9 @@ do_parse_release = |args| {
                 var $i = 0.U64
                 var $tag = ""
                 var $from_ref = "main"
-                var $force = Bool.False
-                var $dry = Bool.False
-                var $bad = Bool.False
+                var $force = False
+                var $dry = False
+                var $bad = False
                 while !$bad and $i < List.len(args) {
                     match List.get(args, $i) {
                         Err(_) => {
@@ -597,21 +597,21 @@ do_parse_release = |args| {
                                     $from_ref = branch
                                 }
                                 Err(_) => {
-                                    $bad = Bool.True
+                                    $bad = True
                                 }
                             }
                         }
                         Ok("--force") => {
-                            $force = Bool.True
+                            $force = True
                         }
                         Ok("--dry-run") => {
-                            $dry = Bool.True
+                            $dry = True
                         }
                         Ok(value) => {
                             if $tag == "" {
                                 $tag = value
                             } else {
-                                $bad = Bool.True
+                                $bad = True
                             }
                         }
                     }
@@ -629,34 +629,34 @@ do_parse_release = |args| {
 
 expect
     match do_version_from_ref("tag", "v1.2.3", "abcdef012345") {
-        { version: "v1.2.3", prerelease } => prerelease == Bool.False
-        _ => Bool.False
+        { version: "v1.2.3", prerelease } => prerelease == False
+        _ => False
     }
 
 expect
     match do_version_from_ref("tag", "dev", "abcdef012345") {
-        { version: "dev-abcdef0", prerelease } => prerelease == Bool.True
-        _ => Bool.False
+        { version: "dev-abcdef0", prerelease } => prerelease == True
+        _ => False
     }
 
 expect
     match do_version_from_ref("branch", "main", "abcdef012345") {
-        { version: "dev-abcdef0", prerelease } => prerelease == Bool.True
-        _ => Bool.False
+        { version: "dev-abcdef0", prerelease } => prerelease == True
+        _ => False
     }
 
 expect do_archive_stem("dev-abcdef0", "x86_64-unknown-linux-gnu") == "rocci-dev-abcdef0-x86_64-unknown-linux-gnu"
 
 expect
     match do_release_params("tag", "dev", "abcdef012345") {
-        { tag: "dev", name: "Development Build (abcdef0)", prerelease } => prerelease == Bool.True
-        _ => Bool.False
+        { tag: "dev", name: "Development Build (abcdef0)", prerelease } => prerelease == True
+        _ => False
     }
 
 expect
     match do_parse_release(["patch", "--dry-run"]) {
-        RelRun({ tag: "patch", dry_run, force, from_ref: "main" }) => dry_run == Bool.True and force == Bool.False
-        _ => Bool.False
+        RelRun({ tag: "patch", dry_run, force, from_ref: "main" }) => dry_run == True and force == False
+        _ => False
     }
 
 expect
@@ -666,38 +666,38 @@ expect
 
 expect
     match do_parse_check_line("completed success") {
-        CheckStat({ status: "completed", conclusion: "success" }) => Bool.True
-        _ => Bool.False
+        CheckStat({ status: "completed", conclusion: "success" }) => True
+        _ => False
     }
 
 expect
     match do_parse_check_line("") {
-        CheckEmpty => Bool.True
-        _ => Bool.False
+        CheckEmpty => True
+        _ => False
     }
 
 expect
     match do_parse_pr_ref("39") {
-        { num: "39", branch: "" } => Bool.True
-        _ => Bool.False
+        { num: "39", branch: "" } => True
+        _ => False
     }
 
 expect
     match do_parse_pr_ref("#39") {
-        { num: "39", branch: "" } => Bool.True
-        _ => Bool.False
+        { num: "39", branch: "" } => True
+        _ => False
     }
 
 expect
     match do_parse_pr_ref("https://github.com/koliyo/rocci/pull/39/files") {
-        { num: "39", branch: "" } => Bool.True
-        _ => Bool.False
+        { num: "39", branch: "" } => True
+        _ => False
     }
 
 expect
     match do_parse_pr_ref("refs/heads/feat/foo") {
-        { num: "", branch: "feat/foo" } => Bool.True
-        _ => Bool.False
+        { num: "", branch: "feat/foo" } => True
+        _ => False
     }
 
 expect do_local_pr_branch("feat/example-source-sidebar") == "pr/feat/example-source-sidebar"
@@ -708,20 +708,20 @@ expect
     match do_parse_worktrees("worktree /repo\nHEAD abc\nbranch refs/heads/main\n\nworktree /repo-feature\nHEAD def\nbranch refs/heads/feature\n\nworktree /repo-detach\nHEAD ghi\ndetached\n") {
         entries => {
             match (List.get(entries, 0), List.get(entries, 1), List.get(entries, 2)) {
-                (Ok({ path: "/repo", branch: "refs/heads/main" }), Ok({ path: "/repo-feature", branch: "refs/heads/feature" }), Ok({ path: "/repo-detach", branch: "" })) => Bool.True
-                _ => Bool.False
+                (Ok({ path: "/repo", branch: "refs/heads/main" }), Ok({ path: "/repo-feature", branch: "refs/heads/feature" }), Ok({ path: "/repo-detach", branch: "" })) => True
+                _ => False
             }
         }
     }
 
 expect
     match do_parse_pr_argv(["39", "--dry-run"]) {
-        { help: Bool.False, dry: Bool.True, ref: "39", bad: Bool.False } => Bool.True
-        _ => Bool.False
+        { help: False, dry: True, ref: "39", bad: False } => True
+        _ => False
     }
 
 expect
     match List.get(default_check_names, 0) {
-        Ok("Code Formatting & Lints") => Bool.True
-        _ => Bool.False
+        Ok("Code Formatting & Lints") => True
+        _ => False
     }

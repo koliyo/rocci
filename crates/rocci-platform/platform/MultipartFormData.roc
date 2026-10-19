@@ -260,10 +260,10 @@ url_encoded_help = |bytes_remaining, state, key, chomped, dict| {
 percent_encoding_is_valid : List(U8) -> Bool
 percent_encoding_is_valid = |bytes|
 	match bytes {
-		[] => Bool.True
+		[] => True
 		['%', second, third, .. as rest] =>
 			is_hex_digit(second) and is_hex_digit(third) and percent_encoding_is_valid(rest)
-		['%', ..] => Bool.False
+		['%', ..] => False
 		[_, .. as rest] => percent_encoding_is_valid(rest)
 	}
 
@@ -291,8 +291,8 @@ is_hex_digit = |byte|
 		| 'c'
 		| 'd'
 		| 'e'
-		| 'f' => Bool.True
-		_ => Bool.False
+		| 'f' => True
+		_ => False
 	}
 
 hex_bytes_to_u32 : List(U8) -> Try(U32, [InvalidPercentEncoding])

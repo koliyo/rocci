@@ -41,45 +41,45 @@ Path := [
 	to_os_str : Path -> OsStr
 	to_os_str = |path| OsStr.from_raw(to_raw(path))
 
-	## Returns `Bool.True` if the path exists on disk and is pointing at a regular file.
+	## Returns `True` if the path exists on disk and is pointing at a regular file.
 	##
 	## This function does not traverse symbolic links; symbolic links (including
-	## broken ones) return `Bool.False`.
-	## Sockets, FIFOs, devices, and other special filesystem objects also return `Bool.False`.
+	## broken ones) return `False`.
+	## Sockets, FIFOs, devices, and other special filesystem objects also return `False`.
 	is_file! : Path => Try(Bool, [PathErr(IOErr), ..])
 	is_file! = |path|
 		match type!(path) {
-			Ok(IsFile) => Ok(Bool.True)
-			Ok(_) => Ok(Bool.False)
-			Err(PathErr(NotFound)) => Ok(Bool.False)
+			Ok(IsFile) => Ok(True)
+			Ok(_) => Ok(False)
+			Err(PathErr(NotFound)) => Ok(False)
 			Err(err) => Err(err)
 		}
 
-	## Returns `Bool.True` if the path exists on disk and is pointing at a directory.
+	## Returns `True` if the path exists on disk and is pointing at a directory.
 	##
 	## This function does not traverse symbolic links; symbolic links (including
-	## broken ones) return `Bool.False`.
-	## Sockets, FIFOs, devices, and other special filesystem objects also return `Bool.False`.
+	## broken ones) return `False`.
+	## Sockets, FIFOs, devices, and other special filesystem objects also return `False`.
 	is_dir! : Path => Try(Bool, [PathErr(IOErr), ..])
 	is_dir! = |path|
 		match type!(path) {
-			Ok(IsDir) => Ok(Bool.True)
-			Ok(_) => Ok(Bool.False)
-			Err(PathErr(NotFound)) => Ok(Bool.False)
+			Ok(IsDir) => Ok(True)
+			Ok(_) => Ok(False)
+			Err(PathErr(NotFound)) => Ok(False)
 			Err(err) => Err(err)
 		}
 
-	## Returns `Bool.True` if the path exists on disk and is pointing at a symbolic link.
+	## Returns `True` if the path exists on disk and is pointing at a symbolic link.
 	##
 	## This function will not traverse symbolic links - it checks whether the path
 	## itself is a symlink.
-	## Sockets, FIFOs, devices, and other special filesystem objects return `Bool.False`.
+	## Sockets, FIFOs, devices, and other special filesystem objects return `False`.
 	is_sym_link! : Path => Try(Bool, [PathErr(IOErr), ..])
 	is_sym_link! = |path|
 		match type!(path) {
-			Ok(IsSymLink) => Ok(Bool.True)
-			Ok(_) => Ok(Bool.False)
-			Err(PathErr(NotFound)) => Ok(Bool.False)
+			Ok(IsSymLink) => Ok(True)
+			Ok(_) => Ok(False)
+			Err(PathErr(NotFound)) => Ok(False)
 			Err(err) => Err(err)
 		}
 
@@ -87,8 +87,8 @@ Path := [
 	exists! : Path => Try(Bool, [PathErr(IOErr), ..])
 	exists! = |path|
 		match type!(path) {
-			Ok(_) => Ok(Bool.True)
-			Err(PathErr(NotFound)) => Ok(Bool.False)
+			Ok(_) => Ok(True)
+			Err(PathErr(NotFound)) => Ok(False)
 			Err(err) => Err(err)
 		}
 
@@ -369,12 +369,12 @@ to_host_raw! = |path|
 	match Path.to_raw(path) {
 		Utf8(str) =>
 			if Host.env_is_windows!("") {
-				{ is_windows: Bool.True, unix_bytes: [], windows_u16s: str_to_utf16(str) }
+				{ is_windows: True, unix_bytes: [], windows_u16s: str_to_utf16(str) }
 			} else {
-				{ is_windows: Bool.False, unix_bytes: Str.to_utf8(str), windows_u16s: [] }
+				{ is_windows: False, unix_bytes: Str.to_utf8(str), windows_u16s: [] }
 			}
-		UnixBytes(bytes) => { is_windows: Bool.False, unix_bytes: bytes, windows_u16s: [] }
-		WindowsU16s(u16s) => { is_windows: Bool.True, unix_bytes: [], windows_u16s: u16s }
+		UnixBytes(bytes) => { is_windows: False, unix_bytes: bytes, windows_u16s: [] }
+		WindowsU16s(u16s) => { is_windows: True, unix_bytes: [], windows_u16s: u16s }
 	}
 
 from_host_raw : Host.RawPath -> Path
@@ -849,16 +849,16 @@ expect Path.ext(Path.utf8("foo/bar/")) == Err(IsDirPath)
 expect Path.ext(Path.utf8("foo/bar..")) == Err(EndsInDots)
 
 ## Host path types map exhaustively to the public API.
-expect path_type_from_host({ is_file: Bool.True, is_dir: Bool.False, is_sym_link: Bool.False }) == IsFile
+expect path_type_from_host({ is_file: True, is_dir: False, is_sym_link: False }) == IsFile
 
 ## Host directories map to `IsDir`.
-expect path_type_from_host({ is_file: Bool.False, is_dir: Bool.True, is_sym_link: Bool.False }) == IsDir
+expect path_type_from_host({ is_file: False, is_dir: True, is_sym_link: False }) == IsDir
 
 ## Host symbolic links map to `IsSymLink`.
-expect path_type_from_host({ is_file: Bool.False, is_dir: Bool.False, is_sym_link: Bool.True }) == IsSymLink
+expect path_type_from_host({ is_file: False, is_dir: False, is_sym_link: True }) == IsSymLink
 
 ## Unknown host path types map to `IsOther`.
-expect path_type_from_host({ is_file: Bool.False, is_dir: Bool.False, is_sym_link: Bool.False }) == IsOther
+expect path_type_from_host({ is_file: False, is_dir: False, is_sym_link: False }) == IsOther
 
 ## `join` appends a representation-specific separator and text component.
 expect Path.join(Path.unix("foo"), "bar") == Path.unix("foo/bar")

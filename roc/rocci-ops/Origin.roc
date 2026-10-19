@@ -36,33 +36,33 @@ trim = |s| {
     len = List.len(bytes)
     var $a = 0.U64
     var $b = len
-    var $go = Bool.True
+    var $go = True
     while $go and $a < $b {
         match List.get(bytes, $a) {
             Ok(ch) => {
                 if ch == 32 or ch == 9 or ch == 10 or ch == 13 {
                     $a = $a + 1
                 } else {
-                    $go = Bool.False
+                    $go = False
                 }
             }
             Err(_) => {
-                $go = Bool.False
+                $go = False
             }
         }
     }
-    $go = Bool.True
+    $go = True
     while $go and $b > $a {
         match List.get(bytes, $b - 1) {
             Ok(ch) => {
                 if ch == 32 or ch == 9 or ch == 10 or ch == 13 {
                     $b = $b - 1
                 } else {
-                    $go = Bool.False
+                    $go = False
                 }
             }
             Err(_) => {
-                $go = Bool.False
+                $go = False
             }
         }
     }
@@ -99,13 +99,13 @@ ascii_lower = |s| {
 
 env_get = |pairs, key, default| {
     var $i = 0.U64
-    var $found = Bool.False
+    var $found = False
     var $val = default
     while !$found and $i < List.len(pairs) {
         match List.get(pairs, $i) {
             Ok(pair) => {
                 if pair.key == key {
-                    $found = Bool.True
+                    $found = True
                     $val = pair.val
                 } else {
                     $i = $i + 1
@@ -129,12 +129,12 @@ env_get = |pairs, key, default| {
 
 env_has = |pairs, key| {
     var $i = 0.U64
-    var $found = Bool.False
+    var $found = False
     while !$found and $i < List.len(pairs) {
         match List.get(pairs, $i) {
             Ok(pair) => {
                 if pair.key == key {
-                    $found = Bool.True
+                    $found = True
                 } else {
                     $i = $i + 1
                 }
@@ -149,13 +149,13 @@ env_has = |pairs, key| {
 
 env_raw = |pairs, key| {
     var $i = 0.U64
-    var $found = Bool.False
+    var $found = False
     var $val = ""
     while !$found and $i < List.len(pairs) {
         match List.get(pairs, $i) {
             Ok(pair) => {
                 if pair.key == key {
-                    $found = Bool.True
+                    $found = True
                     $val = pair.val
                 } else {
                     $i = $i + 1
@@ -172,13 +172,13 @@ env_raw = |pairs, key| {
 do_parse_publish_live = |raw| {
     t = ascii_lower(trim(raw))
     if t == "0" {
-        Bool.False
+        False
     } else if t == "false" {
-        Bool.False
+        False
     } else if t == "no" {
-        Bool.False
+        False
     } else {
-        Bool.True
+        True
     }
 }
 
@@ -291,13 +291,13 @@ do_resolved_lane = |pairs| {
 
 do_should_publish_live = |live_ids, cfg| {
     if List.len(live_ids) == 0 {
-        Bool.False
+        False
     } else if cfg.publish_live == "unset" {
-        Bool.True
+        True
     } else if cfg.publish_live == "true" {
-        Bool.True
+        True
     } else {
-        Bool.False
+        False
     }
 }
 
@@ -379,10 +379,10 @@ do_origin_publish_cmd = |sha, origin_root, cfg| {
 do_validate_sha = |sha| {
     bytes = Str.to_utf8(sha)
     if List.len(bytes) == 0 {
-        Bool.False
+        False
     } else {
         var $i = 0.U64
-        var $ok = Bool.True
+        var $ok = True
         while $ok and $i < List.len(bytes) {
             match List.get(bytes, $i) {
                 Ok(ch) => {
@@ -390,11 +390,11 @@ do_validate_sha = |sha| {
                     if hex {
                         {}
                     } else {
-                        $ok = Bool.False
+                        $ok = False
                     }
                 }
                 Err(_) => {
-                    $ok = Bool.False
+                    $ok = False
                 }
             }
             $i = $i + 1
@@ -494,9 +494,9 @@ expect do_live_app_env_key("live-counter") == "ROCCI_LIVE_COUNTER_CONTEXT"
 expect do_live_app_env_key("datastar") == "ROCCI_DATASTAR_CONTEXT"
 expect do_live_app_env_key("snake") == "ROCCI_SNAKE_CONTEXT"
 
-expect do_validate_sha("abcDEF012") == Bool.True
-expect do_validate_sha("not a sha") == Bool.False
-expect do_validate_sha("") == Bool.False
+expect do_validate_sha("abcDEF012") == True
+expect do_validate_sha("not a sha") == False
+expect do_validate_sha("") == False
 
 expect
     match do_resolved_lane([{ key: "ROCCI_LANE", val: "lab" }]) {
@@ -505,14 +505,14 @@ expect
 
 expect
     match do_resolved_lane([{ key: "ROCCI_LANE", val: "staging" }]) {
-        { err: "", http_port: "8081", origin_root: "/srv/rocci/staging", image_tag: "staging", publish_live: "true", .. } => Bool.True
-        _ => Bool.False
+        { err: "", http_port: "8081", origin_root: "/srv/rocci/staging", image_tag: "staging", publish_live: "true", .. } => True
+        _ => False
     }
 
 expect
     match do_resolved_lane([{ key: "ROCCI_LANE", val: "production" }]) {
-        { err: "", http_port: "8080", origin_root: "/srv/rocci/prod", image_tag: "prod", publish_live: "false", .. } => Bool.True
-        _ => Bool.False
+        { err: "", http_port: "8080", origin_root: "/srv/rocci/prod", image_tag: "prod", publish_live: "false", .. } => True
+        _ => False
     }
 
 expect
@@ -521,11 +521,11 @@ expect
             match (List.get(checks, 0), List.get(checks, 1), List.get(checks, 2)) {
                 (Ok({ url: "http://127.0.0.1:8080/health", host: "" }), Ok({ url: "http://127.0.0.1:8080/play/live-counter/health", host: "" }), Ok({ url: "http://127.0.0.1:8080/play/datastar/health", host: "" })) => {
                     match List.get(checks, 3) {
-                        Ok({ host: "live-counter-example-staging.rocci.dev", url: _u }) => Bool.True
-                        _ => Bool.False
+                        Ok({ host: "live-counter-example-staging.rocci.dev", url: _u }) => True
+                        _ => False
                     }
                 }
-                _ => Bool.False
+                _ => False
             }
         }
     }
@@ -536,11 +536,11 @@ expect
             match List.get(checks, 0) {
                 Ok({ url: "http://127.0.0.1:8081/health", host: _h }) => {
                     match List.get(checks, List.len(checks) - 1) {
-                        Ok({ host: "live-counter.examples.localhost", url: _u }) => Bool.True
-                        _ => Bool.False
+                        Ok({ host: "live-counter.examples.localhost", url: _u }) => True
+                        _ => False
                     }
                 }
-                _ => Bool.False
+                _ => False
             }
         }
     }
@@ -549,8 +549,8 @@ expect
     match do_health_checks(["live-counter"], do_resolved_lane([{ key: "ROCCI_LANE", val: "production" }])) {
         checks => {
             match (List.len(checks), List.get(checks, 0), List.get(checks, 1)) {
-                (2, Ok({ url: "http://127.0.0.1:8080/health", host: "" }), Ok({ url: "http://127.0.0.1:8080/play/live-counter/health", host: "" })) => Bool.True
-                _ => Bool.False
+                (2, Ok({ url: "http://127.0.0.1:8080/health", host: "" }), Ok({ url: "http://127.0.0.1:8080/play/live-counter/health", host: "" })) => True
+                _ => False
             }
         }
     }
@@ -559,8 +559,8 @@ expect
     match do_compose_argv("/repo", [], do_resolved_lane([])) {
         argv => {
             match (List.get(argv, 3), List.get(argv, List.len(argv) - 1)) {
-                (Ok("/repo/docker/compose.hybrid.yml"), Ok("--remove-orphans")) => Bool.True
-                _ => Bool.False
+                (Ok("/repo/docker/compose.hybrid.yml"), Ok("--remove-orphans")) => True
+                _ => False
             }
         }
     }
@@ -569,8 +569,8 @@ expect
     match do_compose_argv("/repo", ["live-counter"], do_resolved_lane([])) {
         argv => {
             match List.get(argv, 5) {
-                Ok("/repo/docker/compose.origin.yml") => Bool.True
-                _ => Bool.False
+                Ok("/repo/docker/compose.origin.yml") => True
+                _ => False
             }
         }
     }
@@ -579,8 +579,8 @@ expect
     match do_origin_publish_cmd("deadbeef", "/srv/rocci", do_resolved_lane([])) {
         cmd => {
             has_uv = match List.get(Str.to_utf8(cmd), 0) {
-                Ok(_) => Bool.True
-                Err(_) => Bool.False
+                Ok(_) => True
+                Err(_) => False
             }
             has_uv and cmd == "cd '/srv/rocci' && ROCCI_ORIGIN_ROOT='/srv/rocci' ROCCI_HTTP_PORT='8080' COMPOSE_PROJECT_NAME='rocci-prod' ROCCI_PUBLISH_LIVE='1' ROCCI_IMAGE_TAG='local' uv run --no-dev rocci-ops origin publish 'deadbeef'"
         }
@@ -595,8 +595,8 @@ expect
     match do_health_curl_argv("http://127.0.0.1:8080/health", "") {
         argv => {
             match List.get(argv, 0) {
-                Ok("curl") => Bool.True
-                _ => Bool.False
+                Ok("curl") => True
+                _ => False
             }
         }
     }

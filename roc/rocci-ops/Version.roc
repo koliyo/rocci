@@ -29,18 +29,18 @@ parse_u64 = |text| {
     } else {
         var $i = 0.U64
         var $n = 0.U64
-        var $ok = Bool.True
+        var $ok = True
         while $ok and $i < List.len(bytes) {
             match List.get(bytes, $i) {
                 Ok(b) => {
                     if is_digit(b) {
                         $n = $n * 10 + (b - 48).to_u64()
                     } else {
-                        $ok = Bool.False
+                        $ok = False
                     }
                 }
                 Err(_) => {
-                    $ok = Bool.False
+                    $ok = False
                 }
             }
             $i = $i + 1
@@ -142,16 +142,16 @@ do_first_package_version = |text| {
 do_workspace_crate_names = |cargo_text| {
     var $rest = cargo_text
     var $names = []
-    var $loop = Bool.True
+    var $loop = True
     while $loop {
         match Str.split_first($rest, "\"crates/") {
             Err(_) => {
-                $loop = Bool.False
+                $loop = False
             }
             Ok({ before: _prefix, after }) => {
                 match Str.split_first(after, "\"") {
                     Err(_) => {
-                        $loop = Bool.False
+                        $loop = False
                     }
                     Ok({ before, after: tail }) => {
                         $names = List.concat($names, [before])
@@ -169,18 +169,18 @@ do_replace_package_versions = |text, version| {
     var $rest = text
     var $out = ""
     var $count = 0.U64
-    var $loop = Bool.True
+    var $loop = True
     while $loop {
         match Str.split_first($rest, "\nversion = \"") {
             Err(_) => {
                 $out = Str.concat($out, $rest)
-                $loop = Bool.False
+                $loop = False
             }
             Ok({ before, after }) => {
                 match Str.split_first(after, "\"") {
                     Err(_) => {
                         $out = Str.concat($out, $rest)
-                        $loop = Bool.False
+                        $loop = False
                     }
                     Ok({ before: _old, after: tail }) => {
                         $out = Str.concat($out, before)
@@ -201,18 +201,18 @@ do_replace_package_versions = |text, version| {
 }
 
 lock_name_is_member = |name, names|
-    List.fold(names, Bool.False, |acc, n| if acc { Bool.True } else { n == name })
+    List.fold(names, False, |acc, n| if acc { True } else { n == name })
 
 do_replace_lock_crate_versions = |text, version, names| {
     var $rest = text
     var $out = ""
     var $count = 0.U64
-    var $loop = Bool.True
+    var $loop = True
     while $loop {
         match Str.split_first($rest, "[[package]]\nname = \"") {
             Err(_) => {
                 $out = Str.concat($out, $rest)
-                $loop = Bool.False
+                $loop = False
             }
             Ok({ before, after }) => {
                 $out = Str.concat($out, before)
@@ -220,7 +220,7 @@ do_replace_lock_crate_versions = |text, version, names| {
                 match Str.split_first(after, "\"\nversion = \"") {
                     Err(_) => {
                         $out = Str.concat($out, after)
-                        $loop = Bool.False
+                        $loop = False
                     }
                     Ok({ before: name, after: after_ver }) => {
                         $out = Str.concat($out, name)
@@ -228,7 +228,7 @@ do_replace_lock_crate_versions = |text, version, names| {
                         match Str.split_first(after_ver, "\"") {
                             Err(_) => {
                                 $out = Str.concat($out, after_ver)
-                                $loop = Bool.False
+                                $loop = False
                             }
                             Ok({ before: old_ver, after: tail }) => {
                                 if lock_name_is_member(name, names) {
@@ -255,32 +255,32 @@ do_replace_lock_crate_versions = |text, version, names| {
 
 expect
     match do_next_release_version("1.2.3", "patch") {
-        Got("1.2.4") => Bool.True
-        _ => Bool.False
+        Got("1.2.4") => True
+        _ => False
     }
 
 expect
     match do_next_release_version("0.1.2", "minor") {
-        Got("0.2.0") => Bool.True
-        _ => Bool.False
+        Got("0.2.0") => True
+        _ => False
     }
 
 expect
     match do_next_release_version("0.1.2", "major") {
-        Got("1.0.0") => Bool.True
-        _ => Bool.False
+        Got("1.0.0") => True
+        _ => False
     }
 
 expect
     match do_parse_release_version("v1.2.3") {
-        Got("1.2.3") => Bool.True
-        _ => Bool.False
+        Got("1.2.3") => True
+        _ => False
     }
 
 expect
     match do_first_package_version("[workspace.package]\nversion = \"0.1.0\"\n\nclap = { version = \"4.5\" }\n") {
-        Got("0.1.0") => Bool.True
-        _ => Bool.False
+        Got("0.1.0") => True
+        _ => False
     }
 
 expect
@@ -289,14 +289,14 @@ expect
             match do_first_package_version(updated) {
                 Got("2.0.0") => {
                     match Str.split_first(updated, "clap = { version = \"4.5\" }") {
-                        Ok(_) => Bool.True
-                        Err(_) => Bool.False
+                        Ok(_) => True
+                        Err(_) => False
                     }
                 }
-                _ => Bool.False
+                _ => False
             }
         }
-        _ => Bool.False
+        _ => False
     }
 
 expect List.len(do_workspace_crate_names("[workspace]\nmembers = [\n    \"crates/rocci-cli\",\n    \"crates/rocci-core\",\n]\n")) == 2
@@ -304,5 +304,5 @@ expect List.len(do_workspace_crate_names("[workspace]\nmembers = [\n    \"crates
 expect
     match do_replace_lock_crate_versions("[[package]]\nname = \"rocci-cli\"\nversion = \"0.1.0\"\n\n[[package]]\nname = \"rocci-core\"\nversion = \"0.1.0\"\n", "3.1.4", ["rocci-cli", "rocci-core"]) {
         Got(updated) => List.len(Str.split_on(updated, "version = \"3.1.4\"")) == 3
-        _ => Bool.False
+        _ => False
     }

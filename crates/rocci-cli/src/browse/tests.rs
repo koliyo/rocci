@@ -306,6 +306,8 @@ fn query_decode_helpers_match_form_values() {
     assert_eq!(display_roc_literal("\"Roc\""), "Roc");
     assert_eq!(display_roc_literal("True"), "true");
     assert_eq!(display_roc_literal("False"), "false");
+    assert_eq!(display_roc_literal("Bool.True"), "true");
+    assert_eq!(display_roc_literal("Bool.False"), "false");
     assert_eq!(display_roc_literal("Bool.true"), "Bool.true");
     assert_eq!(display_roc_literal("0"), "0");
     assert_eq!(ParamKind::from_annotation("I64"), Some(ParamKind::I64));
@@ -318,6 +320,14 @@ fn query_decode_helpers_match_form_values() {
     assert_eq!(infer_from_default("12"), Inferred::Scalar(ParamKind::I64));
     assert_eq!(
         infer_from_default("False"),
+        Inferred::Scalar(ParamKind::Bool)
+    );
+    assert_eq!(
+        infer_from_default("Bool.True"),
+        Inferred::Scalar(ParamKind::Bool)
+    );
+    assert_eq!(
+        infer_from_default("Bool.False"),
         Inferred::Scalar(ParamKind::Bool)
     );
     assert!(matches!(

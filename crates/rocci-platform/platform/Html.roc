@@ -250,29 +250,29 @@ render_attribute : Attribute -> Str
 render_attribute = |attr| "${Attribute.raw_name(attr)}=\"${escape_attribute(Attribute.raw_value(attr))}\""
 
 escape_text : Str -> Str
-escape_text = |value| escape_html_bytes(value, Bool.False)
+escape_text = |value| escape_html_bytes(value, False)
 
 escape_attribute : Str -> Str
-escape_attribute = |value| escape_html_bytes(value, Bool.True)
+escape_attribute = |value| escape_html_bytes(value, True)
 
 escape_html_bytes : Str, Bool -> Str
 escape_html_bytes = |value, escape_quotes| {
 	bytes = Str.to_utf8(value)
 	needs_escape = bytes.fold(
-		Bool.False,
+		False,
 		|found, byte|
 			if found {
-				Bool.True
+				True
 			} else {
 				match byte {
-					38 => Bool.True
-					60 => Bool.True
-					62 => Bool.True
-					34 if escape_quotes => Bool.True
-					39 if escape_quotes => Bool.True
-					10 if escape_quotes => Bool.True
-					13 if escape_quotes => Bool.True
-					_ => Bool.False
+					38 => True
+					60 => True
+					62 => True
+					34 if escape_quotes => True
+					39 if escape_quotes => True
+					10 if escape_quotes => True
+					13 if escape_quotes => True
+					_ => False
 				}
 			},
 	)
@@ -341,16 +341,16 @@ expect {
 ## Clean text is returned unchanged (no-escape fast path).
 expect {
 	original = "Hello Roc"
-	escape_html_bytes(original, Bool.False) == original
-		and escape_html_bytes(original, Bool.True) == original
+	escape_html_bytes(original, False) == original
+		and escape_html_bytes(original, True) == original
 }
 
 ## Text escaping covers `&`, `<`, and `>`. Quotes and CR/LF stay literal.
 expect {
-	escape_html_bytes("&<>\"'\n\r", Bool.False) == "&amp;&lt;&gt;\"'\n\r"
+	escape_html_bytes("&<>\"'\n\r", False) == "&amp;&lt;&gt;\"'\n\r"
 }
 
 ## Attribute escaping uses `&quot;`, `&#39;`, `&#10;`, and `&#13;`.
 expect {
-	escape_html_bytes("&<>\"'\n\r", Bool.True) == "&amp;&lt;&gt;&quot;&#39;&#10;&#13;"
+	escape_html_bytes("&<>\"'\n\r", True) == "&amp;&lt;&gt;&quot;&#39;&#10;&#13;"
 }

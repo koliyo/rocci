@@ -380,6 +380,14 @@ fn infers_string_and_bool_default_types() {
     use rocci_template::infer_record_default_type;
     assert_eq!(infer_record_default_type("\"Roc\"").as_deref(), Some("Str"));
     assert_eq!(infer_record_default_type("False").as_deref(), Some("Bool"));
+    assert_eq!(
+        infer_record_default_type("Bool.True").as_deref(),
+        Some("Bool")
+    );
+    assert_eq!(
+        infer_record_default_type("Bool.False").as_deref(),
+        Some("Bool")
+    );
     assert_eq!(infer_record_default_type("0").as_deref(), Some("I64"));
     assert!(infer_record_default_type("Neutral").is_none());
     assert!(infer_record_default_type("Bool.true").is_none());

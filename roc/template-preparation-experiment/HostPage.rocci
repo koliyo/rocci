@@ -1,7 +1,7 @@
 @get:view("/") {
     hostPage({
         title: "Ada & Co",
-        active: Bool.True,
+        active: True,
         items: [{ name: "one" }, { name: "two" }],
     })
 }
@@ -9,7 +9,7 @@
 @get:fragment("/card") {
     hostCard({
         title: "Ada & Co",
-        active: Bool.True,
+        active: True,
         items: [{ name: "one" }],
     })
 }

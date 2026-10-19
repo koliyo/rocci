@@ -318,7 +318,7 @@ Server :: [].{
 								and segment != "."
 									and segment != ".."
 										and match bytes {
-											[46, ..] => Bool.False
+											[46, ..] => False
 											_ => bytes.all(|byte| byte != 0 and byte != 58 and byte != 92)
 										}
 						},
@@ -338,10 +338,10 @@ Server :: [].{
 		to_host : CacheChoice -> { override : Bool, tag : U8, max_age_seconds : U32 }
 		to_host = |choice|
 			match choice {
-				Inherit => { override: Bool.False, tag: 0, max_age_seconds: 0 }
+				Inherit => { override: False, tag: 0, max_age_seconds: 0 }
 				Override(policy) => {
 					raw = CachePolicy.to_host(policy)
-					{ override: Bool.True, tag: raw.tag, max_age_seconds: raw.max_age_seconds }
+					{ override: True, tag: raw.tag, max_age_seconds: raw.max_age_seconds }
 				}
 			}
 	}
@@ -543,9 +543,9 @@ Server :: [].{
 		to_host : AccessLog -> { enabled : Bool, target : U8, buffer_events : U16 }
 		to_host = |access_log|
 			match access_log {
-				AccessLogOff => { enabled: Bool.False, target: 0, buffer_events: 0 }
+				AccessLogOff => { enabled: False, target: 0, buffer_events: 0 }
 				JsonLines({ target, max_buffered_events }) => {
-					enabled: Bool.True,
+					enabled: True,
 					target: LogTarget.to_host(target),
 					buffer_events: max_buffered_events,
 				}
@@ -568,8 +568,8 @@ Server :: [].{
 		to_host : Metrics -> { enabled : Bool, path : Str }
 		to_host = |metrics|
 			match metrics {
-				MetricsOff => { enabled: Bool.False, path: "" }
-				OpenMetrics({ at }) => { enabled: Bool.True, path: at }
+				MetricsOff => { enabled: False, path: "" }
+				OpenMetrics({ at }) => { enabled: True, path: at }
 			}
 	}
 
@@ -1227,7 +1227,7 @@ Server :: [].{
 			match outcome {
 				Respond(response) => OrdinaryToHost({
 					response,
-					stop: Bool.False,
+					stop: False,
 					exit_code: 0,
 				})
 				Stream(source) => StreamToHost(source)
@@ -1251,7 +1251,7 @@ Server :: [].{
 				}
 				StopAfter({ response, exit_code }) => OrdinaryToHost({
 					response,
-					stop: Bool.True,
+					stop: True,
 					exit_code,
 				})
 			}

@@ -190,7 +190,7 @@ At most one per file. Unknown top-level fields are errors. Extracted controls:
 | --- | --- |
 | `route` | compile-time string literal; no `..`, query, fragment, `%2f`, or NUL |
 | `layout` | statically resolvable Roc path, called as `Layout({ meta, content })` |
-| `draft` | `True` or `False` |
+| `draft` | `True` or `False`. `Bool.True` and `Bool.False` are also accepted |
 | `theme` | compile-time string; `paper` (default), `rocci`, `none`, a name in `~/.rocci/themes`, or a CSS file path |
 | `color_scheme` | `"auto"` (OS light/dark), `"light"`, or `"dark"`. The default `paper` palette is One Light / One Dark Pro. |
 | `meta` | arbitrary Roc record; `title` is copied onto the default document `<title>` |

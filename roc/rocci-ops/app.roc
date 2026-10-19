@@ -71,20 +71,20 @@ ends_with_rocdown = |name| {
     bytes = Str.to_utf8(name)
     suf = Str.to_utf8(".rocdown")
     if List.len(bytes) < List.len(suf) {
-        Bool.False
+        False
     } else {
         var $i = 0.U64
-        var $ok = Bool.True
+        var $ok = True
         base = List.len(bytes) - List.len(suf)
         while $ok and $i < List.len(suf) {
             match (List.get(bytes, base + $i), List.get(suf, $i)) {
                 (Ok(a), Ok(b)) => {
                     if a != b {
-                        $ok = Bool.False
+                        $ok = False
                     }
                 }
                 _ => {
-                    $ok = Bool.False
+                    $ok = False
                 }
             }
             $i = $i + 1
@@ -192,7 +192,7 @@ run_check_docs! = |_| {
     queries = Path.read_utf8!(join_root(root, "docs/search-queries.toml"))?
     sessions_path = join_root(root, "docs/first-use-sessions.toml")
     session_errors = match Path.is_file!(sessions_path) {
-        Ok(Bool.True) => DocsCoverage.check_sessions_text(Path.read_utf8!(sessions_path)?)
+        Ok(True) => DocsCoverage.check_sessions_text(Path.read_utf8!(sessions_path)?)
         _ => ["missing docs/first-use-sessions.toml"]
     }
     pages = List.concat(
@@ -229,11 +229,11 @@ bytes_range = |bytes, start, end| {
 parent_of = |rel| {
     bytes = Str.to_utf8(rel)
     var $i = List.len(bytes)
-    var $found = Bool.False
+    var $found = False
     while !$found and $i > 0 {
         $i = $i - 1
         match List.get(bytes, $i) {
-            Ok(47) => { $found = Bool.True }
+            Ok(47) => { $found = True }
             _ => {}
         }
     }
@@ -384,7 +384,7 @@ run_ci! = |args| {
             okmate_dir = okmate_dir_str!(root)?
             rustup = Cmd.check_available!("rustup")
             var $i = 0.U64
-            var $failed = Bool.False
+            var $failed = False
             var $code = 0.I32
             while $i < List.len(jobs) {
                 match List.get(jobs, $i) {
@@ -394,7 +394,7 @@ run_ci! = |args| {
                     Ok(job) => {
                         job_code = run_job!(job, root, okmate_dir, rustup)?
                         if job_code != 0.I32 {
-                            $failed = Bool.True
+                            $failed = True
                             $code = job_code
                             if !keep_going {
                                 $i = List.len(jobs)
@@ -467,11 +467,11 @@ run_build! = |args| {
             need_add = match listed {
                 Ok(out) => {
                     match Str.split_first(out.stdout_utf8, "wasm32-unknown-unknown") {
-                        Ok({ before: _b, after: _a }) => Bool.False
-                        Err(_) => Bool.True
+                        Ok({ before: _b, after: _a }) => False
+                        Err(_) => True
                     }
                 }
-                Err(_) => Bool.True
+                Err(_) => True
             }
             if need_add {
                 run_argv!(root, ["rustup", "target", "add", "wasm32-unknown-unknown"], "")?
@@ -482,7 +482,7 @@ run_build! = |args| {
             node_modules = join_root(root, "playground/node_modules")
             has_nm = match Path.is_dir!(node_modules) {
                 Ok(flag) => flag
-                Err(_) => Bool.False
+                Err(_) => False
             }
             if !has_nm {
                 run_argv!(root, ["npm", "install"], "playground")?
@@ -781,11 +781,11 @@ drop_refs_heads = |branch_ref| Git.parse_pr_ref(branch_ref).branch
 first_slash = |full| {
     bytes = Str.to_utf8(full)
     var $i = 0.U64
-    var $found = Bool.False
+    var $found = False
     while !$found and $i < List.len(bytes) {
         match List.get(bytes, $i) {
             Ok(47) => {
-                $found = Bool.True
+                $found = True
             }
             _ => {
                 $i = $i + 1
