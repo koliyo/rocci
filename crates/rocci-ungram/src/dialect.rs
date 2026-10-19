@@ -19,6 +19,8 @@ pub enum Error {
 #[derive(Debug, Clone)]
 pub struct Ir {
     pub uses: Vec<String>,
+    pub derives: Vec<String>,
+    pub omit_span: std::collections::BTreeSet<String>,
     pub span_method: std::collections::BTreeSet<String>,
     pub items: Vec<Item>,
 }
@@ -134,6 +136,8 @@ pub fn lower(ungram: &str, sidecar: &Sidecar) -> Result<Ir, Error> {
     crate::inspect::check_inspect(&names, sidecar)?;
     Ok(Ir {
         uses: sidecar.uses.clone(),
+        derives: sidecar.derives.clone(),
+        omit_span: sidecar.omit_span.clone(),
         span_method: sidecar.span_method.clone(),
         items,
     })

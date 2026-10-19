@@ -12,11 +12,16 @@ pub fn emit(ir: &Ir) -> String {
         if index > 0 {
             out.push('\n');
         }
+        if !ir.derives.is_empty() {
+            out.push_str(&format!("#[derive({})]\n", ir.derives.join(", ")));
+        }
         match item {
             Item::Struct { name, fields } => emit_struct(&mut out, name, fields),
             Item::Enum { name, variants } => {
                 emit_enum(&mut out, name, variants);
-                if let Some(body) = span_impl(name, variants, &ir.span_method) {
+                if !ir.omit_span.contains(name)
+                    && let Some(body) = span_impl(name, variants, &ir.span_method)
+                {
                     out.push('\n');
                     out.push_str(&body);
                 }
@@ -68,7 +73,6 @@ fn emit_use(out: &mut String, path: &str) {
 }
 
 fn emit_struct(out: &mut String, name: &str, fields: &[crate::dialect::Field]) {
-    out.push_str("#[derive(Clone, Debug, PartialEq, Eq)]\n");
     out.push_str("pub struct ");
     out.push_str(name);
     out.push_str(" {\n");
@@ -83,7 +87,6 @@ fn emit_struct(out: &mut String, name: &str, fields: &[crate::dialect::Field]) {
 }
 
 fn emit_enum(out: &mut String, name: &str, variants: &[Variant]) {
-    out.push_str("#[derive(Clone, Debug, PartialEq, Eq)]\n");
     out.push_str("pub enum ");
     out.push_str(name);
     out.push_str(" {\n");

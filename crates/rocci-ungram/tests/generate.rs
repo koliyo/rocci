@@ -48,6 +48,71 @@ fn mini_generated_compiles() {
     let _ = std::any::type_name::<mini_ast::Node>();
 }
 
+#[test]
+fn generates_and_compiles_spanless_scalar_ast() {
+    let source = generate_source(
+        "Number = Integer | Float\nScalar = value:Number\nInteger = 'integer'\nFloat = 'float'\n",
+        r#"
+[meta]
+derives = ["Clone", "Debug", "PartialEq"]
+[generated]
+Number = "Number"
+Scalar = "Scalar"
+[foreign]
+Integer = "i64"
+Float = "f64"
+[omit_span]
+Number = true
+Scalar = true
+[inspect.omit]
+Number = "printed by the consumer"
+Scalar = "printed by the consumer"
+"#,
+    )
+    .unwrap();
+    assert_snapshot("scalars.generated.rs", &source);
+    let scalar = scalar_ast::Scalar {
+        value: scalar_ast::Number::Float(1.5),
+    };
+    assert_eq!(scalar.clone(), scalar);
+    assert_eq!(
+        scalar_ast::Number::Integer(42),
+        scalar_ast::Number::Integer(42)
+    );
+}
+
+mod scalar_ast {
+    include!("snapshots/scalars.generated.rs");
+}
+
+#[test]
+fn empty_derives_disables_derive_attribute() {
+    let source = generate_source(
+        "Number = 'number'\n",
+        r#"
+[meta]
+derives = []
+[generated]
+Number = "Number"
+[leaves]
+Number = "{ value: f64 }"
+[inspect.omit]
+Number = "printed by the consumer"
+"#,
+    )
+    .unwrap();
+    assert!(!source.contains("#[derive"));
+    assert!(source.contains("pub value: f64"));
+}
+
+#[test]
+fn rejects_invalid_derive_configuration() {
+    for derives in [r#""Debug""#, "[42]", r#"["Debug)"]"#, r#"[""]"#] {
+        let err = generate_source("", &format!("[meta]\nderives = {derives}\n")).unwrap_err();
+        assert!(err.to_string().contains("meta.derives"), "{err}");
+    }
+}
+
 mod mini_ast {
     #![allow(dead_code)]
 

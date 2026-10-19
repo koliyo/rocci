@@ -5,6 +5,7 @@ use crate::dialect::Error;
 #[derive(Debug, Clone)]
 pub struct Sidecar {
     pub uses: Vec<String>,
+    pub derives: Vec<String>,
     pub generated: BTreeSet<String>,
     pub foreign: BTreeMap<String, String>,
     pub opaque: BTreeMap<String, String>,
@@ -44,6 +45,12 @@ impl Sidecar {
 
         let mut sidecar = Self {
             uses: Vec::new(),
+            derives: vec![
+                "Clone".into(),
+                "Debug".into(),
+                "PartialEq".into(),
+                "Eq".into(),
+            ],
             generated: BTreeSet::new(),
             foreign: BTreeMap::new(),
             opaque: BTreeMap::new(),
@@ -62,6 +69,33 @@ impl Sidecar {
 
         if let Some(meta) = table.get("meta").and_then(|v| v.as_table()) {
             sidecar.uses = string_list(meta.get("uses"));
+            if let Some(derives) = meta.get("derives") {
+                let values = derives.as_array().ok_or_else(|| {
+                    Error::Dialect("meta.derives must be an array of Rust trait paths".into())
+                })?;
+                sidecar.derives = values
+                    .iter()
+                    .map(|value| {
+                        value
+                            .as_str()
+                            .filter(|path| {
+                                path.split("::").all(|part| {
+                                    let mut chars = part.chars();
+                                    chars
+                                        .next()
+                                        .is_some_and(|ch| ch.is_ascii_alphabetic() || ch == '_')
+                                        && chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_')
+                                })
+                            })
+                            .map(str::to_owned)
+                            .ok_or_else(|| {
+                                Error::Dialect(
+                                    "meta.derives entries must be Rust trait paths".into(),
+                                )
+                            })
+                    })
+                    .collect::<Result<_, _>>()?;
+            }
         }
         sidecar.generated = table_keys(table.get("generated"));
         sidecar.foreign = string_map(table.get("foreign"))?;

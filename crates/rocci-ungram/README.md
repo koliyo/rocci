@@ -24,3 +24,11 @@ sidecars (`Rocci.AST.toml`, `Rocdown.AST.toml`, `Rocdown.Markdown.toml`). `[insp
 heads; `--check` fails when a generated production has no inspect mapping, or when the
 public tree appendix pages under `docs/reference/` are stale. The `ungrammar`
 crate parses the DSL; this crate owns dialect restrictions and owned-struct lowering.
+
+Other projects can call `rocci_ungram::generate_source(ungram, sidecar)` directly;
+the library API does not require a Rocci workspace. `[meta] derives` accepts an
+array of Rust trait paths and defaults to `Clone, Debug, PartialEq, Eq`. For ASTs
+containing `f64`, use `derives = ["Clone", "Debug", "PartialEq"]`. An empty array
+disables derives. `[omit_span]` suppresses struct span fields and enum `span()`
+methods for the listed productions, allowing ASTs that hold values without
+source locations. Existing sidecars retain their generated output.
