@@ -89,6 +89,7 @@ export class Counter extends DurableObject<Env> {
     };
   }
   private sequence = 0;
+  private ownershipWrites = 0;
   private capture(input: State, cmd?: Command, now?: string, document = false): Snapshot {
     return { ...this.roc.call(input, cmd, now, document), order: ++this.sequence };
   }
@@ -101,6 +102,7 @@ export class Counter extends DurableObject<Env> {
     // This metadata is independent of domain state and operation receipts.
     await this.ctx.storage.put('__stream_ownership', crypto.randomUUID(), { noCache: true });
     await this.ctx.storage.sync();
+    this.ownershipWrites++;
   });
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -189,6 +191,7 @@ export class Counter extends DurableObject<Env> {
       return Response.json({ ...manifest, deployment: this.env.CF_VERSION_METADATA ?? null,
         configuration: { storageSchema: this.env.STORAGE_SCHEMA },
         runtime: { wasmPages: this.roc.pages, peakArenaBytes: this.roc.peakArena, viewers: this.streams.size,
+          ownershipWrites: this.ownershipWrites,
           revision: this.load().revision, schema: this.stored().schema_version,
           sql: { ...this.sqlMetrics }, streams: { ...this.streams.metrics } } }, { headers });
     }
