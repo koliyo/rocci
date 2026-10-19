@@ -6,9 +6,8 @@ import { serve } from "./serve.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const pkg = fileURLToPath(new URL("../", import.meta.url));
-const fixture = process.argv[2] ?? "c2";
-assert.ok(["c1", "c2"].includes(fixture));
-const built = path.join(root, `target/worker-${fixture}`);
+const application = "live-counter";
+const built = path.join(root, `target/worker-${application}`);
 const out = await mkdtemp(path.join(built, "run-"));
 await mkdir(path.join(out, "runtime"));
 await mkdir(path.join(out, "public/assets"), { recursive: true });
@@ -46,7 +45,7 @@ export default objectWorker('APP','live');
 await writeFile(
   path.join(out, "wrangler.json"),
   JSON.stringify({
-    name: `rocci-${fixture}-conformance`,
+    name: `rocci-${application}-conformance`,
     main: "index.mjs",
     compatibility_date: "2026-10-19",
     workers_dev: false,
@@ -144,7 +143,7 @@ await serve(
       path.join(built, "live-results.json"),
       JSON.stringify(
         {
-          fixture,
+          application,
           scope:
             "Actual local workerd, unchanged effectful handlers; two HTTP SSE readers",
           commands: 21,
@@ -156,7 +155,7 @@ await serve(
       ) + "\n",
     );
     console.log(
-      `PASS ${fixture}: two live readers, 20 concurrent commands, empty-SSE/204 roles, reconnect, and cancellation`,
+      `PASS ${application}: two live readers, 20 concurrent commands, empty-SSE/204 roles, reconnect, and cancellation`,
     );
     if (process.argv.includes("--keep")) {
       console.log(

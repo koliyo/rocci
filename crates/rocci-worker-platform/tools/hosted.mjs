@@ -61,22 +61,22 @@ for (const file of ["guest", "cloudflare", "transactions", "admission", "sql"])
     path.join(pkg, `runtime/${file}.mjs`),
     path.join(out, `runtime/${file}.mjs`),
   );
-for (const fixture of ["c0", "c2", "transactions"])
+for (const application of ["counter", "live-counter", "transactions"])
   await copyFile(
-    path.join(root, `target/worker-${fixture}/app.wasm`),
-    path.join(out, `${fixture}.wasm`),
+    path.join(root, `target/worker-${application}/app.wasm`),
+    path.join(out, `${application}.wasm`),
   );
 await writeFile(
   path.join(out, "index.mjs"),
   `
-import c0 from './c0.wasm';import c2 from './c2.wasm';import tx from './transactions.wasm';
+import counter from './counter.wasm';import liveCounter from './live-counter.wasm';import tx from './transactions.wasm';
 import {WorkerObject} from './runtime/cloudflare.mjs';
-export class Starter extends WorkerObject{constructor(ctx,env){super(c0,ctx,env,{sqliteAliases:['./counter.db']});}}
-export class Live extends WorkerObject{constructor(ctx,env){super(c2,ctx,env,{sqliteAliases:['./counter.db']});}}
+export class Starter extends WorkerObject{constructor(ctx,env){super(counter,ctx,env,{sqliteAliases:['./counter.db']});}}
+export class Live extends WorkerObject{constructor(ctx,env){super(liveCounter,ctx,env,{sqliteAliases:['./counter.db']});}}
 export class Transactions extends WorkerObject{constructor(ctx,env){super(tx,ctx,env,{sqliteAliases:['./transactions.db']});}}
 export default {async fetch(request,env){
  if(!env.TEST_TOKEN||request.headers.get('Authorization')!=='Bearer '+env.TEST_TOKEN)return new Response('Unauthorized',{status:401});
- const url=new URL(request.url);const parts=url.pathname.split('/');const binding={c0:'STARTER',c2:'LIVE',tx:'TRANSACTIONS'}[parts[1]];
+ const url=new URL(request.url);const parts=url.pathname.split('/');const binding={'counter':'STARTER','live-counter':'LIVE',tx:'TRANSACTIONS'}[parts[1]];
  if(!binding)return new Response('Missing fixture',{status:404});url.pathname='/'+parts.slice(2).join('/');
  return env[binding].getByName('qualification').fetch(new Request(url,request));
 }};
@@ -134,7 +134,7 @@ try {
     lastStatus;
   for (let attempt = 0; attempt < 120; attempt++) {
     const response = await fetch(
-      origin + "/c0/health?qualification=" + Date.now(),
+      origin + "/counter/health?qualification=" + Date.now(),
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -171,13 +171,13 @@ try {
   };
   assert.match(
     await (
-      await request("/c0/actions/counter/reset", { method: "POST" })
+      await request("/counter/actions/counter/reset", { method: "POST" })
     ).text(),
     /<output[^>]*>0<\/output>/,
   );
   assert.match(
     await (
-      await request("/c0/actions/counter/increment", {
+      await request("/counter/actions/counter/increment", {
         method: "POST",
         headers: { "datastar-request": "true" },
       })
@@ -185,10 +185,10 @@ try {
     /<output[^>]*>1<\/output>/,
   );
   assert.match(
-    await (await request("/c0/")).text(),
+    await (await request("/counter/")).text(),
     /<output[^>]*>1<\/output>/,
   );
-  results.scenarios.push("unchanged C0 init/document/finite fragment");
+  results.scenarios.push("unchanged counter init/document/finite fragment");
   const values = await (await request("/tx/values")).text();
   for (const value of [
     "9223372036854775807",
@@ -216,15 +216,19 @@ try {
   results.scenarios.push(
     "real transaction commit/rollback/drop/typed error/trap/post-commit visibility",
   );
-  await request("/c2/actions/counter/reset", {
+  await request("/live-counter/actions/counter/reset", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: "{}",
   });
-  results.scenarios.push("C2 reset status: " + (await request("/c2/")).status);
+  results.scenarios.push(
+    "live counter reset status: " + (await request("/live-counter/")).status,
+  );
   async function subscriber() {
     const controller = new AbortController();
-    const response = await request("/c2/sse", { signal: controller.signal });
+    const response = await request("/live-counter/sse", {
+      signal: controller.signal,
+    });
     assert.equal(response.status, 200);
     const reader = response.body.getReader();
     return {
@@ -260,7 +264,7 @@ try {
   try {
     await second.count(0);
     results.scenarios.push("second SSE snapshot");
-    await request("/c2/actions/counter/increment", {
+    await request("/live-counter/actions/counter/increment", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}",
@@ -271,14 +275,14 @@ try {
     await second.close();
   }
   results.scenarios.push(
-    "unchanged C2 two subscribers and commit-before-publish",
+    "unchanged live counter two subscribers and commit-before-publish",
   );
   run(["deploy", "--config", "wrangler.json"]);
   assert.match(
-    await (await request("/c0/")).text(),
+    await (await request("/counter/")).text(),
     /<output[^>]*>1<\/output>/,
   );
-  results.scenarios.push("redeploy reconstructs durable C0 state");
+  results.scenarios.push("redeploy reconstructs durable counter state");
   results.passed = true;
 } finally {
   if (deployed) {

@@ -643,8 +643,10 @@ mod tests {
     use super::*;
     #[test]
     fn runtime_sources_point_to_authored_declarations() {
-        let entry =
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/worker/c0/Counter.rocci");
+        let entry = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/rocci/standalone/counter/Counter.rocci")
+            .canonicalize()
+            .unwrap();
         let sources = source_locations(&entry, entry.parent().unwrap()).unwrap();
         assert_eq!(sources["init"], "Counter.rocci:9");
         assert!(

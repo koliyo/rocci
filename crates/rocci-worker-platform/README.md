@@ -8,8 +8,7 @@ record codec or handwritten route table is required.
 
 The qualified compiler is `nightly-2026-10-09-258ab27`, with specialization
 **enabled**, in `dev`, `speed` and `size` modes. The native `.roc-version` is
-independent. Experimental `--specialize=no` leaked boxed allocations in the
-qualification fixture and is excluded. Provider inputs are Node 26.12.0,
+independent. Unspecialized builds are unsupported. Provider inputs are Node 26.12.0,
 Wrangler 4.151.1 / workerd 1.20261012.1 and compatibility date 2026-10-19.
 A bounded hosted preview passed the actual Roc JSPI fixture in all three modes;
 disposable hosted SQLite/transaction/live acceptance also passed separately.
@@ -94,16 +93,15 @@ npm ci --prefix crates/rocci-worker-platform/tooling
 node --test crates/rocci-worker-platform/tests/*.test.mjs
 ROCCI_WORKER_ROC=/path/to/pinned/roc node crates/rocci-worker-platform/tools/applications.mjs
 ROCCI_WORKER_ROC=/path/to/pinned/roc node crates/rocci-worker-platform/tools/profiles.mjs
-# Independent ARC/JSPI compiler matrix (requires clang 23.1.3):
-node --expose-gc crates/rocci-worker-platform/tools/conformance.mjs
-node crates/rocci-worker-platform/tools/workerd.mjs
 ```
 
-The application suite builds frozen C0/C1/C2 and plain transaction artifacts
-once, then runs those exact modules on local workerd. Outputs/hashes and logs
-are under `target/worker-*`; no production credentials are needed. The hosted
-probe is explicit (`workerd.mjs --remote`) and uses ordinary Wrangler credentials;
-it is never part of offline tests. CI retains the verified application graph
+The application suite compiles the existing standalone counter and live-counter
+examples, the plain Roc SQL example and a focused async regression program,
+then runs those exact modules on local workerd. The examples are the single
+source for application behavior. Outputs, hashes and logs are under `target/worker-*`.
+The opt-in `tools/hosted.mjs` lane requires explicit test credentials and
+creates and deletes only disposable guarded test resources. It never runs
+in the offline suite. CI retains the verified application graph
 and conformance results. Broader providers, whole-isolate cancellation stress,
 idle residency economics and broader provider profiles require independent
 evidence before promoting this preview.

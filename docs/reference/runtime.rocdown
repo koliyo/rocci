@@ -117,7 +117,7 @@ compilation. Provider owns listen/lifecycle settings; native Server socket,
 pool and shutdown settings do not control managed hosting. Traps/cancellation
 discard the generation; an unsettled continuation cannot be reused.
 
-Actual hosted JSPI qualification and local C0/C1/C2 conformance are recorded
+Actual hosted JSPI qualification and counter/live-counter conformance are recorded
 separately from release publication. See the
 [Worker guide](/docs/applications/workers/) and the platform README for the
 current capability boundary.

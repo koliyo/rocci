@@ -7,11 +7,11 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const roc = process.env.ROCCI_WORKER_ROC ?? "roc";
 const results = [];
-for (const [fixture, runner] of [
-  ["c0", "counter"],
+for (const [application, runner] of [
+  ["counter", "counter"],
   ["async", "async"],
 ]) {
-  const directory = path.join(root, "target/worker-" + fixture),
+  const directory = path.join(root, "target/worker-" + application),
     wasm = path.join(directory, "app.wasm");
   const original = await readFile(wasm);
   try {
@@ -61,13 +61,13 @@ for (const [fixture, runner] of [
       if (test.status !== 0) throw new Error(test.stdout + test.stderr);
       const bytes = await readFile(output);
       results.push({
-        fixture,
+        application,
         opt,
         sha256: createHash("sha256").update(bytes).digest("hex"),
         bytes: bytes.length,
         passed: true,
       });
-      console.log("PASS maintained host " + fixture + " " + opt);
+      console.log("PASS maintained host " + application + " " + opt);
     }
   } finally {
     await writeFile(wasm, original);

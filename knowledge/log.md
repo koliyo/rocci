@@ -8,6 +8,8 @@ the same change. In-place edits of the same line can still duplicate. Details:
 
 ## 2026-10-19
 
+- Consolidated [Worker packaging](status/worker-source-portability.md) around the delivered implementation: application tests use the canonical counter/live-counter/SQL examples; removed copied historical counter fixtures, the separate C prototype ABI and its experiment tooling, duplicate test data/server code and the generated qualification dump. Historical measurements remain available at an immutable Git revision.
+
 - Delivered the experimental [Worker source portability package](status/worker-source-portability.md), with individual phase 0–6 microplans and qualification, unchanged C0/C1/C2, real Roc JSPI, exact SQL/transaction semantics, live delivery, generated npm/Wrangler hosting, source diagnostics and plain Roc distribution. Implementation `0e1b5f311a89ba6d8c3bea52e68e5ad914c0f2c8` passed [CI 39272312080](https://github.com/koliyo/rocci/actions/runs/39272312080) (all seven jobs) and [Knowledge 39272323897](https://github.com/koliyo/rocci/actions/runs/39272323897). Local and disposable hosted application tests passed and test resources were deleted. Published-release installation, exhaustive provider residency/economics and optional phase 7 remain unclaimed.
 
 - Recorded [Worker source portability implementation evidence](status/worker-source-portability.md) with individual phase microplans, frozen C0/C1/C2, real Roc JSPI matrix, managed SQLite/transaction/live acceptance and disposable-resource cleanup, generated Wrangler packaging and editor/compiler parity. Updated the plan to distinguish its historical planning baseline from execution; no phase-completion or release-publication claim is logged before revision CI.

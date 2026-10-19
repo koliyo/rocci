@@ -23,12 +23,10 @@ function run(command, args, options = {}) {
     );
   return result;
 }
-const source = "crates/rocci-cli/tests/fixtures/worker";
 const fixtures = [
-  ["c0", `${source}/c0/Counter.rocci`],
-  ["c1", `${source}/c1/LiveCounter.rocci`],
-  ["c2", `${source}/c2/LiveCounter.rocci`],
-  ["transactions", "crates/rocci-worker-platform/tests/Transactions.roc"],
+  ["counter", "examples/rocci/standalone/counter/Counter.rocci"],
+  ["live-counter", "examples/rocci/standalone/live-counter/LiveCounter.rocci"],
+  ["transactions", "crates/rocci-worker-platform/examples/sql/main.roc"],
   ["async", "crates/rocci-worker-platform/tests/Async.roc"],
 ];
 const artifacts = [];
@@ -84,7 +82,8 @@ for (const [name, input] of fixtures) {
     throw new Error(`${name}: ${built.stdout}\n${built.stderr}`);
   const bytes = await readFile(path.join(out, "app.wasm"));
   artifacts.push({
-    fixture: name,
+    application: name,
+    source: input,
     sha256: createHash("sha256").update(bytes).digest("hex"),
     bytes: bytes.length,
     imports: WebAssembly.Module.imports(new WebAssembly.Module(bytes)),
@@ -102,8 +101,7 @@ run(
 for (const args of [
   ["counter.mjs"],
   ["transactions.mjs"],
-  ["live.mjs", "c1"],
-  ["live.mjs", "c2"],
+  ["live.mjs"],
   ["async.mjs"],
 ])
   run(

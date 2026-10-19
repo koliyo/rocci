@@ -52,7 +52,7 @@ Read [configuration](/docs/reference/configuration/),
 [troubleshooting](/docs/troubleshooting/runtime/) before relying on a native
 effect. Native filesystem/process/socket behavior and shutdown guarantees do
 not transfer to Workers. Durable state stays in SQL, and live browser state
-stays server rendered. The private actor example is a separate experiment.
+stays server rendered.
 
 The scaffold watches existing root source files and authored directories,
 including an assets directory. Add newly created root source files to
