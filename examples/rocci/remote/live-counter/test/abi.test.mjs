@@ -33,6 +33,8 @@ test('native and independent Wasm share byte-identical decisions and HTML', () =
     const native = spawnSync('./dist/native', [], { input: text, encoding: 'utf8' });
     assert.equal(native.status, 0, native.stderr);
     assert.deepEqual(host.decode(native.stdout), roc.call(input, cmd, '3700', document));
+    if (document) assert.match(host.decode(native.stdout).html, /retry: (?:&#39;|')always(?:&#39;|')/,
+      'Remote subscriptions must reconnect after clean EOF as well as network errors');
   }
 });
 test('relative time minute/hour/day boundaries and presentation without mutations', () => {

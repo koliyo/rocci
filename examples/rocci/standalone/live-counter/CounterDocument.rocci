@@ -13,7 +13,7 @@ CounterPage = |{ count, clicks, remote ?? False }|
             }
             <script type="module" src="/assets/datastar.js"></script>
         </head>
-        <body data-init={if remote { Datastar.get_with("sse", [OpenWhenHidden(True)]) } else { Datastar.get_with("/sse", [OpenWhenHidden(True)]) }}>
+        <body data-init={if remote { Datastar.get_with("sse", [OpenWhenHidden(True), Retry(Always)]) } else { Datastar.get_with("/sse", [OpenWhenHidden(True)]) }}>
             <main>
                 <nav>
                     <strong>Rocci</strong>

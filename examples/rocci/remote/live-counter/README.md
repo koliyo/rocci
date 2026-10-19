@@ -146,6 +146,10 @@ inspect `dist/deployment.txt` before retrying.
 Cloudflare's global rollout is still eventually consistent: verify the actor's
 reported version, and keep adjacent versions compatible during propagation.
 Streams reconnect when their actor is replaced and receive a durable snapshot.
+The remote document explicitly uses Datastar `Retry(Always)`: version 1.0.2's
+default `auto` mode retries network errors but stops on clean EOF, which can
+occur during managed actor replacement. Finite command requests retain their
+separate bounded retry behavior.
 Generated configuration excludes the API token. Source, generated Roc,
 Wasm, assets, tool pins and ABI/schema versions are hashed in
 `dist/manifest.json`; bundle hashes are in `dist/package.json`. Deployment
