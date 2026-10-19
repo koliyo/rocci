@@ -26,4 +26,17 @@ const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.
 });
 process.stdout.write(result.stdout ?? ''); process.stderr.write(result.stderr ?? '');
 if (result.status !== 0) process.exit(result.status ?? 1);
-await writeFile(path.join(dir, 'dist/deployment.txt'), result.stdout + result.stderr);
+// Declarative class exports use Wrangler's legacy upload path. Its automatic
+// deployment did not replace an active streamed actor in the hosted drill.
+// Explicitly activate the same uploaded version through the deployments API.
+const version = /Current Version ID: ([0-9a-f-]{36})/i.exec(result.stdout ?? '')?.[1];
+if (!version) throw new Error('Upload succeeded without a version ID; inspect deployment before retrying');
+const activation = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js',
+  'versions', 'deploy', `${version}@100`, '--yes', '--config', 'dist/wrangler.json',
+  '--durable-objects-code-update-mode', 'immediate'], {
+  cwd: dir, env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: values.CLOUDFLARE_ACCOUNT_ID,
+    ...(values.CLOUDFLARE_API_TOKEN ? { CLOUDFLARE_API_TOKEN: values.CLOUDFLARE_API_TOKEN } : {}) }, encoding: 'utf8',
+});
+process.stdout.write(activation.stdout ?? ''); process.stderr.write(activation.stderr ?? '');
+await writeFile(path.join(dir, 'dist/deployment.txt'), result.stdout + result.stderr + activation.stdout + activation.stderr);
+if (activation.status !== 0) process.exit(activation.status ?? 1);
