@@ -23,6 +23,10 @@ pub fn stage_package(dir: &Path, type_name: &str, source_dir: Option<&Path>) -> 
     if let Some(source_dir) = source_dir {
         copy_sibling_roc(source_dir, dir, type_name)?;
     }
+    if let Some(root) = source_dir.and_then(worker_root) {
+        return stage_worker(dir, type_name, &root);
+    }
+    let _ = fs::remove_file(dir.join("worker-profile.json"));
     write_if_missing(dir.join("Html.roc"), HTML)?;
     write_if_missing(dir.join("Datastar.roc"), DATASTAR)?;
     fs::write(dir.join("main.roc"), stub_main(type_name))
@@ -31,12 +35,10 @@ pub fn stage_package(dir: &Path, type_name: &str, source_dir: Option<&Path>) -> 
 }
 
 pub fn source_dir(uri: &Uri, source_name: &str) -> Option<PathBuf> {
-    let raw = uri.path().as_str();
-    let path = if raw.is_empty() {
-        Path::new(source_name)
-    } else {
-        Path::new(raw)
-    };
+    let decoded = url::Url::parse(uri.as_str())
+        .ok()
+        .and_then(|url| url.to_file_path().ok());
+    let path = decoded.as_deref().unwrap_or_else(|| Path::new(source_name));
     let parent = path.parent()?;
     if parent.as_os_str().is_empty() || parent == Path::new("/") || parent.parent().is_none() {
         return None;
@@ -86,6 +88,93 @@ fn copy_sibling_roc(src_dir: &Path, dest: &Path, type_name: &str) -> Result<(), 
             .map_err(|err| format!("copy {}: {err}", path.display()))?;
     }
     Ok(())
+}
+
+/// Nearest application configuration owns target selection, including nested apps.
+pub fn worker_root(source_dir: &Path) -> Option<PathBuf> {
+    let root = source_dir
+        .ancestors()
+        .find(|path| path.join("rocci.toml").is_file())?;
+    let source = fs::read_to_string(root.join("rocci.toml")).ok()?;
+    let config: toml::Value = toml::from_str(&source).ok()?;
+    config.get("worker")?;
+    Some(root.to_path_buf())
+}
+
+fn stage_worker(dir: &Path, type_name: &str, root: &Path) -> Result<(), String> {
+    let source = fs::read_to_string(root.join("rocci.toml")).map_err(|err| err.to_string())?;
+    if let Err(error) = rocci_core::Config::from_toml_worker(&source) {
+        fs::write(
+            dir.join("worker-profile.json"),
+            serde_json::json!({"error":error.to_string()}).to_string(),
+        )
+        .map_err(|err| err.to_string())?;
+        return Err(error.to_string());
+    }
+    fs::create_dir_all(dir.join("platform")).map_err(|err| err.to_string())?;
+    for (name, source) in rocci_worker_platform::sources::ROC_SOURCES {
+        fs::write(
+            dir.join("platform").join(name),
+            rocci_worker_platform::sources::compatibility_source(
+                name.trim_end_matches(".roc"),
+                source,
+            ),
+        )
+        .map_err(|err| err.to_string())?;
+    }
+    fs::write(
+        dir.join("platform/WorkerRoutes.roc"),
+        "WorkerRoutes := [].{ live_paths : List(Str), live_paths = [] }\n",
+    )
+    .map_err(|err| err.to_string())?;
+    let marker =
+        fs::read(root.join(".rocci/worker-editor.json")).unwrap_or_else(|_| b"{}".to_vec());
+    fs::write(dir.join("worker-profile.json"), marker).map_err(|err| err.to_string())?;
+    fs::write(dir.join("main.roc"),format!(r#"app [Context, program] {{
+    pf: platform "platform/main.roc",
+    http: "https://github.com/roc-lang/http/releases/download/1.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst",
+}}
+import {type_name}
+import pf.Server
+import http.Response
+Context : {{}}
+program = {{init!,respond!,shutdown!}}
+init! = || Ok({{config:Server.default_config,context:{{}}}})
+respond! = |_,_| Ok(Server.respond(Response.from_status(204)))
+shutdown! = |_,_| Ok({{}})
+"#)).map_err(|err|err.to_string())?;
+    Ok(())
+}
+
+/// Keep imported platform names and source offsets identical to CLI staging.
+pub fn worker_module(
+    roc: &str,
+    segments: &[rocci_template::Segment],
+) -> (String, Vec<rocci_template::Segment>) {
+    let mut generated = String::new();
+    let mut insertions = Vec::new();
+    let mut offset = 0;
+    for line in roc.split_inclusive('\n') {
+        if matches!(line.trim(), "import Html" | "import Datastar") {
+            insertions.push(offset + 7);
+            generated.push_str(&line.replacen("import ", "import pf.", 1));
+        } else {
+            generated.push_str(line);
+        }
+        offset += line.len();
+    }
+    let mut segments = segments.to_vec();
+    for segment in &mut segments {
+        segment.generated.start += 3 * insertions
+            .iter()
+            .filter(|position| **position <= segment.generated.start as usize)
+            .count() as u32;
+        segment.generated.end += 3 * insertions
+            .iter()
+            .filter(|position| **position < segment.generated.end as usize)
+            .count() as u32;
+    }
+    (generated, segments)
 }
 
 #[cfg(test)]

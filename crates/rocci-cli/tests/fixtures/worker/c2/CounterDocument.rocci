@@ -1,0 +1,99 @@
+import LiveCounterUi
+import Datastar
+
+@component
+CounterPage = |{ count, clicks, remote ?? False }|
+    <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Live counter</title>
+            @if remote {
+                <script type="module" src="/assets/remote.js"></script>
+            }
+            <script type="module" src="/assets/datastar.js"></script>
+        </head>
+        <body data-init={if remote { Datastar.get_with("sse", [OpenWhenHidden(True), Retry(Always)]) } else { Datastar.get_with("/sse", [OpenWhenHidden(True)]) }}>
+            <main>
+                <nav>
+                    <strong>Rocci</strong>
+                    <span>Starter app</span>
+                </nav>
+                <header>
+                    <h1>Live counter</h1>
+                    <p class="lede">Two browsers share one SQLite count and recent click origins over an explicit stream. Commands return no representation; GET /sse morphs the count and feed in every tab. Reset is optional on the island.</p>
+                </header>
+                <LiveCounterUi.CounterIsland
+                    count={count}
+                    clicks={clicks}
+                    show_reset={True}
+                    remote={remote}
+                />
+                @if remote {
+                    <p id="command-status" role="status" aria-live="polite"></p>
+                }
+                <footer>The count is stored in SQLite and shared by every visitor.</footer>
+            </main>
+        </body>
+    </html>
+
+@fixture{target: CounterPage}
+counterPageTest = { count: 3.I64, clicks: LiveCounterUi.empty_clicks }
+
+@css {
+    * { box-sizing: border-box; }
+    body {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        color: #f3f7f5;
+        margin: 0;
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
+            linear-gradient(145deg, #0a1713, #07110e);
+        --accent: #48eda4;
+        --ink: #f8fffb;
+        --muted: #8da39a;
+        --line: rgba(109, 236, 177, 0.2);
+        --surface: rgba(11, 30, 24, 0.72);
+        --canvas: #06100c;
+    }
+    main {
+        width: min(40rem, calc(100% - 2rem));
+        margin: 0 auto;
+        padding: 2.5rem 0 4rem;
+    }
+    nav {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 2.5rem;
+        color: #8da39a;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    nav strong {
+        color: #48eda4;
+        font-size: 1.1rem;
+        letter-spacing: 0.16em;
+    }
+    h1 {
+        margin: 0 0 0.6rem;
+        font-size: 2.4rem;
+        letter-spacing: -0.04em;
+        line-height: 1.1;
+    }
+    .lede {
+        margin: 0;
+        max-width: 32rem;
+        color: #a8bbb3;
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+    footer {
+        margin-top: 3rem;
+        color: #6f857c;
+        font-size: 0.85rem;
+    }
+}

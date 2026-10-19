@@ -114,3 +114,9 @@ uv run rocci-ops install cursor
 `--extensions-dir` pointed at `~/.cursor/extensions`.
 
 Path settings, F5, and `rocci.tools.channel` override the download as described in [Tool resolution](#tool-resolution).
+Worker compiler semantic features require a trusted workspace. VS Code passes
+its workspace trust state to the Roc child; restart the LSP after granting
+trust. Other clients can set `initializationOptions.trustedWorkspace = true`
+for an explicitly trusted project, or set `ROCCI_LSP_TRUSTED_WORKSPACE=1` in
+the server environment. The default preserves restricted semantic behavior.
+Host syntax analysis remains available without compiler trust.

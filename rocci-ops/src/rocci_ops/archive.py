@@ -211,6 +211,8 @@ def collect_release_artifacts(artifact_dir: Path) -> list[Path]:
         sorted(artifact_dir.glob("*.tar.gz"))
         + sorted(artifact_dir.glob("*.tar.zst"))
         + sorted(artifact_dir.glob("*.sha256"))
+        + sorted(artifact_dir.glob("rocci-worker-host.a"))
+        + sorted(artifact_dir.glob("rocci-worker-platform.json"))
     )
     if not artifacts:
         raise SystemExit(f"no release artifacts in {artifact_dir}")

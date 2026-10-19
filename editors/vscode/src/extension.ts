@@ -186,6 +186,7 @@ async function startClient(context: ExtensionContext) {
   }
 
   const clientOptions: LanguageClientOptions = {
+    initializationOptions: { trustedWorkspace: workspace.isTrusted },
     documentSelector: [
       { language: 'rocci' },
       { pattern: '**/*.rocci' },

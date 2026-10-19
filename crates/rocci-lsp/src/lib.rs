@@ -49,7 +49,8 @@ pub use regions::{
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use roc_backend::{
-    ChildRocBackend, FakeRocBackend, NullRocBackend, PROJECTION_PLACEHOLDER_URI, RocBackend,
+    ChildRocBackend, FakeRocBackend, NullRocBackend, PROJECTION_PLACEHOLDER_URI,
+    ProfiledRocBackend, RocBackend,
 };
 pub use tokens::{
     MOD_DECLARATION, MOD_DEFAULT_LIBRARY, MOD_DOCUMENTATION, MOD_READONLY, TOKEN_COMMENT,
@@ -424,6 +425,15 @@ impl LanguageServer {
         } else {
             type_name_from_path(std::path::Path::new(path_for_type))
         };
+        #[cfg(not(target_arch = "wasm32"))]
+        let adjusted = crate::projection_workspace::source_dir(uri, analysis.source_name())
+            .and_then(|dir| crate::projection_workspace::worker_root(&dir))
+            .map(|_| crate::projection_workspace::worker_module(roc, segments));
+        #[cfg(not(target_arch = "wasm32"))]
+        let (roc, segments) = adjusted
+            .as_ref()
+            .map(|(roc, segments)| (roc.as_str(), segments.as_slice()))
+            .unwrap_or((roc, segments));
         let projection = project_type_module(roc, segments, &type_name);
         let Ok(mut roc_state) = self.roc.lock() else {
             return;
@@ -532,6 +542,9 @@ impl LanguageServer {
         let encoding = self.encoding;
         raw.into_iter()
             .filter_map(|diagnostic| {
+                if diagnostic.source.as_deref() == Some("rocci-worker") {
+                    return Some(diagnostic);
+                }
                 remap_roc_diagnostic(
                     source_name,
                     source_text,

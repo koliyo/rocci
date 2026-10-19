@@ -137,3 +137,30 @@ Key is `[development]`, not `[dev]`.
 `ROCCI_CONFIG` overrides the config path. `rocci validate` is the check
 command.
 
+
+## Worker preview profile
+
+```toml
+[app]
+entry = "Counter.rocci"
+
+[worker]
+provider = "cloudflare"
+execution = "durable-object"
+binding = "APP"
+object_key = "counter"
+
+[worker.sqlite]
+path = "./counter.db"
+storage = "object"
+aliases = []
+```
+
+The object key is explicit singleton identity; the path is a logical alias to
+one managed object database. Unmapped paths fail. `execution = "stateless"`
+requires no binding/key/SQLite fields. No dummy window or local listener is
+required. Wrangler owns class names, migrations, routes, secrets and namespace
+identity. Builds validate their relationship and never rewrite migrations.
+`custom_entry = "worker.mjs"` optionally selects an authored provider adapter;
+Wrangler main must match. The default is generated `.rocci/worker/index.mjs`.
+Compatibility date 2026-10-19 is qualified; changes require conformance.

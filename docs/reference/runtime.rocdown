@@ -91,3 +91,38 @@ checks. `pf.Stderr.line!` is teed to the CLI and Dev Console under
 Environment: `ROC_BASIC_WEBSERVER_PORT`, `ROC_BASIC_WEBSERVER_HOST`
 (container override; not a `rocci.toml` field), `DB_PATH` in examples,
 `ROCCI_CONFIG`.
+
+## Ordinary Worker handler preview
+
+`rocci worker build` compiles ordinary effectful handlers using a separate
+core-Wasm platform. HTML, contexts, SQL codecs, components and route policy
+reuse the native path. This workflow requires no Actor extraction or app JS.
+Its compiler pin is separate from native `.roc-version`.
+
+The initial Cloudflare profile offers singleton object SQL with exact I64,
+explicit transactions, bounded body reads, bounded outbound HTTP and polling
+SSE. Finite fragments, empty commands and live GETs retain their separate
+roles. Commit and published events await the provider durability barrier.
+Transaction handles roll back on final-reference drop. Fetch, body and timer
+effects are rejected inside an open transaction. No arbitrary command retry
+or exactly once external-effect guarantee is added.
+
+Limits are 32 queued invocations, 1,024 resources, 128 streams, 1 MiB request
+bodies/SQL materialization/SSE events, 256 KiB fetch responses and 30-second
+async deadlines. Use `Http.send_with!` with an explicit response bound; native
+8 MiB HTTP defaults fail. SQL accepts one named-parameter statement and default
+open/query options; no ATTACH, raw transaction SQL or duplicate result columns.
+Metadata validation happens at execution. Reachable native OS effects fail
+compilation. Provider owns listen/lifecycle settings; native Server socket,
+pool and shutdown settings do not control managed hosting. Traps/cancellation
+discard the generation; an unsettled continuation cannot be reused.
+
+Actual hosted JSPI qualification and local C0/C1/C2 conformance are recorded
+separately from release publication. See the
+[Worker guide](/docs/applications/workers/) and the platform README for the
+current capability boundary.
+
+Finite responses are bounded to 1 MiB. Request targets are bounded to 8 KiB,
+headers to 32 KiB and 100 fields. Smaller native Server body/header/target/SSE
+limits are honored; incompatible larger limits fail initialization. Provider
+listener and pool settings retain the deployment semantics described above.

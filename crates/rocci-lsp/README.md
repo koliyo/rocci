@@ -121,3 +121,23 @@ cargo test -p rocci-lsp --test perf --release -- --nocapture --ignored
 ## Third-Party Licenses
 
 Vendored Tree-sitter grammars and query adaptations are documented in [`THIRD_PARTY_LICENSES.md`](../../THIRD_PARTY_LICENSES.md).
+
+### Worker editor profile
+
+The product server routes projections per application to independent native
+or Worker compiler children. The nearest `rocci.toml` selects `[worker]`.
+Worker projections embed the same compatible platform sources as CLI builds,
+rewrite runtime imports with adjusted source maps, and use the exact compiler
+recorded locally by `rocci worker build` in `.rocci/worker-editor.json`.
+`ROCCI_WORKER_ROC` overrides that path but must match the qualified pin. The
+editor never silently falls back to the native compiler for a Worker app.
+Run the first Worker build after installing/upgrading the CLI; unavailable
+profiles produce an application diagnostic. Native compiler resolution remains
+`ROCCI_ROC_PATH`, then PATH. Mixed native/Worker projects can share one server.
+
+Worker compiler semantic features require a trusted workspace. VS Code passes
+its workspace trust state to the Roc child; restart the LSP after granting
+trust. Other clients can set `initializationOptions.trustedWorkspace = true`
+for an explicitly trusted project, or set `ROCCI_LSP_TRUSTED_WORKSPACE=1` in
+the server environment. The default preserves restricted semantic behavior.
+Host syntax analysis remains available without compiler trust.

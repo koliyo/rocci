@@ -34,4 +34,5 @@ ship an app. Stop at templates if you only preview components.
     :link-card[href: "/docs/applications/custom/", title: "Custom", summary: "Own main.roc. Notes first; Datastar gallery; Snake is an advanced demo."]
     :link-card[href: "/docs/applications/tooling/", title: "Workflow", summary: "run, show, inspect, then editors and rocci-ops."]
     :link-card[href: "/docs/applications/package/", title: "Package", summary: "Validate, release server, ad-hoc macOS app."]
+    :link-card[href: "/docs/applications/workers/", title: "Worker preview", summary: "Ordinary handlers, generated Wasm hosting and Wrangler."]
 :card-grid.end

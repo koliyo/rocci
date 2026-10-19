@@ -1,0 +1,9 @@
+[app]
+entry = "main.roc"
+
+[worker]
+provider = "cloudflare"
+execution = "stateless"
+
+[assets]
+datastar = false

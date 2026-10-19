@@ -16,6 +16,7 @@ members = [
     "crates/rocci-ui",
     "crates/rocci-roc-host",
     "crates/rocci-platform",
+    "crates/rocci-worker-platform",
     "crates/rocci-wasi-http",
     "crates/rocci-wasi-http-component",
     "crates/rocci-datastar",
@@ -39,6 +40,7 @@ rocci-wasi-http = { path = "crates/rocci-wasi-http", default-features = false }
 rocci-wasi-http-component = { path = "crates/rocci-wasi-http-component" }
 rocci-datastar = { path = "crates/rocci-datastar", default-features = false }
 rocci-core = { path = "crates/rocci-core" }
+rocci-worker-platform = { path = "crates/rocci-worker-platform" }
 rocci-docs = { path = "crates/rocci-docs" }
 rocci-desktop = { path = "crates/rocci-desktop" }
 h35-desktop = { git = "https://github.com/koliyo/h35-desktop", rev = "85676e88eea8166bda717819092359140fb0ef66" }

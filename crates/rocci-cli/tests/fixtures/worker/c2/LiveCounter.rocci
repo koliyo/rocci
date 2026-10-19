@@ -1,0 +1,142 @@
+import pf.Env
+import pf.Path
+import pf.Sqlite
+import Origin
+import LiveCounterUi
+import CounterDocument
+import CounterCore
+
+## SQLite handle opened in `@init`. Shared with `@get:live` and commands.
+@context { db : Sqlite.Db }
+
+## Open or create `counter.db` (`DB_PATH` override). Failure exits the process.
+@init {
+    db_path =
+        match Env.var!("DB_PATH") {
+            Ok(path) => Path.from_os_str(path)
+            Err(_) => Path.utf8("./counter.db")
+        }
+    db = Sqlite.open!(Sqlite.default_config(db_path))?
+    Sqlite.execute!(
+        {
+            db,
+            query: "CREATE TABLE IF NOT EXISTS counter (id INTEGER PRIMARY KEY, value INTEGER NOT NULL)",
+            params: {},
+        },
+    )?
+    Sqlite.execute!(
+        {
+            db,
+            query: "INSERT OR IGNORE INTO counter (id, value) VALUES (1, 0)",
+            params: {},
+        },
+    )?
+    ensure_clicks!(db)?
+    tx = Sqlite.begin!(db, Immediate)?
+    columns : { n : I64 }
+    columns = tx.query!({ query: "SELECT COUNT(*) AS n FROM pragma_table_info('counter') WHERE name='revision'", params: {}, limits: Sqlite.default_query_limits })?
+    if columns.n == 0 {
+        tx.execute!({ query: "ALTER TABLE counter ADD COLUMN revision INTEGER NOT NULL DEFAULT 0", params: {} })?
+        tx.execute!({ query: "UPDATE counter SET revision=MAX(value,(SELECT COALESCE(MAX(id),0) FROM clicks)) WHERE id=1", params: {} })?
+    }
+    tx.commit!()?
+    { db: db }
+}
+
+## Read count and feed from one SQLite snapshot, then render explicit values.
+@get:view("/") = |{ db }| {
+    view = read_view!(db)?
+    CounterDocument.counterPage({ count: view.count, clicks: view.clicks, remote: False })
+}
+
+@get:live("/sse") = |{ db }| {
+    view = read_view!(db)?
+    LiveCounterUi.liveSlice(view)
+}
+
+## The native transport stays compatible with existing Datastar/island callers.
+@post:command("/actions/counter/increment") = |{ db }, request| {
+    body = match request.body().with_limit(8 * 1024).read_all!() {
+        Ok(bytes) => Str.from_utf8_lossy(bytes)
+        Err(_) => ""
+    }
+    mutate!(db, Increment({ origin: Origin.signal_str(body, "origin"), tz: Origin.signal_str(body, "tz") }))?
+    {}
+}
+
+@post:command("/actions/counter/reset") = |{ db }| {
+    mutate!(db, Reset)?
+    {}
+}
+
+clicks_ddl = "id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, tz TEXT NOT NULL, country TEXT NOT NULL, city TEXT NOT NULL, region TEXT NOT NULL, chosen INTEGER NOT NULL DEFAULT 0"
+
+ensure_clicks! = |db| {
+    create = "CREATE TABLE IF NOT EXISTS clicks (${clicks_ddl})"
+    Sqlite.execute!({ db, query: create, params: {} })?
+    row : { sql : Str }
+    row = Sqlite.query!(
+        {
+            db,
+            query: "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'clicks'",
+            params: {},
+            limits: Sqlite.default_query_limits,
+        },
+    )?
+    if Str.contains(row.sql, "chosen INTEGER") {
+        Ok({})
+    } else {
+        Sqlite.execute!({ db, query: "DROP TABLE IF EXISTS clicks", params: {} })?
+        Sqlite.execute!({ db, query: create, params: {} })?
+        Ok({})
+    }
+}
+
+read_state! = |tx| {
+    row : { value : I64, revision : I64 }
+    row = tx.query!({ query: "SELECT value,revision FROM counter WHERE id=1", params: {}, limits: Sqlite.default_query_limits })?
+    rows : List({ seq : I64, ts : I64, tz : Str, chosen : I64 })
+    rows = tx.query_many!({ query: "SELECT id AS seq,ts,tz,chosen FROM clicks ORDER BY id DESC LIMIT 50", params: {}, limits: Sqlite.default_query_limits })?
+    state : CounterCore.State
+    state = { count: row.value, revision: row.revision, clicks: List.map(rows, |r| { seq: r.seq, ts: r.ts, tz: r.tz, chosen: r.chosen != 0 }) }
+    Ok(state)
+}
+
+now_secs! = |tx| {
+    row : { now : I64 }
+    row = tx.query!({ query: "SELECT CAST(strftime('%s','now') AS INTEGER) AS now", params: {}, limits: Sqlite.default_query_limits })?
+    Ok(row.now)
+}
+
+read_view! = |db| {
+    tx = Sqlite.begin!(db, Deferred)?
+    state = read_state!(tx)?
+    now = now_secs!(tx)?
+    tx.commit!()?
+    Ok(CounterCore.view(state, now))
+}
+
+## Immediate transaction serializes read/decide/write; failed commands roll back.
+mutate! = |db, command| {
+    tx = Sqlite.begin!(db, Immediate) ? |err| ServerErr(Str.inspect(err))
+    previous = read_state!(tx) ? |err| ServerErr(Str.inspect(err))
+    now = now_secs!(tx) ? |err| ServerErr(Str.inspect(err))
+    next = CounterCore.decide(previous, command, now) ? |_err| ServerErr("Counter integer capacity reached")
+    tx.execute!({ query: "UPDATE counter SET value=:count,revision=:revision WHERE id=1", params: { count: next.count, revision: next.revision } }) ? |err| ServerErr(Str.inspect(err))
+    match command {
+        Reset => {}
+        Increment(_) => {
+            click = List.first(next.clicks) ? |_err| ServerErr("Missing accepted click")
+            place = Origin.lookup(click.tz)
+            tx.execute!({
+                query: "INSERT INTO clicks (id,ts,tz,country,city,region,chosen) VALUES (:id,:ts,:tz,:country,:city,:region,:chosen)",
+                params: { id: click.seq, ts: click.ts, tz: click.tz, country: place.country, city: place.city, region: place.region, chosen: if click.chosen { 1.I64 } else { 0.I64 } },
+            }) ? |err| ServerErr(Str.inspect(err))
+            tx.execute!({ query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 50)", params: {} }) ? |err| ServerErr(Str.inspect(err))
+        }
+    }
+    tx.commit!() ? |err| ServerErr(Str.inspect(err))
+    Ok({})
+}
+
+counterPage = |view| CounterDocument.counterPage({ count: view.count, clicks: view.clicks, remote: False })

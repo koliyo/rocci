@@ -22,6 +22,7 @@ pub(crate) mod runtime_assets;
 pub mod serve;
 pub mod style;
 pub mod view;
+pub mod worker;
 
 pub use playground_html::render_file;
 

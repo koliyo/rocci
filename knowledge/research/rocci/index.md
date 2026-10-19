@@ -2,6 +2,10 @@
 
 Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 
+* [Rocci architecture changes for portable applications](worker-packaging-and-source-portability.md) - Research follow-up to the Worker plan: shared application model, portable app/role contract, named resources, scoped ownership, lifecycle/concurrency, explicit live-view semantics, pure type sharing and compiler/effect alternatives. Each option includes costs, compatibility boundaries and bounded experiments; invasive changes are not planned prerequisites for unchanged Counter.
+
+* [celld alternatives for Roc and Rocci hosting](celld-runtime-alternatives.md) - Pinned celld source and local celld/workerd probes; shared JSPI effect suspension, internal native-engine seams, replication-only and container alternatives. Exploratory; full effect ABI and distributed recovery unproven.
+
 * [Portable Rocci backends on Durable Objects and actor platforms](portable-actor-backends.md) - Current native/WASI evidence; Cloudflare and beta celld execution, storage, SSE and recovery; native Rivet and Restate alternatives; proposed portable domain/host contract and conformance experiments. October 19 snapshot includes announced celld/workerd convergence. Exploratory; no adapter implemented.
 
 * [Roc nightly September 18 compatibility and opportunities](roc-nightly-2026-09-18.md) - Local macOS validation versus September 3: explicit Wasm export repair; suites pass; direct and annotated nominal defaults, indexed iterators, and automatic dev object caching verified. Styling and blocks still fail on both compilers. Linux/backend-policy changes remain unverified.

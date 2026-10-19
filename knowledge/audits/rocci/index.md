@@ -2,6 +2,8 @@
 
 Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 
+* [Worker packaging and Rocci source portability](worker-packaging-and-source-portability.md) - File-level actor POC inventory, why the counter changed, Wrangler's existing role, and the platform work for largely unchanged Rocci handlers. Source review; recommendations exploratory and no new implementation started.
+
 * [Rocci-as-platform post-mortem](rocci-as-roc-platform-postmortem.md) - First-cut platform cutover bought `pf` ownership of Datastar/Html, not a new Snake authoring API. Authored apps changed pin plus imports; `respond!` stayed. Native-compiler vision is pure templates in a normal Roc app with no rocci CLI; `pf.Html` is not that path. Pair: [package Rocci as a Roc platform](/plans/rocci/rocci-as-roc-platform.md). Descriptive; do not log complete until CI and Knowledge succeed.
 * [Rocci implementation structure review](implementation-structure.md) - Crate-level product boundaries are sound; `plan.rs` and other mixed-concern files are the debt. Pair: [split oversized modules](/plans/rocci/implementation-structure.md). Descriptive; no phase started.
 * [Standalone falling-block post-mortem](standalone-falling-block-postmortem.md) - Custom arena versus shipped nested standalone Blocks: play-feel, handler-only modules, gravity-in-live, quoted keydown, origin removal, and what must stay custom.

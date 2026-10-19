@@ -27,6 +27,8 @@ pub struct Config {
     pub development: DevelopmentConfig,
     #[serde(default)]
     pub bundle: BundleConfig,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub worker: Option<crate::WorkerConfig>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -202,6 +204,7 @@ impl Default for Config {
             assets: AssetConfig::default(),
             development: DevelopmentConfig::default(),
             bundle: BundleConfig::default(),
+            worker: None,
         }
     }
 }
@@ -301,17 +304,46 @@ impl Config {
     }
 
     pub fn validate(&self) -> Result<()> {
+        self.validate_profile(false)
+    }
+
+    pub fn from_toml_worker(source: &str) -> Result<Self> {
+        let config: Self = toml::from_str(source).map_err(Error::config)?;
+        config.validate_profile(true)?;
+        Ok(config)
+    }
+
+    fn validate_profile(&self, worker: bool) -> Result<()> {
         if self.app.name.trim().is_empty() {
             return Err(Error::config("app.name must not be empty"));
         }
         validate_identifier(&self.app.identifier)?;
         validate_app_entry(self.app.entry.as_deref())?;
-        if self.windows.is_empty() {
+        if let Some(profile) = &self.worker {
+            profile.validate()?;
+        }
+        if worker && self.worker.is_none() {
+            return Err(Error::config("rocci worker requires a [worker] profile"));
+        }
+        if worker
+            && let Some(directory) = &self.assets.directory
+            && directory.components().any(|part| {
+                !matches!(
+                    part,
+                    std::path::Component::Normal(_) | std::path::Component::CurDir
+                )
+            })
+        {
+            return Err(Error::config(
+                "Worker assets.directory must stay under the application root",
+            ));
+        }
+        if !worker && self.windows.is_empty() {
             return Err(Error::config("at least one [[windows]] entry is required"));
         }
 
         let mut labels = Vec::new();
-        for window in &self.windows {
+        for window in self.windows.iter().filter(|_| !worker) {
             validate_window(window)?;
             if labels.iter().any(|label| label == &window.label) {
                 return Err(Error::config(format!(
@@ -322,7 +354,7 @@ impl Config {
             labels.push(window.label.clone());
         }
 
-        if !is_loopback_host(&self.http.host) {
+        if !worker && !is_loopback_host(&self.http.host) {
             return Err(Error::config(
                 "http.host must be a loopback address (127.0.0.1 or localhost)",
             ));

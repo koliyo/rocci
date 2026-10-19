@@ -159,6 +159,9 @@ pub struct ChildRocBackend {
 
 impl ChildRocBackend {
     pub fn spawn(roc_path: &str) -> Result<Self, String> {
+        Self::spawn_with_trust(roc_path, false)
+    }
+    pub fn spawn_with_trust(roc_path: &str, trusted: bool) -> Result<Self, String> {
         let mut child = Command::new(roc_path)
             .args(["experimental-lsp", "--stdio"])
             .stdin(Stdio::piped())
@@ -207,7 +210,7 @@ impl ChildRocBackend {
             opened: HashMap::new(),
             diagnostics: HashMap::new(),
         };
-        backend.initialize()?;
+        backend.initialize(trusted)?;
         Ok(backend)
     }
 
@@ -220,9 +223,10 @@ impl ChildRocBackend {
         &self.roc_path
     }
 
-    fn initialize(&mut self) -> Result<(), String> {
+    fn initialize(&mut self, trusted: bool) -> Result<(), String> {
         let params = InitializeParams {
             process_id: Some(std::process::id()),
+            initialization_options: Some(serde_json::json!({"trustedWorkspace":trusted})),
             capabilities: ClientCapabilities {
                 general: Some(GeneralClientCapabilities {
                     position_encodings: Some(vec![PositionEncodingKind::UTF16]),
@@ -574,13 +578,153 @@ fn file_uri(path: &Path) -> Result<Uri, String> {
                 .join(path)
         }
     });
-    let mut raw = abs.to_string_lossy().replace('\\', "/");
-    if !raw.starts_with('/') {
-        raw.insert(0, '/');
-    }
-    format!("file://{raw}")
+    url::Url::from_file_path(abs)
+        .map_err(|_| "projection path cannot be represented as a file URL".to_string())?
+        .as_str()
         .parse()
         .map_err(|err| format!("projection uri: {err}"))
+}
+
+/// Route each generated workspace to its own qualified compiler profile.
+/// Native and Worker projects can be open in the same editor process.
+#[derive(Default)]
+pub struct ProfiledRocBackend {
+    trusted: bool,
+    unavailable_native: std::collections::HashSet<String>,
+    children: HashMap<String, ChildRocBackend>,
+    paths: HashMap<PathBuf, String>,
+    errors: HashMap<PathBuf, String>,
+}
+impl ProfiledRocBackend {
+    pub fn new(trusted: bool) -> Self {
+        Self {
+            trusted,
+            ..Self::default()
+        }
+    }
+    fn selected(&mut self, path: &Path) -> Option<&mut ChildRocBackend> {
+        let key = self.paths.get(path)?;
+        self.children.get_mut(key)
+    }
+    fn compiler(&self, path: &Path) -> Result<String, String> {
+        let marker = path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .join("worker-profile.json");
+        if !marker.is_file() {
+            return Ok(std::env::var("ROCCI_ROC_PATH").unwrap_or_else(|_| "roc".into()));
+        }
+        let profile: Value =
+            serde_json::from_slice(&std::fs::read(marker).map_err(|err| err.to_string())?)
+                .map_err(|err| err.to_string())?;
+        let compiler=std::env::var("ROCCI_WORKER_ROC").ok().or_else(||profile["compiler"].as_str().map(str::to_owned)).ok_or("Run rocci worker build once or set ROCCI_WORKER_ROC to install the qualified Worker compiler")?;
+        if self.children.contains_key(&compiler) {
+            return Ok(compiler);
+        }
+        let version = Command::new(&compiler)
+            .arg("version")
+            .output()
+            .map_err(|err| err.to_string())?;
+        if !version.status.success()
+            || String::from_utf8_lossy(&version.stdout).trim()
+                != format!(
+                    "Roc compiler version {}",
+                    rocci_worker_platform::COMPILER_VERSION
+                )
+        {
+            return Err(format!(
+                "Worker editor requires {}",
+                rocci_worker_platform::COMPILER_VERSION
+            ));
+        }
+        if std::env::var_os("ROCCI_WORKER_ROC").is_none()
+            && let Some(expected) = profile["sha256"].as_str()
+        {
+            use sha2::{Digest, Sha256};
+            let bytes = std::fs::read(&compiler).map_err(|err| err.to_string())?;
+            let actual: String = Sha256::digest(bytes)
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            if actual != expected {
+                return Err(
+                    "Worker editor compiler checksum changed; rebuild to review the toolchain"
+                        .into(),
+                );
+            }
+        }
+        Ok(compiler)
+    }
+}
+impl RocBackend for ProfiledRocBackend {
+    fn sync_projection(&mut self, path: &Path, text: &str) -> Result<(), String> {
+        self.errors.remove(path);
+        self.paths.remove(path);
+        let worker = path
+            .parent()
+            .is_some_and(|directory| directory.join("worker-profile.json").is_file());
+        let result = (|| {
+            let compiler = self.compiler(path)?;
+            if !worker && self.unavailable_native.contains(&compiler) {
+                return Ok(());
+            }
+            if !self.children.contains_key(&compiler) {
+                match ChildRocBackend::spawn_with_trust(&compiler, self.trusted) {
+                    Ok(child) => {
+                        self.children.insert(compiler.clone(), child);
+                    }
+                    Err(error) if !worker => {
+                        crate::log::always(format!(
+                            "optional native compiler unavailable: {error}"
+                        ));
+                        self.unavailable_native.insert(compiler);
+                        return Ok(());
+                    }
+                    Err(error) => return Err(error),
+                }
+            }
+            self.paths.insert(path.to_path_buf(), compiler.clone());
+            self.children
+                .get_mut(&compiler)
+                .unwrap()
+                .sync_projection(path, text)
+        })();
+        if worker && let Err(error) = &result {
+            self.errors.insert(path.to_path_buf(), error.clone());
+        }
+        result
+    }
+    fn hover(&mut self, path: &Path, position: Position) -> Option<Hover> {
+        self.selected(path)?.hover(path, position)
+    }
+    fn diagnostics(&mut self, path: &Path) -> Vec<Diagnostic> {
+        if let Some(error) = self.errors.get(path) {
+            return vec![Diagnostic {
+                range: lsp_types::Range::default(),
+                severity: Some(lsp_types::DiagnosticSeverity::ERROR),
+                source: Some("rocci-worker".into()),
+                message: error.clone(),
+                ..Diagnostic::default()
+            }];
+        }
+        self.selected(path)
+            .map(|backend| backend.diagnostics(path))
+            .unwrap_or_default()
+    }
+    fn completion(&mut self, path: &Path, position: Position) -> Option<CompletionResponse> {
+        self.selected(path)?.completion(path, position)
+    }
+    fn definition(&mut self, path: &Path, position: Position) -> Option<GotoDefinitionResponse> {
+        self.selected(path)?.definition(path, position)
+    }
+    fn references(
+        &mut self,
+        path: &Path,
+        position: Position,
+        include: bool,
+    ) -> Option<Vec<Location>> {
+        self.selected(path)?.references(path, position, include)
+    }
 }
 
 #[cfg(test)]

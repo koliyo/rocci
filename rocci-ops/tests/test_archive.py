@@ -125,7 +125,9 @@ def test_collect_release_artifacts_includes_platform_tar_zst(tmp_path) -> None:
     (tmp_path / "rocci-dev-linux.tar.gz.sha256").write_text("abc  rocci-dev-linux.tar.gz\n")
     (tmp_path / "rocci-platform.tar.zst").write_bytes(b"pf")
     (tmp_path / "rocci-platform.tar.zst.sha256").write_text("def  rocci-platform.tar.zst\n")
+    (tmp_path / "rocci-worker-host.a").write_bytes(b"worker")
     names = [path.name for path in collect_release_artifacts(tmp_path)]
+    assert "rocci-worker-host.a" in names
     assert "rocci-platform.tar.zst" in names
     assert "rocci-dev-linux.tar.gz" in names
     assert "rocci-platform.tar.zst.sha256" in names
