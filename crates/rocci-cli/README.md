@@ -2,6 +2,13 @@
 
 Command-line interface and development driver for `.rocci` templates, Roc applications, desktop bundling, and Datastar asset management.
 
+The private `actor_inputs` Cargo example stages shared pure live-counter
+components and extracted CSS for the experimental Cloudflare actor adapter
+in `examples/rocci/remote/live-counter`. Its runbook owns build/deploy and
+the separate Roc/Wasm pin. It is not a `rocci build` target. The existing
+native app and site island share `CounterCore.roc` and keep their routes;
+native counter/feed reads and mutations now use SQLite transactions.
+
 ## Binary
 
 Executable name: `rocci`

@@ -6,6 +6,14 @@ conflicting. Add a new list item; do not reword another session's bullet in
 the same change. In-place edits of the same line can still duplicate. Details:
 [knowledge log concurrency](research/okf/knowledge-log-concurrency.md).
 
+## 2026-10-19
+
+- Recorded [private durable-actor implementation results](status/portable-actor-backends.md): shared Roc/native control, independent core Wasm, transactional receipts, bounded SSE and owner-only Cloudflare staging with local and hosted browser evidence. Corrected the inference from a permission-filtered empty Access list; the owner's existing hostname/AUD/email policy was valid. Hosted recovery and required CI/Knowledge gates remain explicit; no phase-completion claim.
+
+- Filed draft [remote Rocci durable-backend POC plan](plans/rocci/portable-actor-backends.md) after owner interview: existing live-counter, real Roc/Rocci core Wasm inside Cloudflare Durable Objects, private owner-only staging, persistence and two-browser SSE; small host recommended with unchanged-handler requirements specified. celld and desktop are later gates. Includes atomic receipts, ABI stop criteria, deployment/restore, and measured acceptance; no implementation phase started or deployment attempted.
+
+- Filed draft [portable Rocci backends on Durable Objects and actor platforms](research/rocci/portable-actor-backends.md), grounded in current native/WASI code and primary platform documentation. Compares Cloudflare, beta celld, Rivet, Restate, Dapr, and wasmCloud; distinguishes actor identity, durability, concurrency, and SSE economics. Includes the October 9 celld/workerd convergence announcement. Exploratory recommendations only; no adapter implemented or deployment tested.
+
 ## 2026-09-30
 
 - Refined the draft [Roc operator pipeline plan](plans/ops/rocci-ops-roc-pipeline.md) to preserve existing rocci-ops CLI dispatch, step-data plans, and workflow structure. Added an explicit comparison with roc-pandoc and the implications of task apps, compiler separation, effects APIs, concurrency, and release gates; extra entry apps, dual pins, and shared bootstrap jobs are no longer migration requirements. All phases remain planned.

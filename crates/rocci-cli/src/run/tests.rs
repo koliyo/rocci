@@ -61,9 +61,13 @@ fn live_counter_http_module_plan_links_extracted_css() {
     assert!(css.contains("counter-card"), "{css}");
     assert!(css.contains("min-height: 100vh"), "{css}");
     assert!(
-        plan.modules[0].roc.contains(EXTRACTED_STYLESHEET_HREF),
-        "{}",
-        plan.modules[0].roc
+        plan.modules
+            .iter()
+            .find(|module| module.type_name == "CounterDocument")
+            .expect("shared document module")
+            .roc
+            .contains(EXTRACTED_STYLESHEET_HREF),
+        "shared document must link extracted CSS"
     );
     let ui = plan
         .modules

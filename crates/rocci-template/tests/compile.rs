@@ -2106,8 +2106,11 @@ fn live_counter_example_compiles_with_singleton_live_path() {
     let out = compile_ok(src);
     assert_eq!(out.lives.len(), 1);
     assert_eq!(out.lives[0].path, "/sse");
-    assert!(out.roc.contains("data-init"));
-    assert!(out.roc.contains("/sse"));
+    let document = compile_ok(include_str!(
+        "../../../examples/rocci/standalone/live-counter/CounterDocument.rocci"
+    ));
+    assert!(document.roc.contains("data-init"));
+    assert!(document.roc.contains("/sse"));
     assert!(
         out.routes
             .iter()

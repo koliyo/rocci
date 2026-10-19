@@ -2,6 +2,8 @@
 
 Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 
+* [Prove a remote Rocci backend on durable actors](portable-actor-backends.md) - Planned private Cloudflare POC using the existing live-counter: real Roc decisions and Rocci rendering in core Wasm, atomic command receipts, persistent state, two-browser SSE, and deployment/recovery. Recommends a small host; specifies the unchanged-handler alternative. celld and desktop remain later gates. Exploratory; no phase started.
+
 * [Measure scan/copy Node escape on the preview HTTP origin and Linux](html-scan-copy-host-coverage.md) - Exploration: Phases 0–2 on `main`; fold versus scan HostPage is byte-identical on `127.0.0.1`; renderer gain not visible; Linux absent. Product scan/copy stays macOS Node Html. Parent: [template preparation costs](compile-time-template-preparation.md).
 * [Replace string Html split/join escaping with scan/copy](html-string-scan-copy-escape.md) - Both ui and Rocdown `Html.roc` copies use scan/copy (no CR encoding) and stay byte-identical. Node Html stays independent. Exploratory; Phases 0–1 on `html-string-scan-copy-escape`. Parent: [theme/string escape](html-string-theme-escape.md).
 * [Decide whether theme and string Html split/join escaping deserves a kernel change](html-string-theme-escape.md) - Exploration: Phases 0–2 on `main`; painter screen passed (~21% on `siteShell`). Filed [string scan/copy](html-string-scan-copy-escape.md) (Phases 0–1 local). Parent: [template preparation costs](compile-time-template-preparation.md).

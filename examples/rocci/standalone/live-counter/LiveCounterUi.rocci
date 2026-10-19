@@ -1,4 +1,5 @@
 import Origin
+import Datastar
 
 Click : { flag : Str, place : Str, ago : Str, ts : Str, chosen : Bool }
 
@@ -136,7 +137,7 @@ CounterFeed = |{ clicks }| {
 
 ## Island fragment: count, controls (optional Reset), then feed. SSE morphs `#counter` and `#counter-feed` only.
 @component
-CounterIsland = |{ count, clicks, show_reset ?? False }| {
+CounterIsland = |{ count, clicks, show_reset ?? False, remote ?? False }| {
     @css {
         .controls {
             display: flex;
@@ -212,14 +213,14 @@ CounterIsland = |{ count, clicks, show_reset ?? False }| {
                     }
                 </select>
             </label>
-            <button type="button" data-on:click=@post("/actions/counter/increment")>
+            <button type="button" data-on:click={if remote { "window.rocciCounter.command('increment', $origin, $tz)" } else { Datastar.post("/actions/counter/increment") }}>
                 Increment
             </button>
             @if show_reset {
                 <button
                     class="secondary"
                     type="button"
-                    data-on:click=@post("/actions/counter/reset")
+                    data-on:click={if remote { "window.rocciCounter.command('reset', '', '')" } else { Datastar.post("/actions/counter/reset") }}
                 >
                     Reset
                 </button>

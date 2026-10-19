@@ -2,6 +2,8 @@
 
 Templates, handlers, runtime, desktop inspector, component generation, and falling-block.
 
+* [Portable Rocci backends on Durable Objects and actor platforms](portable-actor-backends.md) - Current native/WASI evidence; Cloudflare and beta celld execution, storage, SSE and recovery; native Rivet and Restate alternatives; proposed portable domain/host contract and conformance experiments. October 19 snapshot includes announced celld/workerd convergence. Exploratory; no adapter implemented.
+
 * [Roc nightly September 18 compatibility and opportunities](roc-nightly-2026-09-18.md) - Local macOS validation versus September 3: explicit Wasm export repair; suites pass; direct and annotated nominal defaults, indexed iterators, and automatic dev object caching verified. Styling and blocks still fail on both compilers. Linux/backend-policy changes remain unverified.
 
 * [Compile-time template preparation for Rocci](compile-time-template-preparation.md) - Investigation complete locally: preparation is not the speed win; scan/copy Node escape shipped locally on `main`; macOS HTTP origin matches with no visible renderer gain; Linux absent (keep repeating); boolean false is still an implementation follow-up; string/theme escape Phases 0–2 filed [string scan/copy](/plans/rocci/html-string-scan-copy-escape.md) (Phases 0–1 local); library deferred. Parent plan: [bounded investigation](/plans/rocci/compile-time-template-preparation.md). Exploratory.

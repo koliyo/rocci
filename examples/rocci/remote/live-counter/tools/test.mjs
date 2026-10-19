@@ -1,0 +1,13 @@
+import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { fingerprint, hash } from './fingerprint.mjs';
+import { dir } from './configure.mjs';
+import path from 'node:path';
+const before = await fingerprint();
+const files = (await readdir(path.join(dir, 'test'))).filter(f => f.endsWith('.test.mjs')).map(f => `test/${f}`);
+const result = spawnSync(process.execPath, ['--test', ...files], { cwd: dir, stdio: 'inherit' });
+if (result.status !== 0) process.exit(result.status ?? 1);
+const after = await fingerprint();
+if (hash(JSON.stringify(before)) !== hash(JSON.stringify(after))) throw new Error('Artifact changed during conformance; package and retest');
+await writeFile(path.join(dir, 'dist/tested.json'), JSON.stringify({ testedAt: new Date().toISOString(), files: after }, null, 2) + '\n');
+console.log('Recorded conformance for this exact package and asset set');

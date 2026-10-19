@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private counter verification</title>
+  <script type="module" src="/assets/verify-page.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Private counter verification</h1>
+    <p>These owner-only checks operate on the demo counter on this hostname.</p>
+    <p>The command check resets its count, accepts 102 operations, and opens two live readers.
+      Keep a second browser on <a href="/c/demo/">the counter</a> to check visible updates.</p>
+    <button id="run">Run 100-command check</button>
+    <button id="idle">Start 10-minute idle check</button>
+    <button id="manifest">Read manifest</button>
+    <p><label>Previously accepted command envelope<br>
+      <textarea id="retry-envelope" rows="5" cols="70" spellcheck="false"></textarea></label></p>
+    <button id="retry">Retry this accepted command</button>
+    <p>The command check fills this field. Save its original JSON before a deployment;
+      paste it back afterward to verify the durable receipt without changing revision.</p>
+    <h2>Recovery</h2>
+    <p>Export freezes writes. Keep the source frozen during a cutover.
+      Import only on the separate disposable restore Worker's hostname, into its empty demo counter.</p>
+    <button id="export">Download frozen export</button>
+    <button id="unfreeze">Unfreeze this demo counter</button>
+    <p><label>Saved export <input id="file" type="file" accept="application/json"></label></p>
+    <button id="restore">Import into this empty demo counter</button>
+    <h2>Result</h2>
+    <p id="status" role="status">Ready</p>
+    <pre id="result"></pre>
+  </main>
+</body>
+</html>

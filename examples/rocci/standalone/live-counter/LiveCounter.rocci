@@ -1,9 +1,10 @@
 import pf.Env
 import pf.Path
 import pf.Sqlite
-import pf.Stderr
 import Origin
 import LiveCounterUi
+import CounterDocument
+import CounterCore
 
 ## SQLite handle opened in `@init`. Shared with `@get:live` and commands.
 @context { db : Sqlite.Db }
@@ -31,79 +32,40 @@ import LiveCounterUi
         },
     )?
     ensure_clicks!(db)?
+    tx = Sqlite.begin!(db, Immediate)?
+    columns : { n : I64 }
+    columns = tx.query!({ query: "SELECT COUNT(*) AS n FROM pragma_table_info('counter') WHERE name='revision'", params: {}, limits: Sqlite.default_query_limits })?
+    if columns.n == 0 {
+        tx.execute!({ query: "ALTER TABLE counter ADD COLUMN revision INTEGER NOT NULL DEFAULT 0", params: {} })?
+        tx.execute!({ query: "UPDATE counter SET revision=MAX(value,(SELECT COALESCE(MAX(id),0) FROM clicks)) WHERE id=1", params: {} })?
+    }
+    tx.commit!()?
     { db: db }
 }
 
-## Document GET `/`. Renders the page; the live card is a separate live fragment.
+## Read count and feed from one SQLite snapshot, then render explicit values.
 @get:view("/") = |{ db }| {
-    count = read_count!(db)?
-    clicks = read_clicks!(db)?
-    counterPage({ count, clicks })
+    view = read_view!(db)?
+    CounterDocument.counterPage({ count: view.count, clicks: view.clicks, remote: False })
 }
 
-## Shared `#counter` and `#counter-feed` fragments for `GET /sse`.
 @get:live("/sse") = |{ db }| {
-    count = read_count!(db)?
-    clicks = read_clicks!(db)?
-    LiveCounterUi.liveSlice({ count, clicks })
+    view = read_view!(db)?
+    LiveCounterUi.liveSlice(view)
 }
 
-## Increment and record click origin; commands intentionally return no representation.
+## The native transport stays compatible with existing Datastar/island callers.
 @post:command("/actions/counter/increment") = |{ db }, request| {
-    body =
-        match request.body().with_limit(8 * 1024).read_all!() {
-            Ok(bytes) => Str.from_utf8_lossy(bytes)
-            Err(_) => ""
-        }
-    origin_pick = Origin.signal_str(body, "origin")
-    tz_browser = Origin.signal_str(body, "tz")
-    chosen = origin_pick != ""
-    tz =
-        match (chosen, tz_browser) {
-            (True, _) => origin_pick
-            (False, "") => "UTC"
-            (False, browser) => browser
-        }
-    place = Origin.lookup(tz)
-    now = now_secs!(db)?
-    chosen_flag : I64
-    chosen_flag = if chosen { 1.I64 } else { 0.I64 }
-    Sqlite.execute!(
-        {
-            db,
-            query: "INSERT INTO clicks (ts, tz, country, city, region, chosen) VALUES (:ts, :tz, :country, :city, :region, :chosen)",
-            params: {
-                ts: now,
-                tz: tz,
-                country: place.country,
-                city: place.city,
-                region: place.region,
-                chosen: chosen_flag,
-            },
-        },
-    )?
-    Sqlite.execute!(
-        {
-            db,
-            query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 50)",
-            params: {},
-        },
-    )?
-    count = increment_count!(db)?
-    match Stderr.line!("counter increment count=${count.to_str()}") {
-        Ok({}) => {}
-        Err(_) => {}
+    body = match request.body().with_limit(8 * 1024).read_all!() {
+        Ok(bytes) => Str.from_utf8_lossy(bytes)
+        Err(_) => ""
     }
+    mutate!(db, Increment({ origin: Origin.signal_str(body, "origin"), tz: Origin.signal_str(body, "tz") }))?
     {}
 }
 
-## Reset count to zero (keeps click history); the live stream publishes the change.
 @post:command("/actions/counter/reset") = |{ db }| {
-    count = reset_count!(db)?
-    match Stderr.line!("counter reset count=${count.to_str()}") {
-        Ok({}) => {}
-        Err(_) => {}
-    }
+    mutate!(db, Reset)?
     {}
 }
 
@@ -130,173 +92,51 @@ ensure_clicks! = |db| {
     }
 }
 
-now_secs! = |db| {
+read_state! = |tx| {
+    row : { value : I64, revision : I64 }
+    row = tx.query!({ query: "SELECT value,revision FROM counter WHERE id=1", params: {}, limits: Sqlite.default_query_limits })?
+    rows : List({ seq : I64, ts : I64, tz : Str, chosen : I64 })
+    rows = tx.query_many!({ query: "SELECT id AS seq,ts,tz,chosen FROM clicks ORDER BY id DESC LIMIT 50", params: {}, limits: Sqlite.default_query_limits })?
+    state : CounterCore.State
+    state = { count: row.value, revision: row.revision, clicks: List.map(rows, |r| { seq: r.seq, ts: r.ts, tz: r.tz, chosen: r.chosen != 0 }) }
+    Ok(state)
+}
+
+now_secs! = |tx| {
     row : { now : I64 }
-    row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT CAST(strftime('%s', 'now') AS INTEGER) AS now",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
+    row = tx.query!({ query: "SELECT CAST(strftime('%s','now') AS INTEGER) AS now", params: {}, limits: Sqlite.default_query_limits })?
     Ok(row.now)
 }
 
-read_count! = |db| {
-    row : { value : I64 }
-    row = Sqlite.query!(
-        {
-            db,
-            query: "SELECT value FROM counter WHERE id = 1",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    Ok(row.value)
+read_view! = |db| {
+    tx = Sqlite.begin!(db, Deferred)?
+    state = read_state!(tx)?
+    now = now_secs!(tx)?
+    tx.commit!()?
+    Ok(CounterCore.view(state, now))
 }
 
-read_clicks! = |db| {
-    now = now_secs!(db)?
-    rows : List({ ts : I64, tz : Str, country : Str, city : Str, region : Str, chosen : I64 })
-    rows = Sqlite.query_many!(
-        {
-            db,
-            query: "SELECT ts, tz, country, city, region, chosen FROM clicks ORDER BY id DESC LIMIT 50",
-            params: {},
-            limits: Sqlite.default_query_limits,
-        },
-    )?
-    Ok(
-        List.map(
-            rows,
-            |row| {
-                mapped = Origin.lookup(row.tz)
-                {
-                    flag: mapped.flag,
-                    place: Origin.place_label({
-                        country: row.country,
-                        city: row.city,
-                        region: row.region,
-                        flag: mapped.flag,
-                    }),
-                    ago: Origin.relative_ago(now, row.ts),
-                    ts: row.ts.to_str(),
-                    chosen: row.chosen != 0.I64,
-                }
-            },
-        ),
-    )
+## Immediate transaction serializes read/decide/write; failed commands roll back.
+mutate! = |db, command| {
+    tx = Sqlite.begin!(db, Immediate) ? |err| ServerErr(Str.inspect(err))
+    previous = read_state!(tx) ? |err| ServerErr(Str.inspect(err))
+    now = now_secs!(tx) ? |err| ServerErr(Str.inspect(err))
+    next = CounterCore.decide(previous, command, now) ? |_err| ServerErr("Counter integer capacity reached")
+    tx.execute!({ query: "UPDATE counter SET value=:count,revision=:revision WHERE id=1", params: { count: next.count, revision: next.revision } }) ? |err| ServerErr(Str.inspect(err))
+    match command {
+        Reset => {}
+        Increment(_) => {
+            click = List.first(next.clicks) ? |_err| ServerErr("Missing accepted click")
+            place = Origin.lookup(click.tz)
+            tx.execute!({
+                query: "INSERT INTO clicks (id,ts,tz,country,city,region,chosen) VALUES (:id,:ts,:tz,:country,:city,:region,:chosen)",
+                params: { id: click.seq, ts: click.ts, tz: click.tz, country: place.country, city: place.city, region: place.region, chosen: if click.chosen { 1.I64 } else { 0.I64 } },
+            }) ? |err| ServerErr(Str.inspect(err))
+            tx.execute!({ query: "DELETE FROM clicks WHERE id NOT IN (SELECT id FROM clicks ORDER BY id DESC LIMIT 50)", params: {} }) ? |err| ServerErr(Str.inspect(err))
+        }
+    }
+    tx.commit!() ? |err| ServerErr(Str.inspect(err))
+    Ok({})
 }
 
-increment_count! = |db| {
-    Sqlite.execute!(
-        {
-            db,
-            query: "UPDATE counter SET value = value + 1 WHERE id = 1",
-            params: {},
-        },
-    )?
-    read_count!(db)
-}
-
-reset_count! = |db| {
-    Sqlite.execute!(
-        {
-            db,
-            query: "UPDATE counter SET value = 0 WHERE id = 1",
-            params: {},
-        },
-    )?
-    read_count!(db)
-}
-
-@component
-CounterPage = |{ count, clicks }|
-    <html lang="en">
-        <head>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <title>Live counter</title>
-            <script type="module" src="/assets/datastar.js"></script>
-        </head>
-        <body>
-            <main>
-                <nav>
-                    <strong>Rocci</strong>
-                    <span>Starter app</span>
-                </nav>
-                <header>
-                    <h1>Live counter</h1>
-                    <p class="lede">Two browsers share one SQLite count and recent click origins over an explicit stream. Commands return no representation; GET /sse morphs the count and feed in every tab. Reset is optional on the island.</p>
-                </header>
-                <LiveCounterUi.CounterIsland
-                    count={count}
-                    clicks={clicks}
-                    show_reset={True}
-                />
-                <footer>The count is stored in SQLite and shared by every visitor.</footer>
-            </main>
-        </body>
-    </html>
-
-@fixture{target: CounterPage}
-counterPageTest = { count: 3.I64, clicks: LiveCounterUi.empty_clicks }
-
-@css {
-    * { box-sizing: border-box; }
-    body {
-        color-scheme: dark;
-        font-family: system-ui, sans-serif;
-        color: #f3f7f5;
-        margin: 0;
-        min-height: 100vh;
-        background:
-            radial-gradient(circle at 80% 0%, rgba(72, 237, 164, 0.12), transparent 24rem),
-            linear-gradient(145deg, #0a1713, #07110e);
-        --accent: #48eda4;
-        --ink: #f8fffb;
-        --muted: #8da39a;
-        --line: rgba(109, 236, 177, 0.2);
-        --surface: rgba(11, 30, 24, 0.72);
-        --canvas: #06100c;
-    }
-    main {
-        width: min(40rem, calc(100% - 2rem));
-        margin: 0 auto;
-        padding: 2.5rem 0 4rem;
-    }
-    nav {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        margin-bottom: 2.5rem;
-        color: #8da39a;
-        font-size: 0.8rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-    nav strong {
-        color: #48eda4;
-        font-size: 1.1rem;
-        letter-spacing: 0.16em;
-    }
-    h1 {
-        margin: 0 0 0.6rem;
-        font-size: 2.4rem;
-        letter-spacing: -0.04em;
-        line-height: 1.1;
-    }
-    .lede {
-        margin: 0;
-        max-width: 32rem;
-        color: #a8bbb3;
-        font-size: 1.05rem;
-        line-height: 1.55;
-    }
-    footer {
-        margin-top: 3rem;
-        color: #6f857c;
-        font-size: 0.85rem;
-    }
-}
+counterPage = |view| CounterDocument.counterPage({ count: view.count, clicks: view.clicks, remote: False })
