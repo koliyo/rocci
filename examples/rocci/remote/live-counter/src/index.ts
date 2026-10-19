@@ -185,6 +185,7 @@ export class Counter extends DurableObject<Env> {
     if (path.startsWith('operator/')) return this.operator(path.slice(9), request, owner);
     if (path === 'manifest' && request.method === 'GET') {
       return Response.json({ ...manifest, deployment: this.env.CF_VERSION_METADATA ?? null,
+        configuration: { storageSchema: this.env.STORAGE_SCHEMA },
         runtime: { wasmPages: this.roc.pages, peakArenaBytes: this.roc.peakArena, viewers: this.streams.size,
           revision: this.load().revision, schema: this.stored().schema_version,
           sql: { ...this.sqlMetrics }, streams: { ...this.streams.metrics } } }, { headers });
