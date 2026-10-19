@@ -1,7 +1,7 @@
 {
-  "recorded_at": "2026-10-19T14:48:19Z",
+  "recorded_at": "2026-10-19T14:59:33Z",
   "baseline_revision": "9b451fc34834af50fcee5d850b7d2253c9cbbd3d",
-  "scope": "Working-tree implementation qualification; CI revision recorded separately",
+  "scope": "Qualified experimental Cloudflare implementation; local/hosted measurements plus exact-revision hosted CI",
   "source_edits": [],
   "measurements": {
     "node_jspi": {
@@ -625,5 +625,288 @@
     "Whole-isolate provider memory/continuation residency and idle economics are not exhaustively measured. Node process memory is sampled and guest ARC/linear memory are measured.",
     "Windows, celld, hibernating WebSockets and multi-object transactions are unqualified.",
     "Published toolchain installation becomes available after release; local first use used the maintained host archive."
-  ]
+  ],
+  "ci": {
+    "implementation_revision": "0e1b5f311a89ba6d8c3bea52e68e5ad914c0f2c8",
+    "workflow": "https://github.com/koliyo/rocci/actions/runs/39272312080",
+    "knowledge": "https://github.com/koliyo/rocci/actions/runs/39272323897",
+    "conclusion": "success",
+    "artifact": {
+      "id": 12195979026,
+      "name": "worker-conformance",
+      "bytes": 6227960
+    },
+    "measurements": {
+      "worker-async/results.json": {
+        "scope": "Actual Roc and workerd: bounded async HTTP/body, 100 cancelled actual continuations",
+        "passed": true
+      },
+      "worker-c1/live-results.json": {
+        "fixture": "c1",
+        "scope": "Actual local workerd, unchanged effectful handlers; two HTTP SSE readers",
+        "commands": 21,
+        "reconnectedCount": 21,
+        "metrics": {
+          "liveBytes": 28300,
+          "liveAllocations": 29,
+          "memoryBytes": 26869760,
+          "resources": 4
+        }
+      },
+      "worker-c2/live-results.json": {
+        "fixture": "c2",
+        "scope": "Actual local workerd, unchanged effectful handlers; two HTTP SSE readers",
+        "commands": 21,
+        "reconnectedCount": 21,
+        "metrics": {
+          "liveBytes": 28300,
+          "liveAllocations": 29,
+          "memoryBytes": 26935296,
+          "resources": 4
+        }
+      },
+      "worker-conformance/application-profiles.json": {
+        "compiler": "nightly-2026-10-09-258ab27",
+        "scope": "Actual maintained Rust host on workerd; existing counter and async/cancellation harnesses; speed artifacts restored",
+        "results": [
+          {
+            "fixture": "c0",
+            "opt": "dev",
+            "sha256": "ff1620060dfee6447eb72cd1152ecc630f7427261315f6b5a455fe4714101a53",
+            "bytes": 1105783,
+            "passed": true
+          },
+          {
+            "fixture": "c0",
+            "opt": "size",
+            "sha256": "7607c8f0b5a4b66b74b2fac0d480b9beb63f25a1315a1d8f5b3143fb3205d088",
+            "bytes": 415156,
+            "passed": true
+          },
+          {
+            "fixture": "async",
+            "opt": "dev",
+            "sha256": "a46627cf57ab7816d5bf89c23f93e4d4f6548137fa1c2a01ef7728b9d85507a2",
+            "bytes": 867115,
+            "passed": true
+          },
+          {
+            "fixture": "async",
+            "opt": "size",
+            "sha256": "b25da371958fe075371d00bc2022c615d662edd863dfca684299049648d2d51e",
+            "bytes": 351587,
+            "passed": true
+          }
+        ]
+      },
+      "worker-conformance/applications.json": {
+        "compiler": "Roc compiler version nightly-2026-10-09-258ab27",
+        "compatibilityDate": "2026-10-19",
+        "artifacts": [
+          {
+            "fixture": "c0",
+            "sha256": "0600b8b6118fb2dd8d7b2fa259d9e676f9b6f7a2e2e2217baf7acef0fc5e7b03",
+            "bytes": 449064,
+            "imports": [
+              {
+                "module": "rocci",
+                "name": "resource_drop",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "env",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "sql",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "log",
+                "kind": "function"
+              }
+            ]
+          },
+          {
+            "fixture": "c1",
+            "sha256": "59d47d3d8fa97b14df526f996796f2cfc3e4563dc1ff2e40ce3b0729bfd190dd",
+            "bytes": 585380,
+            "imports": [
+              {
+                "module": "rocci",
+                "name": "resource_drop",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "env",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "body",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "sql",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "log",
+                "kind": "function"
+              }
+            ]
+          },
+          {
+            "fixture": "c2",
+            "sha256": "24010ac1eb47d02cadacb4af1e40de7e4a2dc6cfd95a1ce3767b4169a44a4d28",
+            "bytes": 695686,
+            "imports": [
+              {
+                "module": "rocci",
+                "name": "resource_drop",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "env",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "body",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "transaction",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "sql",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "log",
+                "kind": "function"
+              }
+            ]
+          },
+          {
+            "fixture": "transactions",
+            "sha256": "eef0a4c0d806cfaa8db1baf141238e981df16e72063b6c1bf2a5d3205dafe2b9",
+            "bytes": 491322,
+            "imports": [
+              {
+                "module": "rocci",
+                "name": "resource_drop",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "sleep",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "transaction",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "sql",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "log",
+                "kind": "function"
+              }
+            ]
+          },
+          {
+            "fixture": "async",
+            "sha256": "d97494c562da73e18c447f8cb5d6ae181b6df05ddb3f1afd437011d251f70986",
+            "bytes": 375505,
+            "imports": [
+              {
+                "module": "rocci",
+                "name": "resource_drop",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "env",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "http",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "body",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "sleep",
+                "kind": "function"
+              },
+              {
+                "module": "rocci",
+                "name": "log",
+                "kind": "function"
+              }
+            ]
+          }
+        ]
+      },
+      "worker-release/run-xiBqLi/plain-roc-conformance.json": {
+        "platform": "7oEt9rzB5hyw3vhAm2dfU9RkzvsB2Ukh5eqyaLiZpq4q.tar.zst",
+        "runtime": "rocci-worker-runtime.tar.gz",
+        "metrics": {
+          "liveBytes": 0,
+          "liveAllocations": 0,
+          "memoryBytes": 9895936,
+          "resources": 0
+        },
+        "passed": true
+      },
+      "worker-release/run-xiBqLi/rocci-worker-platform.json": {
+        "abi": 1,
+        "bundle": "7oEt9rzB5hyw3vhAm2dfU9RkzvsB2Ukh5eqyaLiZpq4q.tar.zst",
+        "compiler": "nightly-2026-10-09-258ab27",
+        "format": 1,
+        "runtime": "rocci-worker-runtime.tar.gz",
+        "version": "0.1.2"
+      },
+      "worker-transactions/results.json": {
+        "scope": "Actual local workerd and real Roc continuation",
+        "scenarios": [
+          "commit",
+          "two-write rollback",
+          "final-reference drop rollback",
+          "typed error recovery",
+          "trap reconstruction",
+          "unsupported effect rollback",
+          "post-commit error preserves commit"
+        ],
+        "metrics": {
+          "liveBytes": 0,
+          "liveAllocations": 0,
+          "memoryBytes": 18415616,
+          "resources": 0
+        }
+      }
+    }
+  }
 }

@@ -1,14 +1,20 @@
 ---
 type: Status
 title: Worker source portability implementation evidence
-description: Phase microplans, frozen source promises and measured qualification of a real Roc Worker ABI; managed compatibility remains gated.
+description: Delivered experimental Worker packaging, individual phase microplans and pinned local, managed-provider and CI qualification evidence.
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-10-19T14:48:19Z }
+generated: { by: process:cursor, at: 2026-10-19T14:59:33Z }
 stale_after: 2026-11-19
 authority: descriptive
 owners: [human:nils]
 sources:
+  - id: ci
+    resource: https://github.com/koliyo/rocci/actions/runs/39272312080
+    title: Successful full CI on implementation revision 0e1b5f31
+  - id: knowledge-ci
+    resource: https://github.com/koliyo/rocci/actions/runs/39272323897
+    title: Successful Knowledge validation on the same implementation revision
   - id: plan
     resource: ../plans/rocci/worker-packaging-and-source-portability.md
     title: Requested phased implementation and acceptance gates
@@ -53,9 +59,41 @@ sources:
 # Worker source portability implementation evidence
 
 This record tracks execution requested after the original plan was written.
-No phase is logged complete until its required local, hosted and CI evidence
-exists on the implementation revision. The private actor deployment remains
-independent. The native compiler pin and working example sources are preserved.[^plan]
+The experimental managed Worker implementation covers phases 0–6 within the
+qualified profile below. Full CI and Knowledge succeeded on implementation
+revision `0e1b5f311a89ba6d8c3bea52e68e5ad914c0f2c8`. The private actor deployment
+remains independent. The native compiler pin and working example sources are
+preserved.[^plan][^ci][^knowledge-ci]
+
+## Delivery and validation boundary
+
+| Phase | Delivered and qualified |
+| --- | --- |
+| 0 | Frozen C0/C1/C2 bytes, capability profile, commands and explicit provider identity/storage ownership. |
+| 1 | Actual Roc JSPI, persistent ARC/finalizers, bounded admission and specialized dev/speed/size qualification on Node, workerd and a hosted preview. |
+| 2 | Unchanged C0 SQL/handlers, finite response/native byte parity and durable reconstruction locally and hosted. |
+| 3 | Actual managed transaction rendezvous and failure visibility, body/fetch limits, cancellation and delayed rollback fencing. |
+| 4 | Unchanged C1/C2 live handlers, two browsers/readers, concurrent commands, idle polling, reconnect and cleanup with bounded delivery. |
+| 5 | Public generated npm/Wrangler workflow, integrity locks, atomic output, exact deploy graph and fresh independent starter. |
+| 6 | Shared compiler/editor profile, source declaration diagnostics, plain Roc distribution, public docs and retained verified-artifact CI. |
+
+All seven CI jobs passed: Linux/macOS offline workspace tests, native Roc lane,
+editor extensions, lint, docs/fixtures and Worker artifact conformance. The
+Worker job starts with an empty compiler cache, then tests the normal install,
+all three maintained optimization profiles, npm/dev/watch/dry deployment and
+standalone archive extraction. Artifact `12195979026` stores the exact tested
+application Wasms and measurements. Its JSON evidence is copied into the
+companion record.[^ci][^evidence]
+
+Knowledge validation passes with existing unused-source-footnote and three
+broken-concept-link warnings elsewhere in the bundle; no validation error,
+lifecycle warning or repository-provenance warning was observed. Records remain
+draft and no human verification event was invented.[^knowledge-ci]
+
+This qualification does not publish a release or claim whole-isolate provider
+residency/idle economics, exhaustive load/replacement acceptance, Windows or an
+additional provider. Those limits remain explicit beside the preview. Phase 7
+is optional follow-on work in the requested plan.[^plan][^runtime]
 
 ## Phase 0 microplan and source promises
 
@@ -205,11 +243,13 @@ a dry deploy that verifies the exact Wasm bytes.[^config][^packaging][^guide][^e
 
 The real Worker compiler child now returns hover using the same pin; file URLs
 encode spaces correctly, and VS Code forwards workspace trust. Host analysis
-continues without compiler trust. The offline workspace suite, workspace deps,
+continues without compiler trust. The supported browser playground cross-check
+(`cargo check -p rocci-playground-wasm --target wasm32-unknown-unknown`) also
+passes; its dependency graph does not include the desktop LSP. The offline workspace suite, workspace deps,
 release artifact tests, full workspace clippy, Wasm-host clippy, Rust formatting,
 VS Code lint/compile and docs build have passed locally. The generated guide's
 navigation and layout were inspected. Hosted CI and Knowledge run IDs on the
-implementation revision must be recorded before any phase-completion log.
+implementation revision are recorded above after successful completion.
 The standalone release archive was extracted, compiled with plain Roc and run
 with the packaged JS runtime, then torn down with zero live allocations or host
 resources. Generated logs/traps identify the authored init/route/live declaration;
@@ -254,3 +294,6 @@ body/fetch, source, cleanup and actual-provider tests.[^qualification][^evidence
 [^editor]: Shared embedded platform sources, encoded paths and projection staging.
 [^evidence]: Measured results with exact artifacts, pins, scope and limitations.
 [^guide]: Public preview walkthrough and limitations beside the workflow.
+
+[^ci]: Full hosted CI succeeded on the implementation revision; all seven jobs passed.
+[^knowledge-ci]: The same revision passed the repository Knowledge workflow.

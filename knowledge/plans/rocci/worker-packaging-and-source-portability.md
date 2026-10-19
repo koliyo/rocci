@@ -4,7 +4,7 @@ title: Deploy ordinary Rocci applications as Workers
 description: Preserve the original Counter.rocci and progressively broader Roc handlers through a custom Worker platform, JSPI effects, generated hosting and ordinary Wrangler workflows.
 tags: [domain/rocci, domain/runtime, integration/roc, integration/datastar, concern/architecture, concern/packaging]
 status: draft
-generated: { by: process:cursor, at: 2026-10-19T14:42:11Z }
+generated: { by: process:cursor, at: 2026-10-19T14:59:33Z }
 stale_after: 2026-11-19
 authority: exploratory
 owners: [human:nils]
@@ -171,8 +171,10 @@ Planning baseline: checkout `d8b609d2582a0ca8bde25669f3a8213512c8a8a3`,
 and public primary documentation were reviewed. That was the planning-only baseline. A subsequent implementation request now
 has [phase microplans and measured execution evidence](/status/worker-source-portability.md).
 The Worker preview implements the commands, strict configuration, compatible
-platform, generated hosting and editor profile. Release and phase-completion
-claims remain gated on the implementation revision's required CI.[^execution]
+platform, generated hosting and editor profile. Implementation revision
+`0e1b5f311a89ba6d8c3bea52e68e5ad914c0f2c8` passed full CI and Knowledge; the
+execution record stores run IDs, phase outcomes and measured limits. Release
+publication and optional broader-provider/economics work remain separate.[^execution]
 
 Existing evidence is encouraging but narrower: the recorded local probe
 successfully ran 1,000 sequential **C-Wasm** timer suspensions on workerd
