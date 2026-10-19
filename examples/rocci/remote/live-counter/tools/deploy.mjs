@@ -20,7 +20,7 @@ const tested = JSON.parse(await readFile(path.join(dir, 'dist/tested.json'), 'ut
 if (hash(JSON.stringify(tested.files)) !== hash(JSON.stringify(await fingerprint())))
   throw new Error('Package, source, configuration or assets changed after conformance; package and test again');
 // No rebuild here. Only the packaged JavaScript and core Wasm are uploaded.
-const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'deploy', path.join(dir, 'dist/bundle/index.js'), '--no-bundle', '--config', 'dist/wrangler.json'], {
+const result = spawnSync(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'deploy', path.join(dir, 'dist/bundle/index.js'), '--no-bundle', '--config', 'dist/wrangler.json', '--durable-objects-code-update-mode', 'immediate'], {
   cwd: dir, env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: values.CLOUDFLARE_ACCOUNT_ID,
     ...(values.CLOUDFLARE_API_TOKEN ? { CLOUDFLARE_API_TOKEN: values.CLOUDFLARE_API_TOKEN } : {}) }, encoding: 'utf8',
 });

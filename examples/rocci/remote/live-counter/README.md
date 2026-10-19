@@ -137,6 +137,9 @@ checks and actual local workerd/SQLite fault and recovery scenarios. Tests
 stamp the package/config/assets/source fingerprint in `dist/tested.json`.
 `deploy` refuses changed or untested artifacts and uploads that bundle with
 `--no-bundle`; it never rebuilds it. After changes, rebuild/package/test again.
+Deployment explicitly requests immediate Durable Object code replacement,
+so open streams reconnect instead of indefinitely retaining an older actor
+version. A reconnect always receives a current durable snapshot.
 Generated configuration excludes the API token. Source, generated Roc,
 Wasm, assets, tool pins and ABI/schema versions are hashed in
 `dist/manifest.json`; bundle hashes are in `dist/package.json`. Deployment

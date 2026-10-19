@@ -34,12 +34,21 @@ impl ReadinessGate {
 
     fn set(&self, ready: bool) -> Result<(), ReadinessSetError> {
         let desired = if ready { READY } else { NOT_READY };
-        self.state
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
-                (current != STOPPING).then_some(desired)
-            })
-            .map(|_| ())
-            .map_err(|_| ReadinessSetError::ServerStopping)
+        let mut current = self.state.load(Ordering::Acquire);
+        loop {
+            if current == STOPPING {
+                return Err(ReadinessSetError::ServerStopping);
+            }
+            match self.state.compare_exchange_weak(
+                current,
+                desired,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => return Ok(()),
+                Err(actual) => current = actual,
+            }
+        }
     }
 
     fn begin_stopping(&self) {
