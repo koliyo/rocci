@@ -95,10 +95,12 @@ export class Counter extends DurableObject<Env> {
   private streams = new Streams(() => {
     // Presentation ticks use the last completed durable snapshot, never a new SQL read.
     return this.capture(this.streams.latest!.state);
-  }, () => {
-    // One row per object heartbeat, shared by every viewer. Accessing storage
-    // detects a replaced actor even when its old HTTP streams remain alive.
-    this.exec('SELECT revision FROM counter_state WHERE id=1').one();
+  }, async () => {
+    // A synchronous SQLite read can still use the old actor's local database.
+    // Force a real durable write, shared by every viewer, before more bytes.
+    // This metadata is independent of domain state and operation receipts.
+    await this.ctx.storage.put('__stream_ownership', crypto.randomUUID(), { noCache: true });
+    await this.ctx.storage.sync();
   });
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);

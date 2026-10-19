@@ -55,7 +55,7 @@ test('replacement fences every old stream at the shared heartbeat and stops both
   t.mock.timers.enable({ apis: ['setInterval'] });
   const snapshot = { state: { count: '1', revision: '1', clicks: [] }, html: '<div id="counter">1</div><div id="counter-feed"></div>' };
   let replaced = false, checks = 0;
-  const streams = new host.Streams(() => snapshot, () => {
+  const streams = new host.Streams(() => snapshot, async () => {
     checks++;
     if (replaced) throw new Error('Actor no longer owns storage');
   });
@@ -67,6 +67,7 @@ test('replacement fences every old stream at the shared heartbeat and stops both
   await Promise.all([a.read(), b.read()]);
   replaced = true;
   t.mock.timers.tick(15000);
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(streams.size, 0);
   await Promise.all([assert.rejects(a.read()), assert.rejects(b.read())]);
   t.mock.timers.tick(60000);

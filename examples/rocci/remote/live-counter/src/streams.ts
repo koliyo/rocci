@@ -14,8 +14,9 @@ export class Streams {
   private viewers = new Set<Viewer>();
   private heartbeat?: ReturnType<typeof setInterval>;
   private clock?: ReturnType<typeof setInterval>;
+  private checkingOwnership = false;
   latest?: Snapshot;
-  constructor(private refresh: () => Snapshot, private checkOwnership: () => void = () => {}) {}
+  constructor(private refresh: () => Snapshot, private checkOwnership: () => void | Promise<void> = () => {}) {}
   get size(): number { return this.viewers.size; }
   subscribe(): { response: Response; viewer: Viewer } {
     if (this.size >= 20) throw new Error('Viewer capacity reached');
@@ -30,13 +31,16 @@ export class Streams {
     // Native stream cancellation rejects writer.closed even while no snapshot is pending.
     void writer.closed.then(() => this.remove(viewer), () => this.remove(viewer));
     if (!this.heartbeat) {
-      this.heartbeat = setInterval(() => {
+      this.heartbeat = setInterval(async () => {
+        if (this.checkingOwnership) return;
+        this.checkingOwnership = true;
         try {
           // Old HTTP responses can survive actor replacement until they touch
           // storage. Fence the shared heartbeat before emitting more bytes.
-          this.checkOwnership();
+          await this.checkOwnership();
           for (const v of this.viewers) { v.heartbeat = true; v.wake?.(); }
         } catch { for (const viewer of this.viewers) this.remove(viewer); }
+        finally { this.checkingOwnership = false; }
       }, 15000);
       this.clock = setInterval(() => {
         try { if (this.latest) this.publish(this.refresh()); }
