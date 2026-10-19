@@ -137,7 +137,12 @@ checks and actual local workerd/SQLite fault and recovery scenarios. Tests
 stamp the package/config/assets/source fingerprint in `dist/tested.json`.
 `deploy` refuses changed or untested artifacts and uploads that bundle with
 `--no-bundle`; it never rebuilds it. After changes, rebuild/package/test again.
-Deployment explicitly requests immediate Durable Object code replacement.
+Deployment uploads the tested bundle, then explicitly activates that exact
+version with `wrangler versions deploy VERSION@100 --yes` and immediate Durable
+Object code replacement. This second step is required by the hosted drill:
+the declarative-export upload path's automatic deployment left the active
+streamed actor on its old version. A failed activation makes deployment fail;
+inspect `dist/deployment.txt` before retrying.
 Cloudflare's global rollout is still eventually consistent: verify the actor's
 reported version, and keep adjacent versions compatible during propagation.
 Streams reconnect when their actor is replaced and receive a durable snapshot.
@@ -248,11 +253,15 @@ frame plus one latest pending snapshot, and caps viewers at 20 per object.
 Heartbeats run every 15 seconds; age refreshes run every minute only while
 viewers exist. Cancellation clears viewers/timers, sometimes after the next
 heartbeat detects the closed connection. Both incoming-request signal flags
-are explicitly enabled. Each shared heartbeat reads one storage row to verify
+are explicitly enabled. Each shared heartbeat durably writes one small lease
+marker in the object's KV metadata to verify
 actor ownership: Cloudflare can let an old HTTP stream survive replacement
-until it touches storage. A failed ownership read aborts every old stream,
-forcing resynchronization. This is at most four ownership reads per minute
-per active object, independent of viewer count. Domain rendering is driven by
+until it touches storage. A synchronous SQLite read did not fence the old
+streams in the hosted drill; the marker write is followed by `storage.sync()`.
+A failed ownership write aborts every old stream, forcing resynchronization.
+This is at most four small metadata writes per minute per active object,
+independent of viewer count; no extra domain operation or receipt is created.
+Domain rendering is driven by
 commits and minute ticks, without the native 100ms state/render poll. Open SSE
 connections do not hibernate. See [global uniqueness](https://developers.cloudflare.com/durable-objects/platform/known-issues/#global-uniqueness).
 
@@ -329,11 +338,28 @@ linked [status record](../../../../knowledge/status/portable-actor-backends.md).
 Required CI and Knowledge run IDs remain distinct from local test results.
 
 For a disposable restore/probe Worker, export first and confirm the exact
-Worker/namespace/hostname before deleting it in Workers & Pages. Namespace or
-class deletion can permanently erase stored counters and receipts. Remove
-only that disposable hostname's Custom Domain/DNS and its Access destination;
-leave the demo and unrelated policies intact. Cloudflare does not automatically
+Worker/namespace/hostname. Namespace or class deletion permanently erases stored
+counters and receipts. Retire the class before deleting its Worker:
+
+1. In a separate cleanup configuration targeting **only the disposable Worker**,
+   remove its `Counter` class from code and remove its `COUNTERS` binding. Keep
+   the owner authentication gate, returning `410` for authenticated requests.
+2. Replace its live export with
+   `"exports": { "Counter": { "type": "durable-object", "state": "deleted" } }`.
+   Review a dry run, then deploy this tombstone. Cloudflare must report
+   `Deleted: Counter`; verify the disposable namespace is gone and the retained
+   namespace still exists. Respect external-binding errors; do not force deletion.
+3. Delete only the retired Worker and its Custom Domain/DNS, then remove that
+   disposable hostname from Access. Preserve the retained hostname and policy.
+
+This procedure follows Cloudflare's
+[class deletion contract](https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/#delete-a-durable-object-class)
+and was exercised on the hosted restore namespace. Cloudflare does not automatically
 remove a Custom Domain's generated certificate when the domain is removed;
 remove that unused certificate explicitly under SSL/TLS → Edge Certificates
-when retiring the disposable domain. Revoke a temporary deployment token when
+when retiring the disposable domain. If its dashboard deletion fails with
+“Your certificate could not be deleted,” preserve the certificate ID and contact
+Cloudflare support; do not delete a different certificate or enable a paid plan
+as a workaround. The dated status record records any outstanding provider cleanup.
+Revoke a temporary deployment token when
 no longer needed. The optional celld deployment remains a later plan gate.
