@@ -19,4 +19,4 @@ packages = ["src/rocci_ops"]
 testpaths = ["tests"]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = ["pytest>=9.2.0"]
